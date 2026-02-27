@@ -281,10 +281,10 @@ class Client(TraceDataExtractor):
 
     def _warn_if_phoenix_is_not_running(self) -> None:
         try:
-            self._client.get("arize_phoenix_version").raise_for_status()
+            self._client.get("metrostar_phoenix_version").raise_for_status()
         except Exception:
             logger.warning(
-                f"Arize Phoenix is not running on {self.web_url}. Launch Phoenix "
+                f"MetroStar Phoenix is not running on {self.web_url}. Launch Phoenix "
                 f"with `import phoenix as px; px.launch_app()`"
             )
 

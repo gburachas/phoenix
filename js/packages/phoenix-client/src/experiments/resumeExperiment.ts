@@ -155,7 +155,7 @@ async function handleFetchError(
     let versionInfo = "";
     try {
       const baseUrl = client.config.baseUrl || "";
-      const versionRes = await fetch(`${baseUrl}/arize_phoenix_version`);
+      const versionRes = await fetch(`${baseUrl}/metrostar_phoenix_version`);
       if (versionRes.ok) {
         const version = await versionRes.text();
         versionInfo = ` Your current server version is ${version}.`;

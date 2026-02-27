@@ -129,9 +129,9 @@ class HttpExporter:
 
 def _warn_if_phoenix_is_not_running(base_url: str) -> None:
     try:
-        httpx.get(urljoin(base_url, "arize_phoenix_version")).raise_for_status()
+        httpx.get(urljoin(base_url, "metrostar_phoenix_version")).raise_for_status()
     except Exception:
         logger.warning(
-            f"Arize Phoenix is not running on {base_url}. Launch Phoenix "
+            f"MetroStar Phoenix is not running on {base_url}. Launch Phoenix "
             f"with `import phoenix as px; px.launch_app()`"
         )

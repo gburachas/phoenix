@@ -1243,7 +1243,7 @@ class Experiments:
                         version_info = ""
                         try:
                             version_resp = self._client.get(
-                                "arize_phoenix_version", timeout=timeout
+                                "metrostar_phoenix_version", timeout=timeout
                             )
                             version_info = f" Your current server version is {version_resp.text}."
                         except Exception:
@@ -1442,7 +1442,7 @@ class Experiments:
                         version_info = ""
                         try:
                             version_resp = self._client.get(
-                                "arize_phoenix_version", timeout=timeout
+                                "metrostar_phoenix_version", timeout=timeout
                             )
                             version_info = f" Your current server version is {version_resp.text}."
                         except Exception:
@@ -2983,7 +2983,7 @@ class AsyncExperiments:
                         version_info = ""
                         try:
                             version_resp = await self._client.get(
-                                "arize_phoenix_version", timeout=timeout
+                                "metrostar_phoenix_version", timeout=timeout
                             )
                             version_info = f" Your current server version is {version_resp.text}."
                         except Exception:
@@ -3186,7 +3186,7 @@ class AsyncExperiments:
                         version_info = ""
                         try:
                             version_resp = await self._client.get(
-                                "arize_phoenix_version", timeout=timeout
+                                "metrostar_phoenix_version", timeout=timeout
                             )
                             version_info = f" Your current server version is {version_resp.text}."
                         except Exception:

@@ -426,6 +426,7 @@ ProjectRowId: TypeAlias = int
 
 
 @router.get("/arize_phoenix_version")
+@router.get("/metrostar_phoenix_version")
 async def version() -> PlainTextResponse:
     return PlainTextResponse(f"{phoenix_version}")
 
