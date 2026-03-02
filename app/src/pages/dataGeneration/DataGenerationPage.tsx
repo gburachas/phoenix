@@ -22,6 +22,7 @@ import { tableCSS } from "@phoenix/components/table/styles";
 import { TimestampCell } from "@phoenix/components/table/TimestampCell";
 
 import type { DataGenerationPageQuery } from "./__generated__/DataGenerationPageQuery.graphql";
+import { DataGenPipelineBuilder } from "./DataGenPipelineBuilder";
 
 const tabBarCSS = css`
   display: flex;
@@ -182,9 +183,36 @@ export function DataGenerationPage() {
   );
 }
 
+const newJobPanelCSS = css`
+  border: 1px solid var(--ac-global-color-grey-300);
+  border-radius: var(--ac-global-rounding-medium);
+  margin-bottom: var(--ac-global-dimension-size-200);
+`;
+
+const panelToggleCSS = css`
+  display: flex;
+  align-items: center;
+  gap: var(--ac-global-dimension-size-100);
+  padding: var(--ac-global-dimension-size-100)
+    var(--ac-global-dimension-size-200);
+  cursor: pointer;
+  user-select: none;
+  background: var(--ac-global-background-color-light);
+  border: none;
+  width: 100%;
+  text-align: left;
+  border-radius: var(--ac-global-rounding-medium);
+  font-size: var(--ac-global-dimension-font-size-100);
+  color: var(--ac-global-text-color-900);
+  &:hover {
+    background: var(--ac-global-color-grey-100);
+  }
+`;
+
 function DataGenerationContent() {
   const [activeTab, setActiveTab] = useState<"jobs" | "adapters">("jobs");
   const [fetchKey, setFetchKey] = useState(0);
+  const [showNewJob, setShowNewJob] = useState(false);
 
   const data = useLazyLoadQuery<DataGenerationPageQuery>(
     graphql`
@@ -297,14 +325,45 @@ function DataGenerationContent() {
       {/* Content */}
       <View flex="1 1 auto" overflow="auto" padding="size-200">
         {activeTab === "jobs" ? (
-          jobRows.length === 0 ? (
-            <EmptyState
-              title="No data generation jobs"
-              description="Create a job to generate test datasets from your corpus."
-            />
-          ) : (
-            <DataTable columns={jobColumns} data={jobRows} />
-          )
+          <>
+            {/* Collapsible New Job panel */}
+            <div css={newJobPanelCSS}>
+              <button
+                css={panelToggleCSS}
+                onClick={() => setShowNewJob((v) => !v)}
+              >
+                <Icon
+                  svg={
+                    showNewJob ? (
+                      <Icons.ArrowIosDownwardOutline />
+                    ) : (
+                      <Icons.ArrowIosForwardOutline />
+                    )
+                  }
+                />
+                <Text weight="heavy">
+                  {showNewJob ? "Hide New Job" : "New Job"}
+                </Text>
+              </button>
+              {showNewJob && (
+                <DataGenPipelineBuilder
+                  onJobCreated={() => {
+                    setFetchKey((prev) => prev + 1);
+                    setShowNewJob(false);
+                  }}
+                />
+              )}
+            </div>
+
+            {jobRows.length === 0 ? (
+              <EmptyState
+                title="No data generation jobs"
+                description="Create a job to generate test datasets from your corpus."
+              />
+            ) : (
+              <DataTable columns={jobColumns} data={jobRows} />
+            )}
+          </>
         ) : adapterRows.length === 0 ? (
           <EmptyState
             title="No LLM adapters configured"

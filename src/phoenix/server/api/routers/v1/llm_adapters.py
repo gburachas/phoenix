@@ -191,9 +191,9 @@ async def create_llm_adapter(
         )
         session.add(adapter)
         await session.flush()
-        await session.refresh(adapter)
-        await session.commit()
-    return ResponseBody(data=_to_response(adapter))
+        await session.refresh(adapter, ["created_at", "updated_at"])
+        response = _to_response(adapter)
+    return ResponseBody(data=response)
 
 
 @router.patch(
@@ -218,9 +218,10 @@ async def update_llm_adapter(
             update_data["metadata_"] = update_data.pop("metadata")
         for field, value in update_data.items():
             setattr(adapter, field, value)
-        await session.commit()
-        await session.refresh(adapter)
-    return ResponseBody(data=_to_response(adapter))
+        await session.flush()
+        await session.refresh(adapter, ["updated_at"])
+        response = _to_response(adapter)
+    return ResponseBody(data=response)
 
 
 @router.delete(
@@ -240,7 +241,6 @@ async def delete_llm_adapter(
                 status_code=HTTP_404_NOT_FOUND, detail="LLM adapter not found"
             )
         await session.delete(adapter)
-        await session.commit()
     return ResponseBody(data={"deleted": True})
 
 
