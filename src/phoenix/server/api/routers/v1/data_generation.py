@@ -1,13 +1,14 @@
 """REST API router for Data Generation job management.
 
 Provides CRUD operations and lifecycle management for test-data generation jobs.
+Job runner is triggered automatically on job creation via BackgroundTasks.
 """
 
 import logging
 from datetime import datetime
 from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from sqlalchemy import select
 from starlette.requests import Request
 from starlette.status import HTTP_404_NOT_FOUND, HTTP_409_CONFLICT, HTTP_422_UNPROCESSABLE_ENTITY
@@ -127,26 +128,35 @@ async def get_data_generation_job(
 async def create_data_generation_job(
     request: Request,
     body: CreateDataGenerationJobRequest,
+    background_tasks: BackgroundTasks,
 ) -> ResponseBody[DataGenerationJob]:
     async with request.app.state.db() as session:
         job = models.DataGenerationJob(
             name=body.name,
             corpus_source=body.corpus_source,
-            corpus_config=body.corpus_config,
-            sampling_strategy=body.sampling_strategy,
-            sample_size=body.sample_size,
+            corpus_config=body.corpus_config or {},
+            sampling_strategy=body.sampling_strategy or "random",
+            sample_size=body.sample_size or 50,
             testset_llm_adapter_id=body.testset_llm_adapter_id,
             transform_llm_adapter_id=body.transform_llm_adapter_id,
-            llm_config=body.llm_config,
+            llm_config=body.llm_config or {},
             is_multimodal=body.is_multimodal,
             output_dataset_name=body.output_dataset_name,
             seed=body.seed,
+            artifacts={},
         )
         session.add(job)
         await session.flush()
-        await session.refresh(job)
-        await session.commit()
-    return ResponseBody(data=_to_response(job))
+        await session.refresh(job, ["created_at"])
+        job_id = job.id
+        response = _to_response(job)
+
+    # Schedule background execution
+    from .data_generation_runner import run_data_generation_job
+
+    background_tasks.add_task(run_data_generation_job, job_id, request.app.state.db)
+
+    return ResponseBody(data=response)
 
 
 @router.delete(
@@ -164,7 +174,6 @@ async def delete_data_generation_job(
         if job is None:
             raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Job not found")
         await session.delete(job)
-        await session.commit()
     return ResponseBody(data={"deleted": True})
 
 
@@ -188,6 +197,40 @@ async def cancel_data_generation_job(
                 detail=f"Cannot cancel job with status '{job.status}'",
             )
         job.status = "cancelled"
-        await session.commit()
-        await session.refresh(job)
+        await session.flush()
     return ResponseBody(data=_to_response(job))
+
+
+@router.post(
+    "/jobs/{job_id}/run",
+    operation_id="retryDataGenerationJob",
+    summary="Re-run a failed or cancelled data generation job",
+    responses=add_errors_to_responses([HTTP_404_NOT_FOUND, HTTP_422_UNPROCESSABLE_ENTITY]),
+)
+async def retry_data_generation_job(
+    request: Request,
+    job_id: int,
+    background_tasks: BackgroundTasks,
+) -> ResponseBody[DataGenerationJob]:
+    async with request.app.state.db() as session:
+        job = await session.get(models.DataGenerationJob, job_id)
+        if job is None:
+            raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Job not found")
+        if job.status not in ("failed", "cancelled"):
+            raise HTTPException(
+                status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Cannot retry job with status '{job.status}'. Only failed/cancelled jobs can be retried.",
+            )
+        job.status = "pending"
+        job.error_message = None
+        job.started_at = None
+        job.completed_at = None
+        job.artifacts = {}
+        await session.flush()
+        response = _to_response(job)
+
+    from .data_generation_runner import run_data_generation_job
+
+    background_tasks.add_task(run_data_generation_job, job_id, request.app.state.db)
+
+    return ResponseBody(data=response)

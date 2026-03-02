@@ -225,6 +225,7 @@ class DataGenerationMutationMixin:
                     is_multimodal=input.is_multimodal,
                     output_dataset_name=input.output_dataset_name,
                     seed=input.seed,
+                    artifacts={},
                 )
                 .returning(models.DataGenerationJob)
             )
