@@ -88,10 +88,12 @@ from phoenix.server.api.types.ExperimentRepeatedRunGroup import (
 )
 from phoenix.server.api.types.ExperimentRun import ExperimentRun
 from phoenix.server.api.types.GenerativeModel import GenerativeModel
+from phoenix.server.api.types.DataGenerationJob import DataGenerationJob
 from phoenix.server.api.types.GenerativeModelCustomProvider import (
     GenerativeModelCustomProvider,
 )
 from phoenix.server.api.types.GenerativeProvider import GenerativeProvider, GenerativeProviderKey
+from phoenix.server.api.types.LLMAdapter import LLMAdapter
 from phoenix.server.api.types.node import (
     from_global_id_with_expected_type,
     is_composite_global_id,
@@ -1753,6 +1755,56 @@ class Query:
         )
         async with info.context.db() as session:
             return await session.scalar(stmt) or 0
+
+    # ── MetroStar Data-Generation queries ──────────────────────────
+
+    @strawberry.field
+    async def llm_adapters(
+        self,
+        info: Info[Context, None],
+        first: Optional[int] = 50,
+        last: Optional[int] = UNSET,
+        after: Optional[CursorString] = UNSET,
+        before: Optional[CursorString] = UNSET,
+    ) -> Connection[LLMAdapter]:
+        args = ConnectionArgs(
+            first=first,
+            after=after if isinstance(after, CursorString) else None,
+            last=last,
+            before=before if isinstance(before, CursorString) else None,
+        )
+        stmt = select(models.LLMAdapter).order_by(models.LLMAdapter.name.asc())
+        async with info.context.db() as session:
+            adapters = await session.scalars(stmt)
+        return connection_from_list(
+            data=[LLMAdapter(id=a.id, db_record=a) for a in adapters],
+            args=args,
+        )
+
+    @strawberry.field
+    async def data_generation_jobs(
+        self,
+        info: Info[Context, None],
+        first: Optional[int] = 50,
+        last: Optional[int] = UNSET,
+        after: Optional[CursorString] = UNSET,
+        before: Optional[CursorString] = UNSET,
+    ) -> Connection[DataGenerationJob]:
+        args = ConnectionArgs(
+            first=first,
+            after=after if isinstance(after, CursorString) else None,
+            last=last,
+            before=before if isinstance(before, CursorString) else None,
+        )
+        stmt = select(models.DataGenerationJob).order_by(
+            models.DataGenerationJob.created_at.desc()
+        )
+        async with info.context.db() as session:
+            jobs = await session.scalars(stmt)
+        return connection_from_list(
+            data=[DataGenerationJob(id=j.id, db_record=j) for j in jobs],
+            args=args,
+        )
 
 
 def _consolidate_sqlite_db_table_stats(

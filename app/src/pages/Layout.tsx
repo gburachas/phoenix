@@ -125,6 +125,14 @@ function SideNav() {
               isExpanded={isSideNavExpanded}
             />
           </li>
+          <li key="data-generation">
+            <NavLink
+              to="/data-generation"
+              text="Data Generation"
+              leadingVisual={<Icon svg={<Icons.FileTextOutline />} />}
+              isExpanded={isSideNavExpanded}
+            />
+          </li>
           <li key="playground">
             <NavLink
               to="/playground"

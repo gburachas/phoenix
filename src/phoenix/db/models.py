@@ -2493,3 +2493,167 @@ def validate_provider_config(_: Any, __: Any, target: "GenerativeModelCustomProv
     """
     if not is_encrypted(target.config):
         raise ValueError("Config is not encrypted")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# MetroStar Phoenix — Data Generation & LLM Adapter Models
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class LLMAdapter(HasId):
+    """A registered LLM endpoint for generation, embedding, judging, or reranking.
+
+    Decouples pipeline definitions from hard-coded model configs, allowing users
+    to plug in Ollama, Azure OpenAI, vLLM, or any OpenAI-compatible endpoint.
+    """
+
+    __tablename__ = "llm_adapters"
+
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    provider: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # ollama | azure_openai | openai | vllm | custom
+    model_name: Mapped[str] = mapped_column(String, nullable=False)
+    endpoint: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    api_key_env_var: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    # Capability flags
+    can_embed: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+    can_generate: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+    can_judge: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+    can_multimodal: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+    can_rerank: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+
+    # Cost metadata (optional, for experiment budgeting)
+    cost_per_1k_input_tokens: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    cost_per_1k_output_tokens: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    max_context_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSON_)
+
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp, server_default=func.now(), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return f"<LLMAdapter {self.name!r} ({self.provider}/{self.model_name})>"
+
+
+class DataGenerationJob(HasId):
+    """A request to generate a synthetic test dataset.
+
+    Pipeline: corpus → sample → LLM transform → output dataset.
+    Tracks status through pending → running → completed/failed/cancelled.
+    """
+
+    __tablename__ = "data_generation_jobs"
+
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(
+        CheckConstraint(
+            "status IN ('pending', 'running', 'completed', 'failed', 'cancelled')",
+            name="valid_data_gen_status",
+        ),
+        nullable=False,
+        server_default=text("'pending'"),
+    )
+
+    # Corpus configuration
+    corpus_source: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # dataset | qdrant | directory | url
+    corpus_config: Mapped[dict[str, Any]] = mapped_column(JSON_)
+
+    # Sampling
+    sampling_strategy: Mapped[str] = mapped_column(
+        String, nullable=False, server_default=text("'random'")
+    )  # random | stratified | similarity | window
+    sample_size: Mapped[int] = mapped_column(Integer, server_default=text("50"))
+
+    # LLM pipeline — which adapters to use
+    testset_llm_adapter_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("llm_adapters.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    transform_llm_adapter_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("llm_adapters.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    llm_config: Mapped[dict[str, Any]] = mapped_column(JSON_)  # temperature, top_p, etc.
+    is_multimodal: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+
+    # Output
+    output_dataset_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    artifacts: Mapped[dict[str, Any]] = mapped_column(JSON_)
+
+    # Error tracking
+    error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    # Reproducibility
+    seed: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+    started_at: Mapped[Optional[datetime]] = mapped_column(UtcTimeStamp, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(UtcTimeStamp, nullable=True)
+
+    # Relationships
+    testset_llm_adapter: Mapped[Optional["LLMAdapter"]] = relationship(
+        "LLMAdapter", foreign_keys=[testset_llm_adapter_id]
+    )
+    transform_llm_adapter: Mapped[Optional["LLMAdapter"]] = relationship(
+        "LLMAdapter", foreign_keys=[transform_llm_adapter_id]
+    )
+
+    def __repr__(self) -> str:
+        return f"<DataGenerationJob {self.name!r} status={self.status}>"
+
+
+class EvaluationCriterion(HasId):
+    """A reusable evaluation/judge criterion (e.g., faithfulness, correctness).
+
+    Stores the prompt template, scoring rubric, and metadata so users can
+    define custom criteria in the UI and attach them to experiments.
+    """
+
+    __tablename__ = "evaluation_criteria"
+
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    category: Mapped[str] = mapped_column(
+        String, nullable=False, server_default=text("'custom'")
+    )  # faithfulness | correctness | relevance | toxicity | custom
+
+    # The judge prompt template
+    prompt_template: Mapped[str] = mapped_column(String, nullable=False)
+
+    # Scoring config
+    score_type: Mapped[str] = mapped_column(
+        String, nullable=False, server_default=text("'binary'")
+    )  # binary | likert_5 | numeric | label
+    score_labels: Mapped[dict[str, Any]] = mapped_column(JSON_)
+
+    # Which adapter to use for judging
+    default_judge_adapter_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("llm_adapters.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    is_builtin: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSON_)
+
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp, server_default=func.now(), onupdate=func.now()
+    )
+
+    default_judge_adapter: Mapped[Optional["LLMAdapter"]] = relationship(
+        "LLMAdapter", foreign_keys=[default_judge_adapter_id]
+    )
+
+    def __repr__(self) -> str:
+        return f"<EvaluationCriterion {self.name!r} ({self.category})>"

@@ -5,6 +5,7 @@ export * from "./ErrorElement";
 export * from "./TracingRoot";
 export * from "./ProjectsRoot";
 export * from "./projects";
+export * from "./dataGeneration";
 export * from "./datasets";
 export * from "./dataset";
 export * from "./example";

@@ -15,6 +15,7 @@ import {
   EVALUATOR_DETAILS_ROUTE_ID,
   EvaluatorTracePage,
 } from "@phoenix/pages/dataset/evaluators/EvaluatorTracePage";
+import { DataGenerationPage } from "@phoenix/pages/dataGeneration/DataGenerationPage";
 import { EvaluatorsPage } from "@phoenix/pages/evaluators/EvaluatorsPage";
 import { evaluatorsPageLoader } from "@phoenix/pages/evaluators/evaluatorsPageLoader";
 import { RootLayout } from "@phoenix/pages/RootLayout";
@@ -217,6 +218,13 @@ const router = createBrowserRouter(
               />
             </Route>
           </Route>
+          <Route
+            path="/data-generation"
+            element={<DataGenerationPage />}
+            handle={{
+              crumb: () => "Data Generation",
+            }}
+          />
           <Route
             path="/playground"
             handle={{
