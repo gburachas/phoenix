@@ -2,35 +2,36 @@ import { z } from "zod";
 
 import { TemplateFormats } from "@phoenix/components/templateEditor/constants";
 import { getTemplateFormatUtils } from "@phoenix/components/templateEditor/templateEditorUtils";
-import { TemplateFormat } from "@phoenix/components/templateEditor/types";
+import type { TemplateFormat } from "@phoenix/components/templateEditor/types";
 import {
   ChatRoleMap,
   DEFAULT_CHAT_ROLE,
   DEFAULT_MODEL_PROVIDER,
+  DEFAULT_OPENAI_API_TYPE,
   ProviderToCredentialsConfigMap,
 } from "@phoenix/constants/generativeConstants";
+import type { OpenAIToolDefinition } from "@phoenix/schemas";
 import {
-  createAnthropicToolDefinition,
-  createAwsToolDefinition,
-  createGeminiToolDefinition,
   createOpenAIToolDefinition,
   detectToolDefinitionProvider,
+  fromOpenAIToolDefinition,
+  openAIResponsesToOpenAI,
 } from "@phoenix/schemas";
-import { JSONLiteral } from "@phoenix/schemas/jsonLiteralSchema";
-import {
+import type { JSONLiteral } from "@phoenix/schemas/jsonLiteralSchema";
+import type { PhoenixToolEditorType } from "@phoenix/schemas/phoenixToolTypeSchemas";
+import type {
   AnthropicToolCall,
-  createAnthropicToolCall,
-  createOpenAIToolCall,
   LlmProviderToolCall,
   OpenAIToolCall,
 } from "@phoenix/schemas/toolCallSchemas";
-import { safelyConvertToolChoiceToProvider } from "@phoenix/schemas/toolChoiceSchemas";
-import { CredentialsState } from "@phoenix/store/credentialsStore";
 import {
+  createAnthropicToolCall,
+  createOpenAIToolCall,
+} from "@phoenix/schemas/toolCallSchemas";
+import { safelyConvertToolChoiceToProvider } from "@phoenix/schemas/toolChoiceSchemas";
+import type { CredentialsState } from "@phoenix/store/credentialsStore";
+import type {
   ChatMessage,
-  createNormalizedPlaygroundInstance,
-  generateMessageId,
-  generateToolId,
   ModelConfig,
   ModelInvocationParameterInput,
   PlaygroundInput,
@@ -40,14 +41,23 @@ import {
   Tool,
 } from "@phoenix/store/playground";
 import {
-  assertUnreachable,
-  isStringKeyedObject,
-  Mutable,
-} from "@phoenix/typeUtils";
-import { safelyParseJSON } from "@phoenix/utils/jsonUtils";
-
-import { ChatCompletionOverDatasetInput } from "./__generated__/PlaygroundDatasetExamplesTableSubscription.graphql";
+  createNormalizedPlaygroundInstance,
+  generateMessageId,
+  generateToolId,
+} from "@phoenix/store/playground";
+import type { Mutable } from "@phoenix/typeUtils";
+import { assertUnreachable, isStringKeyedObject } from "@phoenix/typeUtils";
 import {
+  formatContentAsString,
+  safelyParseJSON,
+} from "@phoenix/utils/jsonUtils";
+
+import type { InvocationParameter } from "../../components/playground/model/InvocationParametersFormFields";
+import type {
+  ChatCompletionOverDatasetInput,
+  EvaluatorInputMappingInput,
+} from "./__generated__/PlaygroundDatasetExamplesTableSubscription.graphql";
+import type {
   ChatCompletionInput,
   ChatCompletionMessageInput,
   ChatCompletionMessageRole,
@@ -70,16 +80,18 @@ import {
   TOOL_CHOICE_PARAM_NAME,
   TOOLS_PARSING_ERROR,
 } from "./constants";
-import { InvocationParameter } from "./InvocationParametersFormFields";
+import {
+  areInvocationParamsEqual,
+  constrainInvocationParameterInputsToDefinition,
+  toCamelCase,
+} from "./invocationParameterUtils";
+import type { JsonObjectSchema, LlmToolSchema, MessageSchema } from "./schemas";
 import {
   chatMessageRolesSchema,
   chatMessagesSchema,
-  JsonObjectSchema,
   llmInputMessageSchema,
   llmOutputMessageSchema,
-  LlmToolSchema,
   llmToolSchema,
-  MessageSchema,
   modelConfigSchema,
   modelConfigWithInvocationParametersSchema,
   modelConfigWithResponseFormatSchema,
@@ -87,7 +99,7 @@ import {
   promptTemplateSchema,
   urlSchema,
 } from "./schemas";
-import { PlaygroundSpan } from "./spanPlaygroundPageLoader";
+import type { PlaygroundSpan } from "./spanPlaygroundPageLoader";
 
 /**
  * Checks if a string is a valid chat message role
@@ -392,7 +404,7 @@ export function getBaseModelConfigFromAttributes(parsedAttributes: unknown): {
     const azureConfig =
       provider === "AZURE_OPENAI"
         ? getAzureConfigFromAttributes(parsedAttributes)
-        : { deploymentName: null, apiVersion: null, endpoint: null };
+        : { deploymentName: null, endpoint: null };
     const modelName =
       provider === "AZURE_OPENAI" && azureConfig.deploymentName
         ? azureConfig.deploymentName
@@ -403,7 +415,6 @@ export function getBaseModelConfigFromAttributes(parsedAttributes: unknown): {
           Object.entries({
             baseUrl,
             endpoint: azureConfig.endpoint,
-            apiVersion: azureConfig.apiVersion,
           }).filter(([_, value]) => value !== null)
         ),
         modelName,
@@ -418,11 +429,11 @@ export function getBaseModelConfigFromAttributes(parsedAttributes: unknown): {
 }
 
 /**
- * Temporary stopgap: Extract Azure config (deploymentName, apiVersion, endpoint)
+ * Temporary stopgap: Extract Azure config (deploymentName, endpoint)
  * from span attributes until vendor-specific OpenInference conventions exist.
  *
  * Important: This currently only works for two types of spans:
- * - Phoenix playground spans (URL present → parsed for deployment/apiVersion/endpoint)
+ * - Phoenix playground spans (URL present → parsed for deployment/endpoint)
  * - LangChain spans (metadata.ls_model_name)
  *
  * Note: For Azure, `llm.model_name` is NOT the deployment name.
@@ -431,7 +442,6 @@ export function getBaseModelConfigFromAttributes(parsedAttributes: unknown): {
  * 1) URL (preferred): When the request URL is present (most often on playground
  *    generated spans), parse it to extract:
  *    - deploymentName from the path segment: deployments/<name>/...
- *    - apiVersion from the query param: api-version=<version>
  *    - endpoint from the URL origin
  * 2) Metadata (fallback): If the URL is not present or not parseable, use
  *    `llm.metadata.ls_model_name` (commonly emitted by some LangChain spans) as
@@ -446,7 +456,6 @@ export function getBaseModelConfigFromAttributes(parsedAttributes: unknown): {
  */
 export function getAzureConfigFromAttributes(parsedAttributes: unknown): {
   deploymentName: string | null;
-  apiVersion: string | null;
   endpoint: string | null;
 } {
   const { success: metaSuccess, data: meta } =
@@ -457,16 +466,15 @@ export function getAzureConfigFromAttributes(parsedAttributes: unknown): {
     meta.metadata.ls_model_name.trim()
       ? meta.metadata.ls_model_name.trim()
       : null;
-  // Derive deployment name, endpoint and apiVersion from URL when available
+  // Derive deployment name and endpoint from URL when available
   const { success: urlSuccess, data: urlData } =
     urlSchema.safeParse(parsedAttributes);
-  const { endpoint, apiVersion, deploymentName } = urlSuccess
+  const { endpoint, deploymentName } = urlSuccess
     ? parseAzureDeploymentInfoFromUrl(urlData.url.full)
-    : { endpoint: null, apiVersion: null, deploymentName: null };
+    : { endpoint: null, deploymentName: null };
   return {
     // URL takes precedence when present; fall back to metadata-derived name
     deploymentName: deploymentName ?? deploymentNameFromMetadata,
-    apiVersion,
     endpoint,
   };
 }
@@ -550,9 +558,12 @@ export function getResponseFormatFromAttributes(parsedAttributes: unknown) {
 }
 
 /**
- * Processes the tools from the span attributes into OpenAI tools to be used in the playground
+ * Processes the tools from the span attributes to be used in the playground.
+ * Provider-specific formats (Gemini, Anthropic, AWS, etc.) are preserved as-is.
+ * OpenAI Responses API tools are normalized to Chat Completions format since
+ * the playground only supports Chat Completions tools for now.
  * @param tools tools from the span attributes
- * @returns playground OpenAI tools
+ * @returns playground tools
  */
 function processAttributeTools(tools: LlmToolSchema): Tool[] {
   return (tools?.llm?.tools ?? [])
@@ -560,10 +571,17 @@ function processAttributeTools(tools: LlmToolSchema): Tool[] {
       if (tool?.tool == null) {
         return null;
       }
+      const rawDefinition = tool.tool.json_schema;
+      // Normalize OpenAI Responses API tools to Chat Completions format,
+      // since the playground only supports Chat Completions tools for now.
+      // All other provider formats are kept as-is.
+      const definition =
+        openAIResponsesToOpenAI.safeParse(rawDefinition).data ?? rawDefinition;
       return {
         id: generateToolId(),
-        definition: tool.tool.json_schema,
-      };
+        editorType: "json",
+        definition,
+      } satisfies Tool;
     })
     .filter((tool): tool is NonNullable<typeof tool> => tool != null);
 }
@@ -722,7 +740,7 @@ export function transformSpanAttributesToPlaygroundInstance(
       // If the message is a tool message, we need to normalize the content
       content:
         message.role === "tool"
-          ? normalizeMessageContent(message.content)
+          ? formatContentAsString(message.content)
           : message.content,
     };
   });
@@ -784,7 +802,7 @@ export const extractVariablesFromInstance = ({
   instance: PlaygroundInstance;
   templateFormat: TemplateFormat;
 }) => {
-  if (templateFormat == TemplateFormats.NONE) {
+  if (templateFormat === TemplateFormats.NONE) {
     return [];
   }
   const variables = new Set<string>();
@@ -830,7 +848,7 @@ export const extractVariablesFromInstances = ({
   instances: PlaygroundInstance[];
   templateFormat: TemplateFormat;
 }) => {
-  if (templateFormat == TemplateFormats.NONE) {
+  if (templateFormat === TemplateFormats.NONE) {
     return [];
   }
   return Array.from(
@@ -842,6 +860,28 @@ export const extractVariablesFromInstances = ({
   );
 };
 
+/**
+ * Extracts the root variable name from a path expression.
+ *
+ * @example
+ * extractRootVariable("reference.label") // => "reference"
+ * extractRootVariable("user.address.city") // => "user"
+ * extractRootVariable("items[0].name") // => "items"
+ * extractRootVariable("simple") // => "simple"
+ */
+export const extractRootVariable = (path: string): string => {
+  const match = path.match(/^([^.[\]]+)/);
+  return match ? match[1] : path;
+};
+
+/**
+ * Extracts the root variable names from a list of paths.
+ * Returns unique root variable names.
+ */
+export const extractRootVariables = (paths: string[]): string[] => {
+  return Array.from(new Set(paths.map(extractRootVariable)));
+};
+
 export const getVariablesMapFromInstances = ({
   instances,
   templateFormat,
@@ -851,7 +891,7 @@ export const getVariablesMapFromInstances = ({
   templateFormat: TemplateFormat;
   input: PlaygroundInput;
 }) => {
-  if (templateFormat == TemplateFormats.NONE) {
+  if (templateFormat === TemplateFormats.NONE) {
     return { variablesMap: {}, variableKeys: [] };
   }
   const variableKeys = extractVariablesFromInstances({
@@ -870,48 +910,6 @@ export const getVariablesMapFromInstances = ({
   );
   return { variablesMap, variableKeys };
 };
-
-export function areInvocationParamsEqual(
-  paramA: InvocationParameter | InvocationParameterInput,
-  paramB: InvocationParameter | InvocationParameterInput
-) {
-  return (
-    paramA.invocationName === paramB.invocationName ||
-    // loose null comparison to catch undefined and null
-    (paramA.canonicalName != null &&
-      paramB.canonicalName != null &&
-      paramA.canonicalName === paramB.canonicalName)
-  );
-}
-
-/**
- * Filter out parameters that are not supported by a model's invocation parameter schema definitions.
- */
-export const constrainInvocationParameterInputsToDefinition = (
-  invocationParameterInputs: InvocationParameterInput[],
-  definitions: InvocationParameter[]
-) => {
-  return invocationParameterInputs
-    .filter((ip) =>
-      // An input should be kept if it matches an invocation name in the definitions
-      // or if it has a canonical name that matches a canonical name in the definitions.
-      definitions.some((mp) => areInvocationParamsEqual(mp, ip))
-    )
-    .map((ip) => ({
-      // Transform the invocationName to match the new name from the incoming
-      // modelSupportedInvocationParameters.
-      ...ip,
-      invocationName:
-        definitions.find((mp) => areInvocationParamsEqual(mp, ip))
-          ?.invocationName ?? ip.invocationName,
-    }));
-};
-
-/**
- * Converts a string from snake_case to camelCase.
- */
-export const toCamelCase = (str: string) =>
-  str.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
 
 /**
  * Transform invocation parameters from span attributes into InvocationParameterInput type.
@@ -970,43 +968,31 @@ export const getToolName = (tool: Tool): string | null => {
  * Creates a tool definition for the given provider
  * @param provider the provider to create the tool for
  * @param toolNumber the tool number to create - used for naming the tool
- * returns a tool definition for the given provider
+ * @param type the type of the tool
+ * @param definition the definition of the tool. In OpenAI format, will be converted to the appropriate format for the provider.
+ * @returns a tool definition for the given provider
  */
 export const createToolForProvider = ({
   provider,
   toolNumber,
+  type = "json",
+  definition,
 }: {
   provider: ModelProvider;
   toolNumber: number;
+  type?: PhoenixToolEditorType;
+  definition?: OpenAIToolDefinition;
 }): Tool => {
-  switch (provider) {
-    case "OPENAI":
-    case "DEEPSEEK":
-    case "XAI":
-    case "OLLAMA":
-    case "AZURE_OPENAI":
-      return {
-        id: generateToolId(),
-        definition: createOpenAIToolDefinition(toolNumber),
-      };
-    case "ANTHROPIC":
-      return {
-        id: generateToolId(),
-        definition: createAnthropicToolDefinition(toolNumber),
-      };
-    case "AWS":
-      return {
-        id: generateToolId(),
-        definition: createAwsToolDefinition(toolNumber),
-      };
-    case "GOOGLE":
-      return {
-        id: generateToolId(),
-        definition: createGeminiToolDefinition(toolNumber),
-      };
-    default:
-      assertUnreachable(provider);
-  }
+  const defaultDefinition = fromOpenAIToolDefinition({
+    toolDefinition: definition ?? createOpenAIToolDefinition(toolNumber),
+    targetProvider: provider,
+  });
+
+  return {
+    id: generateToolId(),
+    editorType: type,
+    definition: defaultDefinition,
+  };
 };
 
 /**
@@ -1166,7 +1152,6 @@ const getBaseChatCompletionInput = ({
     instance.model.provider === "AZURE_OPENAI"
       ? {
           endpoint: instance.model.endpoint,
-          apiVersion: instance.model.apiVersion,
         }
       : {};
 
@@ -1177,16 +1162,42 @@ const getBaseChatCompletionInput = ({
         }
       : {};
 
+  // Determine if we're using a custom provider or built-in provider
+  const customProvider = instance.model.customProvider;
+
+  const openaiApiTypeParams =
+    instance.model.provider === "OPENAI" ||
+    instance.model.provider === "AZURE_OPENAI"
+      ? {
+          openaiApiType:
+            instance.model.openaiApiType ?? DEFAULT_OPENAI_API_TYPE,
+        }
+      : {};
+
+  const model = customProvider
+    ? {
+        custom: {
+          providerId: customProvider.id,
+          modelName: instance.model.modelName || "",
+          extraHeaders: instance.model.customHeaders,
+        },
+      }
+    : {
+        builtin: {
+          providerKey: instance.model.provider,
+          name: instance.model.modelName || "",
+          baseUrl: instance.model.baseUrl,
+          customHeaders: instance.model.customHeaders,
+          ...openaiApiTypeParams,
+          ...azureModelParams,
+          ...awsModelParams,
+        },
+      };
+
   return {
     messages: instanceMessages.map(toGqlChatCompletionMessage),
-    model: {
-      providerKey: instance.model.provider,
-      name: instance.model.modelName || "",
-      baseUrl: instance.model.baseUrl,
-      customHeaders: instance.model.customHeaders,
-      ...azureModelParams,
-      ...awsModelParams,
-    },
+    model,
+    credentials: toGqlCredentials(credentials),
     invocationParameters: applyProviderInvocationParameterConstraints(
       invocationParameters,
       instance.model.provider,
@@ -1195,7 +1206,6 @@ const getBaseChatCompletionInput = ({
     tools: instance.tools.length
       ? instance.tools.map((tool) => tool.definition)
       : undefined,
-    credentials: getCredentials(credentials, instance.model.provider),
     promptName: instance.prompt?.name,
     repetitions: playgroundStore.getState().repetitions,
   } satisfies Partial<ChatCompletionInput>;
@@ -1228,26 +1238,34 @@ export const denormalizePlaygroundInstance = (
 };
 
 /**
- * A function that gets the credentials for a provider
+ * Transforms credentials state into GraphQL input format.
+ * Collects all non-empty credentials from all providers for API calls.
+ * This is needed because evaluators may use different providers than the prompt.
  */
-function getCredentials(
-  credentials: CredentialsState,
-  provider: ModelProvider
+export function toGqlCredentials(
+  credentials: CredentialsState
 ): GenerativeCredentialInput[] {
-  const providerCredentials = credentials[provider];
-  const providerCredentialsConfig = ProviderToCredentialsConfigMap[provider];
-  if (!providerCredentials) {
-    // This means the credentials are missing, however we don't want to throw here so we return an empty array
-    return [];
+  const allCredentials: GenerativeCredentialInput[] = [];
+
+  for (const [provider, config] of Object.entries(
+    ProviderToCredentialsConfigMap
+  )) {
+    const providerCredentials = credentials[provider as ModelProvider];
+    if (!providerCredentials) {
+      continue;
+    }
+    for (const credential of config) {
+      const value = providerCredentials[credential.envVarName];
+      if (value) {
+        allCredentials.push({
+          envVarName: credential.envVarName,
+          value,
+        });
+      }
+    }
   }
-  if (providerCredentialsConfig.length === 0) {
-    // This means that the provider doesn't require any credentials
-    return [];
-  }
-  return providerCredentialsConfig.map((credential) => ({
-    envVarName: credential.envVarName,
-    value: providerCredentials[credential.envVarName] ?? "",
-  }));
+
+  return allCredentials;
 }
 
 /**
@@ -1304,12 +1322,20 @@ export const getChatCompletionOverDatasetInput = ({
   credentials,
   datasetId,
   splitIds,
+  evaluatorMappings,
 }: {
   playgroundStore: PlaygroundStore;
   instanceId: number;
   credentials: CredentialsState;
   datasetId: string;
   splitIds?: string[];
+  /**
+   * Record of datasetEvaluatorId to name and input mappings
+   */
+  evaluatorMappings: Record<
+    string,
+    { name: string; inputMapping: EvaluatorInputMappingInput }
+  >;
 }): ChatCompletionOverDatasetInput => {
   const baseChatCompletionVariables = getBaseChatCompletionInput({
     playgroundStore,
@@ -1317,56 +1343,30 @@ export const getChatCompletionOverDatasetInput = ({
     credentials,
   });
 
+  const { templateFormat, repetitions, stateByDatasetId } =
+    playgroundStore.getState();
+
+  const playgroundDatasetState = stateByDatasetId[datasetId];
+  const { appendedMessagesPath, templateVariablesPath } =
+    playgroundDatasetState ?? {};
+
   return {
     ...baseChatCompletionVariables,
-    templateFormat: playgroundStore.getState().templateFormat,
-    repetitions: playgroundStore.getState().repetitions,
+    templateFormat,
+    repetitions,
     datasetId,
     splitIds: splitIds ?? null,
+    evaluators: Object.entries(evaluatorMappings).map(
+      ([datasetEvaluatorId, { name, inputMapping }]) => ({
+        id: datasetEvaluatorId,
+        name,
+        inputMapping,
+      })
+    ),
+    appendedMessagesPath,
+    templateVariablesPath: templateVariablesPath ?? "",
   };
 };
-
-/**
- * Given a playground chat message attribute value, returns a normalized json string.
- *
- * This string can then be passed into a JSON Editor.
- *
- * @param content - the content to normalize
- * @returns a normalized json string
- */
-export function normalizeMessageContent(content?: unknown): string {
-  if (typeof content === "string") {
-    const isDoubleStringified =
-      content.startsWith('"{') ||
-      content.startsWith('"[') ||
-      content.startsWith('"\\"');
-    try {
-      // If it's a double-stringified value, parse it twice
-      if (isDoubleStringified) {
-        // First parse removes the outer quotes and unescapes the inner content
-        const firstParse = JSON.parse(content);
-        // Second parse converts the string representation to actual JSON
-        const secondParse =
-          typeof firstParse === "string" ? JSON.parse(firstParse) : firstParse;
-        // Stringify the result to ensure consistent formatting
-        return JSON.stringify(secondParse, null, 2);
-      }
-    } catch {
-      // If parsing fails, fall through
-    }
-    // If the content is a valid non-string top level json value, return it as-is
-    // https://datatracker.ietf.org/doc/html/rfc7159#section-3
-    // 0-9 { [ null false true
-    // a regex that matches possible top level json values, besides strings
-    const nonStringStart = /^\s*[0-9{[]|true|false|null/.test(content);
-    if (nonStringStart) {
-      return content;
-    }
-  }
-
-  // For any content that doesn't match the json spec for a top level value, stringify it with pretty printing
-  return JSON.stringify(content, null, 2);
-}
 
 export function areRequiredInvocationParametersConfigured(
   configuredInvocationParameters: InvocationParameterInput[],
@@ -1382,90 +1382,18 @@ export function areRequiredInvocationParametersConfigured(
 }
 
 /**
- * Extracts the default value for the invocation parameter definition
- * And the key name that should be used in the invocation parameter input if we need to make a new one
- *
- * This logic is necessary because the default value is mapped to different key name based on its type
- * within the InvocationParameterInput queries in the playground e.g. floatDefaultValue or stringListDefaultValue
- */
-const getInvocationParamDefaultValue = (
-  param: InvocationParameter
-): unknown => {
-  for (const [key, value] of Object.entries(param)) {
-    if (key.endsWith("DefaultValue") && value != null) {
-      return param[key as keyof InvocationParameter];
-    }
-  }
-  return undefined;
-};
-
-/**
- * Merges the current invocation parameters with the default values for the supported invocation parameters,
- * only adding values for invocation parameters that don't already have a value
- */
-export function mergeInvocationParametersWithDefaults(
-  invocationParameters: InvocationParameterInput[],
-  supportedInvocationParameters: InvocationParameter[]
-) {
-  // Convert the current invocation parameters to a map for quick lookup
-  const currentInvocationParametersMap = new Map(
-    invocationParameters.map((param) => [param.invocationName, param])
-  );
-  supportedInvocationParameters.forEach((param) => {
-    const paramKeyName = param.invocationName;
-    // Extract the default value for the invocation parameter definition
-    // And the key name that should be used in the invocation parameter input if we need to make a new one
-    const defaultValue = getInvocationParamDefaultValue(param);
-    // Convert the invocation input field to a key name that can be used in the invocation parameter input
-    const invocationInputFieldKeyName = toCamelCase(
-      param.invocationInputField || ""
-    ) as keyof InvocationParameterInput;
-    // Skip if we don't have required fields
-    // or, if the current invocation parameter map already has a value for the key
-    // so that we don't overwrite a user provided value, or a value saved to preferences
-    if (
-      !param.invocationName ||
-      !param.invocationInputField ||
-      !paramKeyName ||
-      defaultValue == null ||
-      currentInvocationParametersMap.get(paramKeyName)?.[
-        invocationInputFieldKeyName
-      ] != null
-    ) {
-      return;
-    }
-    // Create the new invocation parameter input, using the default value for the parameter
-    const newInvocationParameter: InvocationParameterInput = {
-      canonicalName: param.canonicalName,
-      invocationName: param.invocationName,
-      [invocationInputFieldKeyName]: defaultValue,
-    };
-
-    // Add the new invocation parameter input to the map
-    currentInvocationParametersMap.set(paramKeyName, newInvocationParameter);
-  });
-
-  // Return the new invocation parameter inputs as an array
-  return Array.from(currentInvocationParametersMap.values());
-}
-
-/**
  * Schema for validating if Anthropic extended thinking is enabled.
  */
-const anthropicExtendedThinkingEnabledSchema = z
-  .object({
-    type: z.literal("enabled"),
-  })
-  .passthrough();
+const anthropicExtendedThinkingEnabledSchema = z.looseObject({
+  type: z.literal("enabled"),
+});
 
 /**
  * Schema for validating Anthropic forced tool use.
  */
-const anthropicForcedToolUseSchema = z
-  .object({
-    type: z.enum(["any", "tool"]),
-  })
-  .passthrough();
+const anthropicForcedToolUseSchema = z.looseObject({
+  type: z.enum(["any", "tool"]),
+});
 
 /**
  * Applies Anthropic-specific constraints to the invocation parameters.
@@ -1532,7 +1460,7 @@ const filterZeroValueInvocationParameters = (
       param.invocationName &&
       ZERO_VALUE_INVOCATION_NAMES.includes(param.invocationName)
     ) {
-      return !(param.valueFloat == 0 || param.valueInt == 0);
+      return !(param.valueFloat === 0 || param.valueInt === 0);
     }
     return true;
   });
@@ -1569,32 +1497,27 @@ export const applyProviderInvocationParameterConstraints = (
 const AZURE_DEPLOYMENT_PATH_REGEX = /(?:^|\/)deployments\/([^/]+)(?:\/?|$)/;
 
 // Optional schema to read LangChain-provided deployment name from metadata
-const LS_METADATA_SCHEMA = z
-  .object({
-    metadata: z
-      .object({
-        ls_model_name: z.string().optional(),
-      })
-      .optional(),
-  })
-  .passthrough();
+const LS_METADATA_SCHEMA = z.looseObject({
+  metadata: z
+    .object({
+      ls_model_name: z.string().optional(),
+    })
+    .optional(),
+});
 
-// Parse Azure details (endpoint, apiVersion, deployment name) from URL
+// Parse Azure details (endpoint, deployment name) from URL
 function parseAzureDeploymentInfoFromUrl(fullUrl: string): {
   endpoint: string | null;
-  apiVersion: string | null;
   deploymentName: string | null;
 } {
   try {
     const urlObj = new URL(fullUrl);
     const endpoint = urlObj.origin.trim();
-    const apiVer = urlObj.searchParams.get("api-version");
-    const apiVersion = apiVer && apiVer.trim() ? apiVer.trim() : null;
     const path = (urlObj.pathname || "").toString();
     const match = path.match(AZURE_DEPLOYMENT_PATH_REGEX);
     const deploymentName = match && match[1] ? match[1].trim() : null;
-    return { endpoint, apiVersion, deploymentName };
+    return { endpoint, deploymentName };
   } catch {
-    return { endpoint: null, apiVersion: null, deploymentName: null };
+    return { endpoint: null, deploymentName: null };
   }
 }

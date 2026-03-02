@@ -1,11 +1,14 @@
+import debounce from "lodash/debounce";
 import { startTransition, useCallback, useMemo } from "react";
 import { Input } from "react-aria-components";
-import debounce from "lodash/debounce";
 
-import { SearchField, SearchFieldProps, SearchIcon } from ".";
+import type { SearchFieldProps } from "./SearchField";
+import { SearchField, SearchIcon } from "./SearchField";
 
-export interface DebouncedSearchProps
-  extends Omit<SearchFieldProps, "value" | "onChange"> {
+export interface DebouncedSearchProps extends Omit<
+  SearchFieldProps,
+  "value" | "onChange"
+> {
   onChange: (value: string) => void;
   /**
    * Text to show the user before typing

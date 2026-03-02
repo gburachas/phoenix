@@ -6,6 +6,8 @@
   - [Installing Pre-Commit Hooks](#installing-pre-commit-hooks)
   - [Contributing Notebooks](#contributing-notebooks)
   - [Contributing Documentation](#contributing-documentation)
+    - [Getting Started](#getting-started)
+    - [Making Changes](#making-changes)
   - [Building the Package](#building-the-package)
   - [Installing a Phoenix Build](#installing-a-phoenix-build)
   - [Installing a `git` Branch on Colab](#installing-a-git-branch-on-colab)
@@ -18,48 +20,24 @@
       - [Query Parameters](#query-parameters)
       - [Pagination](#pagination)
       - [Response Format](#response-format)
+  - [Cursor / VS Code](#cursor--vs-code)
+    - [Debugging the Python Server](#debugging-the-python-server)
 
 ## Setting Up Your macOS Development Environment
 
 We recommend using a virtual environment to isolate your Python dependencies. This guide will use `uv`, but you can use a different virtual environment management tool such as `conda` if you want.
 
-**First**, ensure that your virtual environment manager is installed. For macOS users, we recommend installing `uv` via `brew` with
+We recommend installing the project version of `uv` (found in `pyproject.toml` under `tool.uv.required-version`) by using the [standalone installer](https://docs.astral.sh/uv/getting-started/installation/#standalone-installer). This will enable you to upgrade `uv` using the `uv self update` command when the project `uv` version is updated.
 
-```
-brew install uv
-```
-
-For non-mac users, you can follow the instruction [here](https://docs.astral.sh/uv/getting-started/installation/) to install `uv` for your particular operating system.
-
-Create a new virtual environment. In general, we recommend developing on the lowest Python version compatible with Phoenix (currently 3.10) to make it easier to write code that is compatible across all supported versions.
+The following command installs the main `arize-phoenix` package and all sub-packages in editable mode with development dependencies. It uses the lowest currently supported Python version to ensure compatibility with all supported Python versions.
 
 ```bash
-uv venv --python 3.10
+uv sync --python 3.10
 ```
 
-Activate your virtual environment before continuing.
+The sub-packages (`phoenix.evals`, `phoenix.otel`, and `phoenix.client`) located under the packages/ directory are automatically installed in editable mode via the `uv` workspace configuration.
 
-```bash
-source ./.venv/bin/activate
-```
-
-From the root of the repository, install the `arize-phoenix` package in editable mode (using the `-e` flag) with development dependencies (using the `dev` extra) by running
-
-```bash
-uv pip install -e ".[dev]"
-```
-
-Some parts of Phoenix—such as `phoenix.evals`, `phoenix.otel`, and `phoenix.client` developed as local packages located under the packages/ directory. These modules are excluded from the standard build process and are not installed automatically.
-
-To make these modules available when working from source, run:
-
-```bash
-tox run -e add_symlinks
-```
-
-This command will create symbolic links inside src/phoenix/ pointing to the relevant submodules.
-
-**Second**, install the web build dependencies.
+**Next**, install the web build dependencies.
 
 We recommend installing [nodejs via nvm](https://github.com/nvm-sh/nvm) and then
 installing `pnpm` globally to manage the web frontend dependencies.
@@ -76,12 +54,22 @@ nvm alias default <version-that-was-installed>
 npm i -g pnpm@9.15.5
 ```
 
-Then we will build the web app. Change directory to `app` and run:
+Then we will build the web app. 
+
+Change directory to `app`:
+
+```bash
+cd app
+```
+
+and run:
 
 ```bash
 pnpm install
 pnpm run build
 ```
+
+Check out the `README.md` file in the `app` directory for more information on developing the web application.
 
 ## Testing and Linting
 
@@ -102,13 +90,7 @@ pg_config --bindir
 This command should point to the `homebrew` install of `postgresql`, if it doesn't, try creating
 a fresh Python environment or modifying your `PATH`.
 
-Phoenix uses `tox` to run linters, formatters, type-checks, tests, and more. In particular, we are using `tox-uv`, which uses `uv` under the hood for package management and is significantly faster than vanilla `tox`.
-
-You can install `tox-uv` globally with
-
-```bash
-pip install tox-uv
-```
+Phoenix uses `tox` to run linters, formatters, type-checks, tests, and more.
 
 `tox` manages isolated virtual environments, each with a corresponding set of commands. These environments are defined inside of `tox.ini` and can be enumerated by running
 
@@ -129,11 +111,29 @@ a `postgresql` database as well, use the `--run-postgres` flag
 tox run -e unit_tests -- --run-postgres
 ```
 
-Check the output of `tox list` to find commands for type-checks, linters, formatters, etc.
+To run unit tests faster using parallel execution:
+
+```bash
+tox r -e unit_tests -- -n auto
+```
+
+To run type checking:
+
+```bash
+make typecheck-python
+```
+
+Check the output of `tox list` to find commands for linters, formatters, and other tools.
 
 ## Installing Pre-Commit Hooks
 
-We recommend to install project pre-commit hooks with
+First, install `pre-commit` globally. It is recommended to accomplish this using `uv`.
+
+```bash
+uv tool install pre-commit --with pre-commit-uv
+```
+
+Then install the project pre-commit hooks with
 
 ```bash
 pre-commit install
@@ -307,11 +307,20 @@ After doing so, consider pasting the following settings into your workspace sett
       "source.fixAll.ruff": "always"
     }
   },
+  "[typescript, typescriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode",
+    "editor.codeActionsOnSave": {
+      "source.fixAll.oxlint": "always"
+    }
+  },
   "mypy-type-checker.ignorePatterns": [".tox,.venv,app"],
   "javascript.preferences.importModuleSpecifier": "shortest",
   "typescript.preferences.importModuleSpecifier": "non-relative",
-  "prettier.configPath": "app/.prettierrc.json",
-  "prettier.prettierPath": "app/node_modules/prettier",
+  "oxc.fmt.configPath": ".oxfmtrc.jsonc",
+  "oxc.path.oxfmt": "app/node_modules/oxfmt/bin/oxfmt",
+  "oxc.path.oxlint": "app/node_modules/oxlint/bin/oxlint",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": true,
   "typescript.tsdk": "app/node_modules/typescript/lib",
   "relay.rootDirectory": "app",
   "relay.pathToConfig": "app/relay.config.js",
@@ -324,8 +333,7 @@ After doing so, consider pasting the following settings into your workspace sett
 The dev server runs with `debugpy` enabled, allowing you to attach a debugger from VS Code or Cursor.
 
 1. **Create a launch configuration** at `.vscode/launch.json`:
-
-   ```json
+  ```json
    {
      "version": "0.2.0",
      "configurations": [
@@ -341,32 +349,40 @@ The dev server runs with `debugpy` enabled, allowing you to attach a debugger fr
        }
      ]
    }
-   ```
-
+  ```
+  > **Note:** The default debugpy port is 5678. If you customize it via the `DEBUGPY_PORT` environment variable, update the `port` value in the launch configuration to match.
 2. **Start the dev environment** from the `app` directory:
-
-   ```bash
+  ```bash
    pnpm dev
-   ```
-
+  ```
    This launches both the Python server and the frontend UI simultaneously using `mprocs`. The server will start with debugpy listening on port 5678.
-
-   > **💡 Tip:** Use in-memory SQLite for a fresh database without affecting your existing on-disk data:
-   > ```bash
-   > PHOENIX_SQL_DATABASE_URL=sqlite:///:memory: pnpm dev
-   > ```
-
+  > **💡 Tip:** Use in-memory SQLite for a fresh database without affecting your existing on-disk data:
+  >
+  > ```bash
+  > PHOENIX_SQL_DATABASE_URL=sqlite:///:memory: pnpm dev
+  > ```
+  >
+  > **💡 Tip:** Customize ports via environment variables:
+  >
+  > ```bash
+  > VITE_PORT=3000 DEBUGPY_PORT=5679 pnpm dev
+  > ```
+  >
+  > Or add to `app/.env`:
+  >
+  > ```
+  > VITE_PORT=3000
+  > DEBUGPY_PORT=5679
+  > ```
 3. **Set breakpoints** by clicking in the gutter (left of line numbers) in any Python file.
-
 4. **Attach the debugger**:
-   - Press `⇧⌘D` (macOS) or `Ctrl+Shift+D` (Windows/Linux) to open the Run and Debug panel
-   - Select **"Attach to Phoenix Dev Server"** from the dropdown
-   - Press `F5` or click the green play button
-
+  - Press `⇧⌘D` (macOS) or `Ctrl+Shift+D` (Windows/Linux) to open the Run and Debug panel
+  - Select **"Attach to Phoenix Dev Server"** from the dropdown
+  - Press `F5` or click the green play button
 5. **Trigger your code** by making a request to the server via the UI or API.
-
 6. **Debug**: When a breakpoint is hit, use the debug toolbar to step through code:
-   - `F10` — Step over
-   - `F11` — Step into
-   - `F5` — Continue
-   - Inspect variables in the left panel or evaluate expressions in the Debug Console
+  - `F10` — Step over
+  - `F11` — Step into
+  - `F5` — Continue
+  - Inspect variables in the left panel or evaluate expressions in the Debug Console
+

@@ -1,12 +1,11 @@
-import { ReactNode, SyntheticEvent } from "react";
 import { css } from "@emotion/react";
+import type { ReactNode, SyntheticEvent } from "react";
 
-import { useTheme } from "@phoenix/contexts";
+import { useTheme } from "@phoenix/contexts/ThemeContext";
 
 import { Text } from "../content";
 import { CloseOutline, Icon } from "../icon";
-import { SeverityLevel } from "../types";
-
+import type { SeverityLevel } from "../types";
 import { getSeverityIcon } from "./getSeverityIcon";
 
 export interface AlertProps {
@@ -46,16 +45,16 @@ export interface AlertProps {
 }
 
 const alertCSS = css`
-  --alert-base-color: var(--ac-global-color-info);
+  --alert-base-color: var(--global-color-info);
   --alert-bg-color: lch(from var(--alert-base-color) l c h / 0.1);
   --alert-border-color: lch(from var(--alert-base-color) l c h / 0.3);
   --alert-text-color: lch(
     from var(--alert-base-color) calc((50 - l) * infinity) 0 0
   );
 
-  padding: var(--ac-global-dimension-static-size-100)
-    var(--ac-global-dimension-static-size-200);
-  border-radius: var(--ac-global-rounding-small);
+  padding: var(--global-dimension-static-size-100)
+    var(--global-dimension-static-size-200);
+  border-radius: var(--global-rounding-small);
   color: var(--alert-text-color);
   display: flex;
   flex-direction: row;
@@ -71,19 +70,19 @@ const alertCSS = css`
   }
 
   &[data-variant="warning"] {
-    --alert-base-color: var(--ac-global-color-warning);
+    --alert-base-color: var(--global-color-warning);
   }
 
   &[data-variant="info"] {
-    --alert-base-color: var(--ac-global-color-info);
+    --alert-base-color: var(--global-color-info);
   }
 
   &[data-variant="danger"] {
-    --alert-base-color: var(--ac-global-color-danger);
+    --alert-base-color: var(--global-color-danger);
   }
 
   &[data-variant="success"] {
-    --alert-base-color: var(--ac-global-color-success);
+    --alert-base-color: var(--global-color-success);
   }
 
   &[data-theme="light"] {
@@ -100,14 +99,14 @@ const alertCSS = css`
     );
   }
 
-  .ac-alert__icon-title-wrap {
+  .alert__icon-title-wrap {
     display: flex;
     flex-direction: row;
 
-    .ac-icon-wrap {
+    .icon-wrap {
       margin-top: 4px;
-      margin-right: var(--ac-global-dimension-static-size-200);
-      font-size: var(--ac-global-font-size-l);
+      margin-right: var(--global-dimension-static-size-200);
+      font-size: var(--global-font-size-l);
     }
   }
 `;
@@ -127,7 +126,7 @@ const dismissButtonCSS = css`
   cursor: pointer;
   width: 20px;
   height: 20px;
-  margin-left: var(--ac-global-dimension-static-size-200);
+  margin-left: var(--global-dimension-static-size-200);
 `;
 
 export const Alert = ({
@@ -157,7 +156,7 @@ export const Alert = ({
       data-has-title={!!title}
       data-theme={theme}
     >
-      <div css={iconTitleWrapCSS} className="ac-alert__icon-title-wrap">
+      <div css={iconTitleWrapCSS} className="alert__icon-title-wrap">
         {icon}
         <div>
           {title ? (

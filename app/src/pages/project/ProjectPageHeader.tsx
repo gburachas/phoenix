@@ -1,7 +1,8 @@
-import { ReactNode, startTransition, useEffect } from "react";
+import { css } from "@emotion/react";
+import type { ReactNode } from "react";
+import { startTransition, useEffect } from "react";
 import { Focusable } from "react-aria";
 import { graphql, useRefetchableFragment } from "react-relay";
-import { css } from "@emotion/react";
 
 import {
   ErrorBoundary,
@@ -19,8 +20,8 @@ import { LatencyText } from "@phoenix/components/trace/LatencyText";
 import { useStreamState } from "@phoenix/contexts/StreamStateContext";
 import { costFormatter, intFormatter } from "@phoenix/utils/numberFormatUtils";
 
-import { ProjectPageHeader_stats$key } from "./__generated__/ProjectPageHeader_stats.graphql";
-import { ProjectPageHeaderQuery } from "./__generated__/ProjectPageHeaderQuery.graphql";
+import type { ProjectPageHeader_stats$key } from "./__generated__/ProjectPageHeader_stats.graphql";
+import type { ProjectPageHeaderQuery } from "./__generated__/ProjectPageHeaderQuery.graphql";
 import { AnnotationSummary } from "./AnnotationSummary";
 import { DocumentEvaluationSummary } from "./DocumentEvaluationSummary";
 
@@ -52,14 +53,8 @@ export function ProjectPageHeader(props: {
             cost
           }
         }
-        latencyMsP50: latencyMsQuantile(
-          probability: 0.50
-          timeRange: $timeRange
-        )
-        latencyMsP99: latencyMsQuantile(
-          probability: 0.99
-          timeRange: $timeRange
-        )
+        latencyMsP50: latencyMsQuantile(probability: 0.50, timeRange: $timeRange)
+        latencyMsP99: latencyMsQuantile(probability: 0.99, timeRange: $timeRange)
         spanAnnotationNames
         documentEvaluationNames
       }
@@ -99,23 +94,23 @@ export function ProjectPageHeader(props: {
             background-image:
               linear-gradient(
                 to right,
-                var(--ac-global-color-grey-75),
-                var(--ac-global-color-grey-75)
+                var(--global-color-gray-75),
+                var(--global-color-gray-75)
               ),
               linear-gradient(
                 to right,
-                var(--ac-global-color-grey-75),
-                var(--ac-global-color-grey-75)
+                var(--global-color-gray-75),
+                var(--global-color-gray-75)
               ),
               linear-gradient(
                 to right,
-                rgba(var(--ac-global-color-grey-300-rgb), 0.9),
-                rgba(var(--ac-global-color-grey-300-rgb), 0)
+                rgba(var(--global-color-gray-300-rgb), 0.9),
+                rgba(var(--global-color-gray-300-rgb), 0)
               ),
               linear-gradient(
                 to left,
-                rgba(var(--ac-global-color-grey-300-rgb), 0.9),
-                rgba(var(--ac-global-color-grey-300-rgb), 0)
+                rgba(var(--global-color-gray-300-rgb), 0.9),
+                rgba(var(--global-color-gray-300-rgb), 0)
               );
             background-repeat: no-repeat;
             background-size:

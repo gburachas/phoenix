@@ -1,8 +1,7 @@
 packages:
   - packages/*
   - examples/apps/*
-  - benchmarks/evals-benchmarks/*
-
+  - benchmarks/*
 onlyBuiltDependencies:
   - esbuild
   - protobufjs

@@ -1,11 +1,10 @@
 import { formatTemplate } from "../template";
-import {
+import type {
   ClassificationChoicesMap,
   CreateClassifierArgs,
   EvaluationResult,
   EvaluatorFn,
 } from "../types/evals";
-
 import { generateClassification } from "./generateClassification";
 
 /**

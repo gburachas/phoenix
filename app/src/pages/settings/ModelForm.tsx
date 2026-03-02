@@ -1,7 +1,7 @@
-import { useMemo } from "react";
-import { DateValue, Key } from "react-aria-components";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { parseAbsoluteToLocal } from "@internationalized/date";
+import { useMemo } from "react";
+import type { DateValue, Key } from "react-aria-components";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 
 import {
   Button,
@@ -20,12 +20,12 @@ import {
   View,
 } from "@phoenix/components";
 import { GenerativeProviderIcon } from "@phoenix/components/generative/GenerativeProviderIcon";
-import { RegexField, useRegexField } from "@phoenix/components/RegexField";
+import { RegexField } from "@phoenix/components/RegexField";
 import { ModelTokenCostControlTable } from "@phoenix/pages/settings/ModelTokenCostControlTable";
+import type { ModelTokenKind } from "@phoenix/pages/settings/ModelTokenTypeComboBox";
 import {
   DEFAULT_TOKEN_COMPLETION_OPTIONS,
   DEFAULT_TOKEN_PROMPT_OPTIONS,
-  ModelTokenKind,
 } from "@phoenix/pages/settings/ModelTokenTypeComboBox";
 import {
   getProviderName,
@@ -216,10 +216,6 @@ export function ModelForm({
     name: "completionCosts",
   });
 
-  const regexFieldProps = useRegexField({
-    initialValue: modelNamePattern ?? "",
-  });
-
   return (
     <Form onSubmit={handleSubmit(onSubmit)}>
       <View padding="size-200">
@@ -262,16 +258,12 @@ export function ModelForm({
               fieldState: { invalid, error },
             }) => (
               <RegexField
-                {...regexFieldProps}
                 value={value}
-                isInvalid={invalid || regexFieldProps.isInvalid}
-                error={error?.message || regexFieldProps.error}
-                onChange={(value) => {
-                  onChange(value);
-                  regexFieldProps.onChange(value);
-                }}
-                size="S"
+                onChange={onChange}
                 onBlur={onBlur}
+                isInvalid={invalid}
+                error={error?.message}
+                size="S"
                 placeholder="e.g. ^gpt-4$, ^claude-3-sonnet$"
                 description="Regular expression to match model names during trace ingestion."
                 label="Name pattern*"

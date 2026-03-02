@@ -1,5 +1,5 @@
-import type { StorybookConfig } from "@storybook/react-vite";
 import { resolve } from "path";
+import type { StorybookConfig } from "@storybook/react-vite";
 import { mergeConfig } from "vite";
 
 const config: StorybookConfig = {
@@ -23,7 +23,7 @@ const config: StorybookConfig = {
     return mergeConfig(config, {
       // customize the Vite config here
       optimizeDeps: {
-        include: ["@storybook/addon-interactions"],
+        include: ["@storybook/addon-interactions", "@emotion/react"],
       },
       resolve: {
         alias: {

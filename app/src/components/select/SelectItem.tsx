@@ -1,7 +1,10 @@
-import { forwardRef, ReactNode } from "react";
-import { ListBoxItem, ListBoxItemProps } from "react-aria-components";
+import type { ReactNode } from "react";
+import { forwardRef } from "react";
+import type { ListBoxItemProps } from "react-aria-components";
+import { ListBoxItem } from "react-aria-components";
 
-import { Flex, Icon, Icons } from "@phoenix/components";
+import { Icon, Icons } from "../icon";
+import { Flex } from "../layout";
 
 interface SelectItemProps extends ListBoxItemProps {
   children: ReactNode;

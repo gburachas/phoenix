@@ -1,8 +1,8 @@
-import { Suspense, useCallback, useMemo } from "react";
-import { Outlet } from "react-router";
 import { css } from "@emotion/react";
+import { Suspense, useCallback } from "react";
+import { Outlet, useLoaderData } from "react-router";
 
-import { Flex, Icon, Icons, Loading } from "@phoenix/components";
+import { Counter, Flex, Icon, Icons, Loading } from "@phoenix/components";
 import {
   Brand,
   DocsLink,
@@ -20,6 +20,8 @@ import {
 import { useFunctionality } from "@phoenix/contexts/FunctionalityContext";
 import { usePreferencesContext } from "@phoenix/contexts/PreferencesContext";
 import { prependBasename } from "@phoenix/utils/routingUtils";
+
+import type { LayoutLoaderData } from "./layoutLoader";
 
 const layoutCSS = css`
   display: flex;
@@ -41,11 +43,11 @@ const contentCSS = css`
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  border-left: 1px solid var(--ac-global-color-grey-200);
-  border-top: 1px solid var(--ac-global-color-grey-200);
-  border-radius: var(--ac-global-rounding-medium) 0 0 0;
+  border-left: 1px solid var(--global-color-gray-200);
+  border-top: 1px solid var(--global-color-gray-200);
+  border-radius: var(--global-rounding-medium) 0 0 0;
   /* Fill the background of the content */
-  box-shadow: 0 0 10px 10px var(--ac-global-color-grey-100);
+  box-shadow: 0 0 10px 10px var(--global-color-gray-100);
 `;
 
 const bottomLinksCSS = css`
@@ -53,14 +55,14 @@ const bottomLinksCSS = css`
   flex-direction: column;
   margin: 0;
   list-style: none;
-  gap: var(--ac-global-dimension-size-50);
+  gap: var(--global-dimension-size-50);
   padding-inline-start: 0;
 `;
 
 const sideLinksCSS = css`
   display: flex;
   flex-direction: column;
-  gap: var(--ac-global-dimension-size-50);
+  gap: var(--global-dimension-size-50);
 `;
 
 export function Layout() {
@@ -87,9 +89,7 @@ function SideNav() {
   const isSideNavExpanded = usePreferencesContext(
     (state) => state.isSideNavExpanded
   );
-  const hasInferences = useMemo(() => {
-    return window.Config.hasInferences;
-  }, []);
+  const loaderData = useLoaderData<LayoutLoaderData>();
   const { authenticationEnabled } = useFunctionality();
   const onLogout = useCallback(() => {
     window.location.replace(prependBasename("/auth/logout"));
@@ -99,21 +99,16 @@ function SideNav() {
       <Brand />
       <Flex direction="column" justifyContent="space-between" flex="1 1 auto">
         <ul css={sideLinksCSS}>
-          {hasInferences && (
-            <li key="model">
-              <NavLink
-                to="/model"
-                text="Model"
-                leadingVisual={<Icon svg={<Icons.CubeOutline />} />}
-                isExpanded={isSideNavExpanded}
-              />
-            </li>
-          )}
           <li>
             <NavLink
               to="/projects"
               text="Projects"
               leadingVisual={<Icon svg={<Icons.GridOutline />} />}
+              trailingVisual={
+                loaderData?.projectCount != null ? (
+                  <Counter>{loaderData.projectCount}</Counter>
+                ) : undefined
+              }
               isExpanded={isSideNavExpanded}
             />
           </li>
@@ -122,6 +117,19 @@ function SideNav() {
               to="/datasets"
               text="Datasets & Experiments"
               leadingVisual={<Icon svg={<Icons.DatabaseOutline />} />}
+              trailingVisual={
+                loaderData?.datasetCount != null ? (
+                  <Counter>{loaderData.datasetCount}</Counter>
+                ) : undefined
+              }
+              isExpanded={isSideNavExpanded}
+            />
+          </li>
+          <li key="data-generation">
+            <NavLink
+              to="/data-generation"
+              text="Data Generation"
+              leadingVisual={<Icon svg={<Icons.FileTextOutline />} />}
               isExpanded={isSideNavExpanded}
             />
           </li>
@@ -133,11 +141,29 @@ function SideNav() {
               isExpanded={isSideNavExpanded}
             />
           </li>
+          <li key="evaluators">
+            <NavLink
+              to="/evaluators"
+              text="Evaluators"
+              leadingVisual={<Icon svg={<Icons.Scale />} />}
+              trailingVisual={
+                loaderData?.evaluatorCount != null ? (
+                  <Counter>{loaderData.evaluatorCount}</Counter>
+                ) : undefined
+              }
+              isExpanded={isSideNavExpanded}
+            />
+          </li>
           <li key="prompts">
             <NavLink
               to="/prompts"
               text="Prompts"
               leadingVisual={<Icon svg={<Icons.MessageSquareOutline />} />}
+              trailingVisual={
+                loaderData?.promptCount != null ? (
+                  <Counter>{loaderData.promptCount}</Counter>
+                ) : undefined
+              }
               isExpanded={isSideNavExpanded}
             />
           </li>

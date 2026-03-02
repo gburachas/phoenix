@@ -1,7 +1,7 @@
+import { css } from "@emotion/react";
 import { useCallback, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
-import { css } from "@emotion/react";
 
 import {
   Alert,
@@ -118,7 +118,7 @@ export function LoginForm(props: LoginFormProps) {
                   position: absolute;
                   float: right;
                   right: 0;
-                  top: var(--ac-global-dimension-size-50);
+                  top: var(--global-dimension-size-50);
                   font-size: 12px;
                 }
               `}

@@ -6,8 +6,8 @@ title: "Custom LLM Evaluators"
 
 While pre-built evals offer convenience, the best evals are ones you custom build for your specific use case. In this guide, we show how to build two types of custom "LLM-as-a-judge" style evaluators:
 
-1. A custom [`ClassificationEvaluator`](https://arize-phoenix.readthedocs.io/projects/evals/en/latest/api/evals.html#classificationevaluator) that returns categorical labels.
-2. A custom [`LLMEvaluator`](https://arize-phoenix.readthedocs.io/projects/evals/en/latest/api/evals.html#llmevaluator) that scores data on a numeric scale.
+1. A custom [`ClassificationEvaluator`](https://arize-phoenix.readthedocs.io/projects/evals/api/evals.html#classificationevaluator) that returns categorical labels.
+2. A custom [`LLMEvaluator`](https://arize-phoenix.readthedocs.io/projects/evals/api/evals.html#llmevaluator) that scores data on a numeric scale.
 
 ### Classification Evals
 
@@ -32,7 +32,7 @@ question can be answered by the information in the Reference text.
 "relevant" means the reference text contains an answer to the Question. '''
 ```
 
-For more information about prompt templates, [Prompt Formats](/phoenix/evaluation/how-to-evals/configuring-the-llm/prompt-formats). For more information about how to configure the LLM judge, see [Configuring the LLM](/phoenix/evaluation/how-to-evals/configuring-the-llm)
+For more information about prompt templates, [Eval Prompt Templates](/docs/phoenix/evaluation/how-to-evals/prompt-formats). For more information about how to configure the LLM judge, see [Configuring the LLM](/docs/phoenix/evaluation/how-to-evals/configuring-the-llm).
 #### Label Choices
 
 While the prompt template contains instructions for the LLM, the label choices tell it how to format its response.
@@ -53,7 +53,7 @@ There is no limit to the number of label choices you can provide, and you can sp
 For the relevance evaluation, we define the evaluator as follows:
 
 ```python
-from phoenix.evals ClassificationEvaluator
+from phoenix.evals import ClassificationEvaluator
 from phoenix.evals.llm import LLM
 
 choices = {"irrelevant": 0, "relevant": 1}
@@ -61,7 +61,7 @@ choices = {"irrelevant": 0, "relevant": 1}
 relevance_classifier = ClassificationEvaluator(
     name="relevance",
     prompt_template=CATEGORICAL_TEMPLATE,
-    model=LLM(provider="openai", model="gpt-4o"),
+    llm=LLM(provider="openai", model="gpt-4o"),
     choices=choices
 )
 results = relevance_classifier.evaluate({"query": "input query goes here", "reference": "document text goes here"})
@@ -103,15 +103,15 @@ Please rate the percentage of errors in the context on a scale from 1 to 10.
 This numeric rating task can be framed as a classification task where the set of labels is the set of numbers on the rating scale (here, 1-10). Then we can set up a custom `ClassificationEvaluator` for our evaluation task, similar to how we did above. Make sure to set the optimization `direction = "minimize"` here since a lower score is better on this task (fewer spelling errors).
 
 ```python
-from phoenix.evals ClassificationEvaluator
+from phoenix.evals import ClassificationEvaluator
 from phoenix.evals.llm import LLM
 
-choices = {i: str(i) for i in range(1, 11)} # choices are {"1": 1, "2": 2, etc...}
+choices = {str(i): i for i in range(1, 11)} # choices are {"1": 1, "2": 2, etc...}
 
 spelling_classifier = ClassificationEvaluator(
     name="spelling",
     prompt_template=SCORE_TEMPLATE,
-    model=LLM(provider="openai", model="gpt-4o"),
+    llm=LLM(provider="openai", model="gpt-4o"),
     choices=choices
     direction="minimize" # lower scores = better, so direction = minimize
 )
@@ -121,7 +121,7 @@ spelling_classifier.evaluate({"context": "This is a test. There are is some typo
 
 ### Alternative: Fully Custom LLM Evaluator
 
-Alternatively, for LLM-as-a-judge tasks that don't fit the classification paradigm, it is also possible to create a custom evaluator that implements the base [`LLMEvaluator`](https://arize-phoenix.readthedocs.io/projects/evals/en/latest/api/evals.html#llmevaluator) class. We can implement our own `LLMEvaluator` for almost any complex eval that doesn't fit into the classification type.
+Alternatively, for LLM-as-a-judge tasks that don't fit the classification paradigm, it is also possible to create a custom evaluator that implements the base [`LLMEvaluator`](https://arize-phoenix.readthedocs.io/projects/evals/api/evals.html#llmevaluator) class. We can implement our own `LLMEvaluator` for almost any complex eval that doesn't fit into the classification type.
 
 In this example, we implement the same spelling evaluator from above as a fully custom `LLMEvaluator.`
 

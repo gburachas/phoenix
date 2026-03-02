@@ -1,14 +1,18 @@
-import { forwardRef, HTMLAttributes } from "react";
+import { css } from "@emotion/react";
+import type { HTMLAttributes } from "react";
+import { forwardRef } from "react";
 import {
   Dialog as AriaDialog,
   type DialogProps as AriaDialogProps,
 } from "react-aria-components";
-import { css } from "@emotion/react";
 
-import { Button, ButtonProps } from "@phoenix/components/button";
-import { Heading, HeadingProps } from "@phoenix/components/content";
+import type { ButtonProps } from "@phoenix/components/button";
+import { Button } from "@phoenix/components/button";
+import type { HeadingProps } from "@phoenix/components/content";
+import { Heading } from "@phoenix/components/content";
 import { Icon, Icons } from "@phoenix/components/icon";
-import { Flex, FlexProps } from "@phoenix/components/layout";
+import type { FlexProps } from "@phoenix/components/layout";
+import { Flex } from "@phoenix/components/layout";
 import { classNames } from "@phoenix/utils";
 
 export type DialogProps = AriaDialogProps;
@@ -49,10 +53,9 @@ export const DialogContent = ({ children, ...props }: DialogContentProps) => {
 export type DialogHeaderProps = HTMLAttributes<HTMLDivElement>;
 
 export const dialogHeaderCSS = css`
-  padding: var(--ac-global-dimension-size-100)
-    var(--ac-global-dimension-size-200);
-  border-bottom: var(--ac-global-border-size-thin) solid
-    var(--ac-global-border-color-dark);
+  padding: var(--global-dimension-size-100) var(--global-dimension-size-200);
+  border-bottom: var(--global-border-size-thin) solid
+    var(--global-border-color-dark);
   flex-shrink: 0;
 `;
 
@@ -61,9 +64,14 @@ export const DialogHeader = ({ children, ...props }: DialogHeaderProps) => {
     <div
       {...props}
       css={dialogHeaderCSS}
-      className={classNames(props.className, "ac-DialogHeader")}
+      className={classNames(props.className, "dialog__header")}
     >
-      <Flex width="100%" justifyContent="space-between" alignItems="center">
+      <Flex
+        width="100%"
+        justifyContent="space-between"
+        alignItems="center"
+        gap="size-200"
+      >
         {children}
       </Flex>
     </div>
@@ -79,7 +87,7 @@ export const DialogTitle = ({ children, ...props }: DialogTitleProps) => {
       data-testid="dialog-title"
       slot="title"
       {...props}
-      className={classNames(props.className, "ac-DialogTitle")}
+      className={classNames(props.className, "dialog__title")}
     >
       {children}
     </Heading>
@@ -98,7 +106,7 @@ export const DialogTitleExtra = ({
       alignItems="center"
       data-testid="dialog-title-extra"
       {...props}
-      className={classNames(props.className, "ac-DialogTitleExtra")}
+      className={classNames(props.className, "dialog__title-extra")}
     >
       {children}
     </Flex>
@@ -131,7 +139,7 @@ export const DialogCloseButton = ({
       type="button"
       slot="close"
       {...props}
-      className={classNames(props.className, "ac-DialogCloseButton")}
+      className={classNames(props.className, "dialog__close-button")}
     >
       {children}
     </Button>

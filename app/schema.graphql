@@ -1,5 +1,53 @@
 directive @oneOf on INPUT_OBJECT
 
+type AWSBedrockAccessKeys {
+  awsAccessKeyId: String!
+  awsSecretAccessKey: String!
+  awsSessionToken: String
+}
+
+input AWSBedrockAccessKeysInput {
+  awsAccessKeyId: String!
+  awsSecretAccessKey: String!
+  awsSessionToken: String
+}
+
+type AWSBedrockAuthenticationMethod {
+  """Explicit AWS access key credentials."""
+  accessKeys: AWSBedrockAccessKeys
+
+  """Use SDK default credentials (IAM role, env vars, config files)."""
+  defaultCredentials: Boolean
+}
+
+input AWSBedrockAuthenticationMethodInput @oneOf {
+  """Explicit AWS access key credentials."""
+  accessKeys: AWSBedrockAccessKeysInput
+
+  """Use SDK default credentials (IAM role, env vars, config files)."""
+  defaultCredentials: Boolean
+}
+
+type AWSBedrockClientKwargs {
+  regionName: String!
+  endpointUrl: String
+}
+
+input AWSBedrockClientKwargsInput {
+  regionName: String!
+  endpointUrl: String
+}
+
+type AWSBedrockCustomProviderConfig {
+  awsBedrockAuthenticationMethod: AWSBedrockAuthenticationMethod!
+  awsBedrockClientKwargs: AWSBedrockClientKwargs!
+}
+
+input AWSBedrockCustomProviderConfigInput {
+  awsBedrockAuthenticationMethod: AWSBedrockAuthenticationMethodInput!
+  awsBedrockClientKwargs: AWSBedrockClientKwargsInput!
+}
+
 input AddAnnotationConfigToProjectInput {
   projectId: ID!
   annotationConfigId: ID!
@@ -133,6 +181,34 @@ enum AnnotatorKind {
   CODE
 }
 
+type AnthropicAuthenticationMethod {
+  apiKey: String
+}
+
+input AnthropicAuthenticationMethodInput {
+  apiKey: String!
+}
+
+type AnthropicClientKwargs {
+  baseUrl: String
+  defaultHeaders: JSON
+}
+
+input AnthropicClientKwargsInput {
+  baseUrl: String
+  defaultHeaders: JSON
+}
+
+type AnthropicCustomProviderConfig {
+  anthropicAuthenticationMethod: AnthropicAuthenticationMethod!
+  anthropicClientKwargs: AnthropicClientKwargs
+}
+
+input AnthropicCustomProviderConfigInput {
+  anthropicAuthenticationMethod: AnthropicAuthenticationMethodInput!
+  anthropicClientKwargs: AnthropicClientKwargsInput
+}
+
 interface ApiKey {
   """Name of the API key."""
   name: String!
@@ -153,7 +229,57 @@ enum AuthMethod {
   LDAP
 }
 
-union Bin = NominalBin | IntervalBin | MissingValueBin
+type AzureADTokenProvider {
+  azureTenantId: String!
+  azureClientId: String!
+  azureClientSecret: String!
+  scope: String!
+}
+
+input AzureOpenAIADTokenProviderInput {
+  azureTenantId: String!
+  azureClientId: String!
+  azureClientSecret: String!
+  scope: String
+}
+
+type AzureOpenAIAuthenticationMethod {
+  apiKey: String
+  azureAdTokenProvider: AzureADTokenProvider
+
+  """Use SDK default credentials (Managed Identity, Azure CLI, env vars)."""
+  defaultCredentials: Boolean
+}
+
+input AzureOpenAIAuthenticationMethodInput @oneOf {
+  apiKey: String
+  azureAdTokenProvider: AzureOpenAIADTokenProviderInput
+
+  """Use SDK default credentials (Managed Identity, Azure CLI, env vars)."""
+  defaultCredentials: Boolean
+}
+
+type AzureOpenAIClientKwargs {
+  azureEndpoint: String!
+  defaultHeaders: JSON
+}
+
+input AzureOpenAIClientKwargsInput {
+  azureEndpoint: String!
+  defaultHeaders: JSON
+}
+
+type AzureOpenAICustomProviderConfig {
+  azureOpenaiAuthenticationMethod: AzureOpenAIAuthenticationMethod!
+  azureOpenaiClientKwargs: AzureOpenAIClientKwargs!
+  openaiApiType: OpenAIApiType!
+}
+
+input AzureOpenAICustomProviderConfigInput {
+  azureOpenaiAuthenticationMethod: AzureOpenAIAuthenticationMethodInput!
+  azureOpenaiClientKwargs: AzureOpenAIClientKwargsInput!
+  openaiApiType: OpenAIApiType = RESPONSES
+}
 
 type BooleanInvocationParameter implements InvocationParameterBase {
   invocationName: String!
@@ -174,6 +300,25 @@ type BoundedFloatInvocationParameter implements InvocationParameterBase {
   minValue: Float!
   maxValue: Float!
 }
+
+type BuiltInEvaluator implements Evaluator & Node {
+  """The Globally Unique ID of this object"""
+  id: ID!
+  name: Identifier!
+  description: String
+  metadata: JSON!
+  kind: EvaluatorKind!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  inputSchema: JSON
+  isBuiltin: Boolean!
+  datasets(first: Int = 50, after: String): DatasetConnection!
+  datasetEvaluators: [DatasetEvaluator!]!
+  user: User
+  outputConfigs: [BuiltInEvaluatorOutputConfig!]!
+}
+
+union BuiltInEvaluatorOutputConfig = CategoricalAnnotationConfig | ContinuousAnnotationConfig
 
 enum CanonicalParameterName {
   TEMPERATURE
@@ -222,12 +367,13 @@ type ChatCompletionFunctionCall {
 input ChatCompletionInput {
   messages: [ChatCompletionMessageInput!]!
   model: GenerativeModelInput!
+  credentials: [GenerativeCredentialInput!]
   invocationParameters: [InvocationParameterInput!]! = []
   tools: [JSON!]
-  credentials: [GenerativeCredentialInput!]
   template: PromptTemplateOptions
   promptName: Identifier = null
   repetitions: Int!
+  evaluators: [PlaygroundEvaluatorInput!]! = []
 }
 
 input ChatCompletionMessageInput {
@@ -259,9 +405,9 @@ type ChatCompletionMutationPayload {
 input ChatCompletionOverDatasetInput {
   messages: [ChatCompletionMessageInput!]!
   model: GenerativeModelInput!
+  credentials: [GenerativeCredentialInput!]
   invocationParameters: [InvocationParameterInput!]! = []
   tools: [JSON!]
-  credentials: [GenerativeCredentialInput!]
   templateFormat: PromptTemplateFormat! = MUSTACHE
   repetitions: Int!
   datasetId: ID!
@@ -271,6 +417,18 @@ input ChatCompletionOverDatasetInput {
   experimentDescription: String = null
   experimentMetadata: JSON = {}
   promptName: Identifier = null
+  evaluators: [PlaygroundEvaluatorInput!]! = []
+
+  """
+  Dot-notation path to messages in dataset example input to append to prompt
+  """
+  appendedMessagesPath: String = null
+
+  """
+  Dot-notation path prefix for template variables. Default 'input' means {{query}} resolves to input.query. Empty string means full paths like {{input.query}} or {{reference.answer}} are required.
+  """
+  templateVariablesPath: String = "input"
+  tracingEnabled: Boolean! = true
 }
 
 type ChatCompletionOverDatasetMutationExamplePayload {
@@ -293,6 +451,7 @@ type ChatCompletionRepetition {
   toolCalls: [ChatCompletionToolCall!]!
   span: Span
   errorMessage: String
+  evaluations: [EvaluationResult!]!
 }
 
 type ChatCompletionSubscriptionError implements ChatCompletionSubscriptionPayload {
@@ -333,6 +492,15 @@ input ChatPromptVersionInput {
   responseFormat: ResponseFormatInput = null
   modelProvider: ModelProvider!
   modelName: String!
+  customProviderId: ID = null
+}
+
+type ClassificationEvaluatorConfig {
+  name: String!
+  description: String
+  optimizationDirection: OptimizationDirection!
+  messages: [PromptMessage!]!
+  choices: JSON!
 }
 
 input ClearProjectInput {
@@ -349,33 +517,20 @@ input ClonePromptInput {
   metadata: JSON
 }
 
-type Cluster {
-  """The ID of the cluster"""
+type CodeEvaluator implements Evaluator & Node {
+  """The Globally Unique ID of this object"""
   id: ID!
-
-  """The event IDs of the points in the cluster"""
-  eventIds: [ID!]!
-
-  """Ratio of primary points over reference points"""
-  driftRatio: Float
-
-  """Ratio of primary points over corpus points"""
-  primaryToCorpusRatio: Float
-
-  """
-  Data quality metric summarized by the respective datasets of the clustered events
-  """
-  dataQualityMetric(metric: DataQualityMetricInput!): DatasetValues!
-
-  """
-  Performance metric summarized by the respective datasets of the clustered events
-  """
-  performanceMetric(metric: PerformanceMetricInput!): DatasetValues!
-}
-
-input ClusterInput {
-  eventIds: [ID!]!
-  id: ID
+  name: Identifier!
+  description: String
+  metadata: JSON!
+  kind: EvaluatorKind!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  inputSchema: JSON
+  isBuiltin: Boolean!
+  datasets(first: Int = 50, after: String): DatasetConnection!
+  datasetEvaluators: [DatasetEvaluator!]!
+  user: User
 }
 
 union ContentPart = TextContentPart | ToolCallContentPart | ToolResultContentPart
@@ -433,18 +588,38 @@ input CreateChatPromptInput {
   description: String = null
   promptVersion: ChatPromptVersionInput!
   metadata: JSON = null
+  tags: [CreatePromptVersionTagInput!] = null
 }
 
 input CreateChatPromptVersionInput {
   promptId: ID!
   promptVersion: ChatPromptVersionInput!
-  tags: [SetPromptVersionTagInput!] = null
+  tags: [CreatePromptVersionTagInput!] = null
+}
+
+input CreateDatasetBuiltinEvaluatorInput {
+  datasetId: ID!
+  evaluatorId: ID!
+  name: Identifier!
+  inputMapping: EvaluatorInputMappingInput = null
+  outputConfigs: [AnnotationConfigInput!] = null
+  description: String = null
 }
 
 input CreateDatasetInput {
   name: String!
   description: String
   metadata: JSON
+}
+
+input CreateDatasetLLMEvaluatorInput {
+  datasetId: ID!
+  name: Identifier!
+  description: String
+  promptVersionId: ID
+  promptVersion: ChatPromptVersionInput!
+  outputConfigs: [AnnotationConfigInput!]!
+  inputMapping: EvaluatorInputMappingInput = null
 }
 
 input CreateDatasetLabelInput {
@@ -472,6 +647,31 @@ input CreateDatasetSplitWithExamplesInput {
   color: String!
   metadata: JSON
   exampleIds: [ID!]!
+}
+
+input CreateDocumentAnnotationInput {
+  spanId: ID!
+  documentPosition: Int!
+  name: String!
+  annotatorKind: AnnotatorKind!
+  label: String = null
+  score: Float = null
+  explanation: String = null
+  metadata: JSON! = {}
+  source: AnnotationSource!
+  identifier: String
+}
+
+input CreateGenerativeModelCustomProviderMutationInput {
+  name: String!
+  description: String
+  provider: String!
+  clientConfig: GenerativeModelCustomerProviderConfigInput!
+}
+
+type CreateGenerativeModelCustomProviderMutationPayload {
+  provider: GenerativeModelCustomProvider!
+  query: Query!
 }
 
 input CreateModelMutationInput {
@@ -517,6 +717,11 @@ input CreatePromptLabelInput {
   name: String!
   description: String = null
   color: String!
+}
+
+input CreatePromptVersionTagInput {
+  name: Identifier!
+  description: String = null
 }
 
 input CreateSpanAnnotationInput {
@@ -577,29 +782,7 @@ input CreateUserInput {
 
 scalar CronExpression
 
-enum DataQualityMetric {
-  cardinality
-  percentEmpty
-  mean
-  sum
-  min
-  max
-  count
-  p01
-  p25
-  p50
-  p75
-  p99
-}
-
-input DataQualityMetricInput {
-  metric: DataQualityMetric!
-  columnName: String
-}
-
-type DataQualityTimeSeries implements TimeSeries {
-  data: [TimeSeriesDataPoint!]!
-}
+union CustomProviderConfig = OpenAICustomProviderConfig | AzureOpenAICustomProviderConfig | AnthropicCustomProviderConfig | AWSBedrockCustomProviderConfig | GoogleGenAICustomProviderConfig | UnparsableConfig
 
 type Dataset implements Node {
   """The Globally Unique ID of this object"""
@@ -625,6 +808,11 @@ type Dataset implements Node {
   experiments(first: Int = 50, last: Int, after: String, before: String, filterCondition: String, filterIds: [ID!]): ExperimentConnection!
   experimentAnnotationSummaries: [DatasetExperimentAnnotationSummary!]!
   labels: [DatasetLabel!]!
+
+  """Number of evaluators associated with this dataset."""
+  evaluatorCount: Int!
+  datasetEvaluator(datasetEvaluatorId: ID!): DatasetEvaluator!
+  datasetEvaluators(first: Int = 50, last: Int, after: String, before: String, sort: DatasetEvaluatorSort, filter: DatasetEvaluatorFilter): DatasetEvaluatorConnection!
   lastUpdatedAt: DateTime
 }
 
@@ -649,6 +837,66 @@ type DatasetEdge {
 
   """The item at the end of the edge"""
   node: Dataset!
+}
+
+type DatasetEvaluator implements Node {
+  """The Globally Unique ID of this object"""
+  id: ID!
+  name: Identifier!
+  updatedAt: DateTime!
+  dataset: Dataset!
+  evaluator: Evaluator!
+  description: String
+  outputConfigs: [BuiltInEvaluatorOutputConfig!]!
+  inputMapping: EvaluatorInputMapping!
+  user: User
+  project: Project!
+}
+
+enum DatasetEvaluatorColumn {
+  name
+  kind
+  createdAt
+  updatedAt
+}
+
+"""A connection to a list of items."""
+type DatasetEvaluatorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [DatasetEvaluatorEdge!]!
+}
+
+"""An edge in a connection."""
+type DatasetEvaluatorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: DatasetEvaluator!
+}
+
+"""The filter key and value for dataset evaluator connections"""
+input DatasetEvaluatorFilter {
+  col: DatasetEvaluatorFilterColumn!
+  value: String!
+}
+
+enum DatasetEvaluatorFilterColumn {
+  name
+}
+
+type DatasetEvaluatorMutationPayload {
+  evaluator: DatasetEvaluator!
+  query: Query!
+}
+
+"""The sort key and direction for evaluator connections"""
+input DatasetEvaluatorSort {
+  col: DatasetEvaluatorColumn!
+  dir: SortDir!
 }
 
 type DatasetExample implements Node {
@@ -795,11 +1043,6 @@ type DatasetSplitMutationPayloadWithExamples {
   examples: [DatasetExample!]!
 }
 
-type DatasetValues {
-  primaryValue: Float
-  referenceValue: Float
-}
-
 type DatasetVersion implements Node {
   """The Globally Unique ID of this object"""
   id: ID!
@@ -844,6 +1087,10 @@ type DbTableStats {
   numBytes: Float!
 }
 
+type DecryptedSecret {
+  value: String!
+}
+
 input DeleteAnnotationConfigsInput {
   ids: [ID!]!
 }
@@ -863,6 +1110,16 @@ input DeleteApiKeyInput {
 
 type DeleteApiKeyMutationPayload {
   apiKeyId: ID!
+  query: Query!
+}
+
+input DeleteDatasetEvaluatorsInput {
+  datasetEvaluatorIds: [ID!]!
+  deleteAssociatedPrompt: Boolean! = true
+}
+
+type DeleteDatasetEvaluatorsPayload {
+  datasetEvaluatorIds: [ID!]!
   query: Query!
 }
 
@@ -893,8 +1150,26 @@ type DeleteDatasetSplitsMutationPayload {
   query: Query!
 }
 
+input DeleteEvaluatorsInput {
+  evaluatorIds: [ID!]!
+}
+
+type DeleteEvaluatorsPayload {
+  evaluatorIds: [ID!]!
+  query: Query!
+}
+
 input DeleteExperimentsInput {
   experimentIds: [ID!]!
+}
+
+input DeleteGenerativeModelCustomProviderMutationInput {
+  id: ID!
+}
+
+type DeleteGenerativeModelCustomProviderMutationPayload {
+  id: ID!
+  query: Query!
 }
 
 input DeleteModelMutationInput {
@@ -932,113 +1207,6 @@ input DeleteUsersInput {
 
 type DeleteUsersPayload {
   userIds: [ID!]!
-}
-
-type Dimension implements Node {
-  """The Globally Unique ID of this object"""
-  id: ID!
-
-  """The name of the dimension (a.k.a. the column name)"""
-  name: String!
-
-  """
-  Whether the dimension represents a feature, tag, prediction, or actual.
-  """
-  type: DimensionType!
-
-  """The data type of the column. Categorical or numeric."""
-  dataType: DimensionDataType!
-
-  """Whether the dimension data is continuous or discrete."""
-  shape: DimensionShape!
-  driftMetric(metric: ScalarDriftMetric!, timeRange: TimeRange): Float
-  dataQualityMetric(
-    metric: DataQualityMetric!
-    timeRange: TimeRange
-
-    """The inferences (primary or reference) to query"""
-    inferencesRole: InferencesRole = primary
-  ): Float
-
-  """
-  Returns the observed categories of a categorical dimension (usually a dimension of string values) as a list of unique string labels sorted in lexicographical order. Missing values are excluded. Non-categorical dimensions return an empty list.
-  """
-  categories: [String!]!
-
-  """
-  Returns the time series of the specified metric for data within a time range. Data points are generated starting at the end time and are separated by the sampling interval. Each data point is labeled by the end instant and contains data from their respective evaluation windows.
-  """
-  dataQualityTimeSeries(
-    metric: DataQualityMetric!
-    timeRange: TimeRange!
-    granularity: Granularity!
-
-    """The inferences (primary or reference) to query"""
-    inferencesRole: InferencesRole = primary
-  ): DataQualityTimeSeries!
-
-  """
-  The time series of the specified metric for data within a time range. Data points are generated starting at the end time and are separated by the sampling interval. Each data point is labeled by the end instant and contains data from their respective evaluation windows.
-  """
-  driftTimeSeries(metric: ScalarDriftMetric!, timeRange: TimeRange!, granularity: Granularity!): DriftTimeSeries!
-
-  """
-  The segments across both inference sets and returns the counts per segment
-  """
-  segmentsComparison(primaryTimeRange: TimeRange): Segments!
-}
-
-"""A connection to a list of items."""
-type DimensionConnection {
-  """Pagination data for this connection"""
-  pageInfo: PageInfo!
-
-  """Contains the nodes in this connection"""
-  edges: [DimensionEdge!]!
-}
-
-enum DimensionDataType {
-  categorical
-  numeric
-}
-
-"""An edge in a connection."""
-type DimensionEdge {
-  """A cursor for use in pagination"""
-  cursor: String!
-
-  """The item at the end of the edge"""
-  node: Dimension!
-}
-
-input DimensionFilter {
-  types: [DimensionType!]
-  shapes: [DimensionShape!]
-  dataTypes: [DimensionDataType!]
-}
-
-input DimensionInput {
-  name: String!
-  type: DimensionType!
-}
-
-enum DimensionShape {
-  continuous
-  discrete
-}
-
-enum DimensionType {
-  feature
-  tag
-  prediction
-  actual
-}
-
-type DimensionWithValue {
-  dimension: Dimension!
-
-  """The string representation of the dimension's value"""
-  value: String
 }
 
 type DocumentAnnotation implements Node & Annotation {
@@ -1089,6 +1257,11 @@ type DocumentAnnotation implements Node & Annotation {
   span: Span!
 }
 
+type DocumentAnnotationMutationPayload {
+  documentAnnotations: [DocumentAnnotation!]!
+  query: Query!
+}
+
 """
 Summarization of retrieval metrics: Average NDCG@K, Average Precision@K, Mean Reciprocal Rank, Hit Rate, etc.
 """
@@ -1131,97 +1304,6 @@ type DocumentRetrievalMetrics {
   hit: Float
 }
 
-type DriftTimeSeries implements TimeSeries {
-  data: [TimeSeriesDataPoint!]!
-}
-
-type EmbeddingDimension implements Node {
-  """The Globally Unique ID of this object"""
-  id: ID!
-  name: String!
-
-  """
-  Computes a drift metric between all reference data and the primary data belonging to the input time range (inclusive of the time range start and exclusive of the time range end). Returns None if no reference dataset exists, if no primary data exists in the input time range, or if the input time range is invalid.
-  """
-  driftMetric(metric: VectorDriftMetric!, timeRange: TimeRange): Float
-
-  """
-  Computes a retrieval metric between corpus data and the primary data belonging to the input time range (inclusive of the time range start and exclusive of the time range end). Returns None if no reference dataset exists, if no primary data exists in the input time range, or if the input time range is invalid.
-  """
-  retrievalMetric(metric: VectorDriftMetric!, timeRange: TimeRange): Float
-
-  """
-  Returns the time series of the specified metric for data within timeRange. Data points are generated starting at the end time, are separated by the sampling interval. Each data point is labeled by the end instant of and contains data from their respective evaluation window.
-  """
-  dataQualityTimeSeries(
-    metric: DataQualityMetric!
-    timeRange: TimeRange!
-    granularity: Granularity!
-
-    """The dataset (primary or reference) to query"""
-    inferencesRole: InferencesRole = primary
-  ): DataQualityTimeSeries!
-
-  """
-  Computes a drift time-series between the primary and reference datasets. The output drift time-series contains one data point for each whole hour in the input time range (inclusive of the time range start and exclusive of the time range end). Each data point contains the drift metric value between all reference data and the primary data within the evaluation window ending at the corresponding time. Returns None if no reference dataset exists or if the input time range is invalid.           
-  """
-  driftTimeSeries(metric: VectorDriftMetric!, timeRange: TimeRange!, granularity: Granularity!): DriftTimeSeries!
-
-  """
-  Computes a retrieval metric between the primary and corpus datasets. The output time-series contains one data point for each whole hour in the input time range (inclusive of the time range start and exclusive of the time range end). Each data point contains the metric value between all corpus data and the primary data within the evaluation window ending at the corresponding time. Returns None if no corpus dataset exists or if the input time range is invalid.           
-  """
-  retrievalMetricTimeSeries(metric: VectorDriftMetric!, timeRange: TimeRange!, granularity: Granularity!): DriftTimeSeries!
-  UMAPPoints(
-    """The time range of the primary dataset to generate the UMAP points for"""
-    timeRange: TimeRange!
-
-    """UMAP target dimension hyperparameter. Must be 2 or 3"""
-    nComponents: Int = 3
-
-    """UMAP minimum distance hyperparameter"""
-    minDist: Float! = 0
-
-    """UMAP N neighbors hyperparameter"""
-    nNeighbors: Int! = 30
-
-    """UMAP N samples"""
-    nSamples: Int! = 500
-
-    """HDBSCAN minimum cluster size"""
-    minClusterSize: Int! = 10
-
-    """HDBSCAN minimum samples"""
-    clusterMinSamples: Int! = 1
-
-    """HDBSCAN cluster selection epsilon"""
-    clusterSelectionEpsilon: Float! = 0
-  ): UMAPPoints!
-}
-
-"""A connection to a list of items."""
-type EmbeddingDimensionConnection {
-  """Pagination data for this connection"""
-  pageInfo: PageInfo!
-
-  """Contains the nodes in this connection"""
-  edges: [EmbeddingDimensionEdge!]!
-}
-
-"""An edge in a connection."""
-type EmbeddingDimensionEdge {
-  """A cursor for use in pagination"""
-  cursor: String!
-
-  """The item at the end of the edge"""
-  node: EmbeddingDimension!
-}
-
-type EmbeddingMetadata {
-  predictionId: String
-  rawData: String
-  linkToData: String
-}
-
 enum EvalAttr {
   score
   label
@@ -1232,24 +1314,112 @@ input EvalResultKey {
   attr: EvalAttr!
 }
 
-type Event {
-  id: ID!
-  eventMetadata: EventMetadata!
-  dimensions: [DimensionWithValue!]!
-
-  """The prompt and response pair associated with the event"""
-  promptAndResponse: PromptResponse
-
-  """The text of the document if the event is a retrieved document record"""
-  documentText: String
+type EvaluationChunk implements ChatCompletionSubscriptionPayload {
+  datasetExampleId: ID
+  repetitionNumber: Int
+  evaluatorName: String!
+  experimentRunEvaluation: ExperimentRunAnnotation
+  trace: Trace
+  error: String
 }
 
-type EventMetadata {
-  predictionId: String
-  predictionScore: Float
-  predictionLabel: String
-  actualScore: Float
-  actualLabel: String
+type EvaluationResult {
+  evaluatorName: String!
+  annotation: ExperimentRunAnnotation
+  trace: Trace
+  error: String
+}
+
+interface Evaluator implements Node {
+  """The Globally Unique ID of this object"""
+  id: ID!
+  name: Identifier!
+  description: String
+  metadata: JSON!
+  kind: EvaluatorKind!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  inputSchema: JSON
+  isBuiltin: Boolean!
+  datasets(first: Int = 50, after: String): DatasetConnection!
+  datasetEvaluators: [DatasetEvaluator!]!
+}
+
+enum EvaluatorColumn {
+  name
+  kind
+  createdAt
+  updatedAt
+}
+
+"""A connection to a list of items."""
+type EvaluatorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [EvaluatorEdge!]!
+}
+
+"""An edge in a connection."""
+type EvaluatorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Evaluator!
+}
+
+"""The filter key and value for evaluator connections"""
+input EvaluatorFilter {
+  col: EvaluatorFilterColumn!
+  value: String!
+}
+
+enum EvaluatorFilterColumn {
+  name
+}
+
+type EvaluatorInputMapping {
+  literalMapping: JSON!
+  pathMapping: JSON!
+}
+
+input EvaluatorInputMappingInput {
+  literalMapping: JSON! = {}
+  pathMapping: JSON! = {}
+}
+
+enum EvaluatorKind {
+  LLM
+  CODE
+  BUILTIN
+}
+
+input EvaluatorPreviewInput @oneOf {
+  builtInEvaluatorId: ID
+  inlineLlmEvaluator: InlineLLMEvaluatorInput
+}
+
+input EvaluatorPreviewItemInput {
+  evaluator: EvaluatorPreviewInput!
+  context: JSON!
+  inputMapping: EvaluatorInputMappingInput! = {}
+}
+
+input EvaluatorPreviewsInput {
+  previews: [EvaluatorPreviewItemInput!]!
+  credentials: [GenerativeCredentialInput!]
+}
+
+type EvaluatorPreviewsPayload {
+  results: [EvaluationResult!]!
+}
+
+"""The sort key and direction for evaluator connections"""
+input EvaluatorSort {
+  col: EvaluatorColumn!
+  dir: SortDir!
 }
 
 interface ExampleRevision {
@@ -1269,6 +1439,9 @@ type Experiment implements Node {
   metadata: JSON!
   createdAt: DateTime!
   updatedAt: DateTime!
+
+  """The user that created the experiment."""
+  user: User
 
   """Sequence number (1-based) of experiments belonging to the same dataset"""
   sequenceNumber: Int!
@@ -1505,11 +1678,6 @@ input ExperimentRunSort {
   dir: SortDir!
 }
 
-type ExportedFile {
-  """File name without the file extension."""
-  fileName: String!
-}
-
 type FloatInvocationParameter implements InvocationParameterBase {
   invocationName: String!
   canonicalName: CanonicalParameterName
@@ -1539,14 +1707,9 @@ type FunctionCallChunk implements ChatCompletionSubscriptionPayload {
   arguments: String!
 }
 
-type Functionality {
-  """Model inferences are available for analysis"""
-  modelInferences: Boolean!
-}
-
 input GenerativeCredentialInput {
   envVarName: String!
-  value: String!
+  value: SecretString!
 }
 
 type GenerativeModel implements Node & ModelInterface {
@@ -1566,6 +1729,16 @@ type GenerativeModel implements Node & ModelInterface {
   lastUsedAt: DateTime
 }
 
+input GenerativeModelBuiltinProviderInput {
+  providerKey: GenerativeProviderKey!
+  name: String!
+  baseUrl: String
+  endpoint: String
+  region: String
+  customHeaders: JSON
+  openaiApiType: OpenAIApiType
+}
+
 """A connection to a list of items."""
 type GenerativeModelConnection {
   """Pagination data for this connection"""
@@ -1573,6 +1746,70 @@ type GenerativeModelConnection {
 
   """Contains the nodes in this connection"""
   edges: [GenerativeModelEdge!]!
+}
+
+type GenerativeModelCustomProvider implements Node {
+  """The Globally Unique ID of this object"""
+  id: ID!
+
+  """The name of this provider."""
+  name: String!
+
+  """The description of this provider."""
+  description: String
+
+  """The provider of this provider."""
+  provider: String!
+
+  """The creation timestamp of this provider."""
+  createdAt: DateTime!
+
+  """The last updated timestamp of this provider."""
+  updatedAt: DateTime!
+
+  """The SDK of this provider."""
+  sdk: GenerativeModelSDK!
+
+  """The config of this provider."""
+  config: CustomProviderConfig!
+
+  """The user that created this provider."""
+  user: User
+
+  """The model names available for this provider."""
+  modelNames: [String!]!
+}
+
+"""A connection to a list of items."""
+type GenerativeModelCustomProviderConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [GenerativeModelCustomProviderEdge!]!
+}
+
+"""An edge in a connection."""
+type GenerativeModelCustomProviderEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: GenerativeModelCustomProvider!
+}
+
+input GenerativeModelCustomProviderInput {
+  providerId: ID!
+  modelName: String!
+  extraHeaders: JSON
+}
+
+input GenerativeModelCustomerProviderConfigInput @oneOf {
+  openai: OpenAICustomProviderConfigInput
+  azureOpenai: AzureOpenAICustomProviderConfigInput
+  anthropic: AnthropicCustomProviderConfigInput
+  awsBedrock: AWSBedrockCustomProviderConfigInput
+  googleGenai: GoogleGenAICustomProviderConfigInput
 }
 
 """An edge in a connection."""
@@ -1584,19 +1821,22 @@ type GenerativeModelEdge {
   node: GenerativeModel!
 }
 
-input GenerativeModelInput {
-  providerKey: GenerativeProviderKey!
-  name: String!
-  baseUrl: String
-  endpoint: String
-  apiVersion: String
-  region: String
-  customHeaders: JSON
+input GenerativeModelInput @oneOf {
+  builtin: GenerativeModelBuiltinProviderInput
+  custom: GenerativeModelCustomProviderInput
 }
 
 enum GenerativeModelKind {
   CUSTOM
   BUILT_IN
+}
+
+enum GenerativeModelSDK {
+  OPENAI
+  AZURE_OPENAI
+  ANTHROPIC
+  AWS_BEDROCK
+  GOOGLE_GENAI
 }
 
 type GenerativeProvider {
@@ -1628,82 +1868,49 @@ enum GenerativeProviderKey {
   AWS
 }
 
-"""
-Granularity specifies the distance between points in a time-series and the duration of time (i.e. evaluation window) by which data is aggregated for  each data point. By convention all time intervals are right-open intervals, i.e. the end instant of the evaluation window is excluded from the interval. As a matter of standardization, each point in a time-series aggregates data  corresponding to an interval of time (i.e. the evaluation window) ending at the point's timestamp, and each time-series enumerates its points starting from the end instant of the TimeRange.
-"""
-input Granularity {
-  """
-  Specifies the length of time by which the data are grouped for aggregation. Each point in a time-series will have the same evaluation_window, but the evaluation_window for each point can overlap in real time. For example, when the points are 24 hours apart but the eval window is 72 hours, it means that each point in the time-series is aggregating 72 hours worth of data ending at the point's timestamp.
-  """
-  evaluationWindowMinutes: Int!
+type GoogleGenAIAuthenticationMethod {
+  apiKey: String
+}
 
-  """
-  Specifies the time interval between each point in the time-series. All points in the time-series are separated by the same length of time, and are generated starting from the end time of the time range.
-  """
-  samplingIntervalMinutes: Int!
+input GoogleGenAIAuthenticationMethodInput {
+  apiKey: String!
+}
+
+type GoogleGenAIClientKwargs {
+  httpOptions: GoogleGenAIHttpOptions
+}
+
+input GoogleGenAIClientKwargsInput {
+  httpOptions: GoogleGenAIHttpOptionsInput
+}
+
+type GoogleGenAICustomProviderConfig {
+  googleGenaiAuthenticationMethod: GoogleGenAIAuthenticationMethod!
+  googleGenaiClientKwargs: GoogleGenAIClientKwargs
+}
+
+input GoogleGenAICustomProviderConfigInput {
+  googleGenaiAuthenticationMethod: GoogleGenAIAuthenticationMethodInput!
+  googleGenaiClientKwargs: GoogleGenAIClientKwargsInput
+}
+
+type GoogleGenAIHttpOptions {
+  baseUrl: String
+  headers: JSON
+}
+
+input GoogleGenAIHttpOptionsInput {
+  baseUrl: String
+  headers: JSON
 }
 
 scalar Identifier
 
-type InferenceModel {
-  dimensions(first: Int = 50, last: Int, after: String, before: String, include: DimensionFilter, exclude: DimensionFilter): DimensionConnection!
-  primaryInferences: Inferences!
-  referenceInferences: Inferences
-  corpusInferences: Inferences
-  embeddingDimensions(first: Int = 50, last: Int, after: String, before: String): EmbeddingDimensionConnection!
-
-  """Returns exported file names sorted by descending modification time."""
-  exportedFiles: [ExportedFile!]!
-  performanceMetric(
-    metric: PerformanceMetricInput!
-    timeRange: TimeRange
-
-    """The inferences (primary or reference) to query"""
-    inferencesRole: InferencesRole = primary
-  ): Float
-
-  """
-  Returns the time series of the specified metric for data within a time range. Data points are generated starting at the end time and are separated by the sampling interval. Each data point is labeled by the end instant and contains data from their respective evaluation windows.
-  """
-  performanceTimeSeries(
-    metric: PerformanceMetricInput!
-    timeRange: TimeRange!
-    granularity: Granularity!
-
-    """The inferences (primary or reference) to query"""
-    inferencesRole: InferencesRole = primary
-  ): PerformanceTimeSeries!
-}
-
-type Inferences {
-  """The start bookend of the data"""
-  startTime: DateTime!
-
-  """The end bookend of the data"""
-  endTime: DateTime!
-
-  """The record count of the data"""
-  recordCount: Int!
-
-  """Returns a human friendly name for the inferences."""
+input InlineLLMEvaluatorInput {
   name: String!
-  events(eventIds: [ID!]!, dimensions: [DimensionInput!]): [Event!]!
-}
-
-enum InferencesRole {
-  primary
-  reference
-}
-
-input InputCoordinate2D {
-  x: Float!
-  y: Float!
-}
-
-input InputCoordinate3D {
-  x: Float!
-  y: Float!
-  z: Float!
+  promptVersion: ChatPromptVersionInput!
+  outputConfigs: [AnnotationConfigInput!]!
+  description: String = null
 }
 
 type IntInvocationParameter implements InvocationParameterBase {
@@ -1713,10 +1920,6 @@ type IntInvocationParameter implements InvocationParameterBase {
   required: Boolean!
   invocationInputField: InvocationInputField!
   defaultValue: Int
-}
-
-type IntervalBin {
-  range: NumericRange!
 }
 
 enum InvocationInputField {
@@ -1764,6 +1967,26 @@ type JSONInvocationParameter implements InvocationParameterBase {
   defaultValue: JSON
 }
 
+type LLMEvaluator implements Evaluator & Node {
+  """The Globally Unique ID of this object"""
+  id: ID!
+  name: Identifier!
+  description: String
+  metadata: JSON!
+  kind: EvaluatorKind!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  inputSchema: JSON
+  isBuiltin: Boolean!
+  datasets(first: Int = 50, after: String): DatasetConnection!
+  datasetEvaluators: [DatasetEvaluator!]!
+  outputConfigs: [BuiltInEvaluatorOutputConfig!]!
+  prompt: Prompt!
+  promptVersionTag: PromptVersionTag
+  user: User
+  promptVersion: PromptVersion!
+}
+
 type LabelFraction {
   label: String!
   fraction: Float!
@@ -1772,10 +1995,6 @@ type LabelFraction {
 enum MimeType {
   text
   json
-}
-
-type MissingValueBin {
-  name: String
 }
 
 interface ModelInterface {
@@ -1811,6 +2030,7 @@ type Mutation {
   deleteUserApiKey(input: DeleteApiKeyInput!): DeleteApiKeyMutationPayload!
   chatCompletionOverDataset(input: ChatCompletionOverDatasetInput!): ChatCompletionOverDatasetMutationPayload!
   chatCompletion(input: ChatCompletionInput!): ChatCompletionMutationPayload!
+  evaluatorPreviews(input: EvaluatorPreviewsInput!): EvaluatorPreviewsPayload!
   createDatasetLabel(input: CreateDatasetLabelInput!): CreateDatasetLabelMutationPayload!
   deleteDatasetLabels(input: DeleteDatasetLabelsInput!): DeleteDatasetLabelsMutationPayload!
   setDatasetLabels(input: SetDatasetLabelsInput!): SetDatasetLabelsMutationPayload!
@@ -1826,17 +2046,19 @@ type Mutation {
   deleteDatasetSplits(input: DeleteDatasetSplitInput!): DeleteDatasetSplitsMutationPayload!
   setDatasetExampleSplits(input: SetDatasetExampleSplitsInput!): SetDatasetExampleSplitsMutationPayload!
   createDatasetSplitWithExamples(input: CreateDatasetSplitWithExamplesInput!): DatasetSplitMutationPayloadWithExamples!
+  createDocumentAnnotations(input: [CreateDocumentAnnotationInput!]!): DocumentAnnotationMutationPayload!
+  patchDocumentAnnotations(input: [PatchAnnotationInput!]!): DocumentAnnotationMutationPayload!
+  deleteDocumentAnnotations(input: DeleteAnnotationsInput!): DocumentAnnotationMutationPayload!
+  createDatasetLlmEvaluator(input: CreateDatasetLLMEvaluatorInput!): DatasetEvaluatorMutationPayload!
+  updateDatasetLlmEvaluator(input: UpdateDatasetLLMEvaluatorInput!): DatasetEvaluatorMutationPayload!
+  deleteEvaluators(input: DeleteEvaluatorsInput!): DeleteEvaluatorsPayload!
+  deleteDatasetEvaluators(input: DeleteDatasetEvaluatorsInput!): DeleteDatasetEvaluatorsPayload!
+  createDatasetBuiltinEvaluator(input: CreateDatasetBuiltinEvaluatorInput!): DatasetEvaluatorMutationPayload!
+  updateDatasetBuiltinEvaluator(input: UpdateDatasetBuiltinEvaluatorInput!): DatasetEvaluatorMutationPayload!
   deleteExperiments(input: DeleteExperimentsInput!): ExperimentMutationPayload!
-
-  """
-  Given a list of event ids, export the corresponding data subset in Parquet format. File name is optional, but if specified, should be without file extension. By default the exported file name is current timestamp.
-  """
-  exportEvents(eventIds: [ID!]!, fileName: String): ExportedFile!
-
-  """
-  Given a list of clusters, export the corresponding data subset in Parquet format. File name is optional, but if specified, should be without file extension. By default the exported file name is current timestamp.
-  """
-  exportClusters(clusters: [ClusterInput!]!, fileName: String): ExportedFile!
+  createGenerativeModelCustomProvider(input: CreateGenerativeModelCustomProviderMutationInput!): CreateGenerativeModelCustomProviderMutationPayload!
+  patchGenerativeModelCustomProvider(input: PatchGenerativeModelCustomProviderMutationInput!): PatchGenerativeModelCustomProviderMutationPayload!
+  deleteGenerativeModelCustomProvider(input: DeleteGenerativeModelCustomProviderMutationInput!): DeleteGenerativeModelCustomProviderMutationPayload!
   createModel(input: CreateModelMutationInput!): CreateModelMutationPayload!
   updateModel(input: UpdateModelMutationInput!): UpdateModelMutationPayload!
   deleteModel(input: DeleteModelMutationInput!): DeleteModelMutationPayload!
@@ -1858,6 +2080,7 @@ type Mutation {
   deletePromptLabels(input: DeletePromptLabelsInput!): PromptLabelDeleteMutationPayload!
   setPromptLabels(input: SetPromptLabelsInput!): PromptLabelAssociationMutationPayload!
   unsetPromptLabels(input: UnsetPromptLabelsInput!): PromptLabelAssociationMutationPayload!
+  upsertOrDeleteSecrets(input: UpsertOrDeleteSecretsMutationInput!): UpsertOrDeleteSecretsMutationPayload!
   createSpanAnnotations(input: [CreateSpanAnnotationInput!]!): SpanAnnotationMutationPayload!
   createSpanNote(annotationInput: CreateSpanNoteInput!): SpanAnnotationMutationPayload!
   patchSpanAnnotations(input: [PatchAnnotationInput!]!): SpanAnnotationMutationPayload!
@@ -1882,13 +2105,43 @@ interface Node {
   id: ID!
 }
 
-type NominalBin {
-  name: String!
+enum OpenAIApiType {
+  CHAT_COMPLETIONS
+  RESPONSES
 }
 
-type NumericRange {
-  start: Float!
-  end: Float!
+type OpenAIAuthenticationMethod {
+  apiKey: String
+}
+
+input OpenAIAuthenticationMethodInput {
+  apiKey: String!
+}
+
+type OpenAIClientKwargs {
+  baseUrl: String
+  organization: String
+  project: String
+  defaultHeaders: JSON
+}
+
+input OpenAIClientKwargsInput {
+  baseUrl: String
+  organization: String
+  project: String
+  defaultHeaders: JSON
+}
+
+type OpenAICustomProviderConfig {
+  openaiAuthenticationMethod: OpenAIAuthenticationMethod!
+  openaiClientKwargs: OpenAIClientKwargs
+  openaiApiType: OpenAIApiType!
+}
+
+input OpenAICustomProviderConfigInput {
+  openaiAuthenticationMethod: OpenAIAuthenticationMethodInput!
+  openaiClientKwargs: OpenAIClientKwargsInput
+  openaiApiType: OpenAIApiType = RESPONSES
 }
 
 enum OptimizationDirection {
@@ -1945,6 +2198,19 @@ input PatchDatasetSplitInput {
   metadata: JSON
 }
 
+input PatchGenerativeModelCustomProviderMutationInput {
+  id: ID!
+  name: String
+  description: String
+  provider: String
+  clientConfig: GenerativeModelCustomerProviderConfigInput
+}
+
+type PatchGenerativeModelCustomProviderMutationPayload {
+  provider: GenerativeModelCustomProvider!
+  query: Query!
+}
+
 input PatchProjectTraceRetentionPolicyInput {
   id: ID!
   name: String
@@ -1979,34 +2245,17 @@ input PatchViewerInput {
   currentPassword: String
 }
 
-enum PerformanceMetric {
-  accuracyScore
-}
-
-input PerformanceMetricInput {
-  metric: PerformanceMetric!
-}
-
-type PerformanceTimeSeries implements TimeSeries {
-  data: [TimeSeriesDataPoint!]!
+input PlaygroundEvaluatorInput {
+  id: ID!
+  name: Identifier!
+  description: String = null
+  inputMapping: EvaluatorInputMappingInput! = {}
+  outputConfigs: [AnnotationConfigInput!] = null
 }
 
 type PlaygroundModel implements ModelInterface {
   name: String!
   providerKey: GenerativeProviderKey!
-}
-
-type Point2D {
-  x: Float!
-  y: Float!
-}
-
-union Point2DPoint3D = Point2D | Point3D
-
-type Point3D {
-  x: Float!
-  y: Float!
-  z: Float!
 }
 
 type Project implements Node {
@@ -2335,7 +2584,7 @@ type PromptLabel implements Node {
   id: ID!
   name: Identifier!
   description: String
-  color: String!
+  color: String
 }
 
 type PromptLabelAssociationMutationPayload {
@@ -2387,14 +2636,6 @@ enum PromptMessageRole {
   TOOL
 }
 
-type PromptResponse {
-  """The prompt submitted to the LLM"""
-  prompt: String
-
-  """The response generated by the LLM"""
-  response: String
-}
-
 type PromptStringTemplate {
   template: String!
 }
@@ -2433,12 +2674,14 @@ type PromptVersion implements Node {
   createdAt: DateTime!
   tags: [PromptVersionTag!]!
   user: User
+  customProvider: GenerativeModelCustomProvider
   previousVersion: PromptVersion
 
   """
   Sequence number (1-based) of prompt versions belonging to the same prompt
   """
   sequenceNumber: Int!
+  isLatest: Boolean!
 }
 
 """A connection to a list of items."""
@@ -2476,6 +2719,9 @@ type PromptVersionTagMutationPayload {
 
 type Query {
   modelProviders: [GenerativeProvider!]!
+  generativeModelCustomProviders(first: Int = 50, last: Int, after: String, before: String): GenerativeModelCustomProviderConnection!
+  secrets(keys: [String!] = null, first: Int = 50, last: Int, after: String, before: String): SecretConnection!
+  testGenerativeModelCustomProviderCredentials(input: GenerativeModelCustomerProviderConfigInput!): TestGenerativeModelCustomProviderCredentialsResult!
   generativeModels(first: Int = 50, last: Int, after: String, before: String): GenerativeModelConnection!
   playgroundModels(input: ModelsInput = null): [PlaygroundModel!]!
   modelInvocationParameters(input: ModelsInput = null): [InvocationParameter!]!
@@ -2490,35 +2736,16 @@ type Query {
   compareExperiments(baseExperimentId: ID!, compareExperimentIds: [ID!]!, first: Int = 50, after: String, filterCondition: String): ExperimentComparisonConnection!
   experimentRunMetricComparisons(baseExperimentId: ID!, compareExperimentIds: [ID!]!): ExperimentRunMetricComparisons!
   validateExperimentRunFilterCondition(condition: String!, experimentIds: [ID!]!): ValidationResult!
-  functionality: Functionality!
-  model: InferenceModel!
   node(id: ID!): Node!
   viewer: User
   prompts(first: Int = 50, last: Int, after: String, before: String, filter: PromptFilter, labelIds: [ID!]): PromptConnection!
   promptLabels(first: Int = 50, last: Int, after: String, before: String): PromptLabelConnection!
   datasetLabels(first: Int = 50, last: Int, after: String, before: String): DatasetLabelConnection!
   datasetSplits(first: Int = 50, last: Int, after: String, before: String): DatasetSplitConnection!
+  builtInEvaluators: [BuiltInEvaluator!]!
+  evaluators(first: Int = 50, last: Int, after: String, before: String, sort: EvaluatorSort, filter: EvaluatorFilter): EvaluatorConnection!
   annotationConfigs(first: Int = 50, last: Int = null, after: String = null, before: String = null): AnnotationConfigConnection!
-  clusters(clusters: [ClusterInput!]!): [Cluster!]!
-  hdbscanClustering(
-    """Event ID of the coordinates"""
-    eventIds: [ID!]!
-
-    """Point coordinates. Must be either 2D or 3D."""
-    coordinates2d: [InputCoordinate2D!]
-
-    """Point coordinates. Must be either 2D or 3D."""
-    coordinates3d: [InputCoordinate3D!]
-
-    """HDBSCAN minimum cluster size"""
-    minClusterSize: Int! = 10
-
-    """HDBSCAN minimum samples"""
-    clusterMinSamples: Int! = 1
-
-    """HDBSCAN cluster selection epsilon"""
-    clusterSelectionEpsilon: Float! = 0
-  ): [Cluster!]!
+  classificationEvaluatorConfigs(labels: [String!]): [ClassificationEvaluatorConfig!]!
   defaultProjectTraceRetentionPolicy: ProjectTraceRetentionPolicy!
   projectTraceRetentionPolicies(first: Int = 100, last: Int, after: String, before: String): ProjectTraceRetentionPolicyConnection!
 
@@ -2532,6 +2759,11 @@ type Query {
   getSpanByOtelId(spanId: String!): Span
   getTraceByOtelId(traceId: String!): Trace
   getProjectSessionById(sessionId: String!): ProjectSession
+  applyChatTemplate(template: PromptChatTemplateInput!, templateOptions: PromptTemplateOptions!, inputMapping: EvaluatorInputMappingInput = null): PromptChatTemplate!
+  projectCount: Int!
+  datasetCount: Int!
+  promptCount: Int!
+  evaluatorCount: Int!
 }
 
 input RemoveAnnotationConfigFromProjectInput {
@@ -2544,6 +2776,8 @@ type RemoveAnnotationConfigFromProjectPayload {
   project: Project!
 }
 
+union ResolvedSecret = DecryptedSecret | UnparsableSecret
+
 type ResponseFormat {
   definition: JSON!
 }
@@ -2552,33 +2786,48 @@ input ResponseFormatInput {
   definition: JSON!
 }
 
-type Retrieval {
-  queryId: ID!
-  documentId: ID!
-  relevance: Float
-}
-
 enum RevisionKind {
   CREATE
   PATCH
   DELETE
 }
 
-enum ScalarDriftMetric {
-  psi
-  klDivergence
-  jsDistance
+type Secret implements Node {
+  """The Globally Unique ID of this object"""
+  id: ID!
+  key: String!
+  value: ResolvedSecret!
+  updatedAt: DateTime!
+  user: User
 }
 
-type Segment {
-  bin: Bin!
-  counts: DatasetValues!
+"""A connection to a list of items."""
+type SecretConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [SecretEdge!]!
 }
 
-type Segments {
-  segments: [Segment!]!
-  totalCounts: DatasetValues!
+"""An edge in a connection."""
+type SecretEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Secret!
 }
+
+input SecretKeyValueInput {
+  key: String!
+
+  """The value of the secret. If null, the secret will be deleted."""
+  value: String
+}
+
+"""A secret string value."""
+scalar SecretString
 
 type ServerStatus {
   insufficientStorage: Boolean!
@@ -2868,6 +3117,7 @@ type SpanEvent {
   name: String!
   message: String!
   timestamp: DateTime!
+  attributes: JSON!
 }
 
 type SpanIOValue {
@@ -2882,6 +3132,7 @@ enum SpanKind {
   chain
   tool
   llm
+  prompt
   retriever
   embedding
   agent
@@ -2944,6 +3195,10 @@ type SystemApiKey implements ApiKey & Node {
 
   """The Globally Unique ID of this object"""
   id: ID!
+}
+
+type TestGenerativeModelCustomProviderCredentialsResult {
+  error: String
 }
 
 type TextChunk implements ChatCompletionSubscriptionPayload {
@@ -3246,22 +3501,12 @@ type TraceTokenCountTimeSeriesDataPoint {
   totalTokenCount: Float
 }
 
-type UMAPPoint {
-  id: ID!
-
-  """The ID of the event that the point is a projection of"""
-  eventId: ID!
-  coordinates: Point2DPoint3D!
-  embeddingMetadata: EmbeddingMetadata!
-  eventMetadata: EventMetadata!
+type UnparsableConfig {
+  parseError: String!
 }
 
-type UMAPPoints {
-  data: [UMAPPoint!]!
-  referenceData: [UMAPPoint!]!
-  clusters: [Cluster!]!
-  corpusData: [UMAPPoint!]!
-  contextRetrievals: [Retrieval!]!
+type UnparsableSecret {
+  parseError: String!
 }
 
 input UnsetPromptLabelsInput {
@@ -3290,6 +3535,25 @@ input UpdateAnnotationInput {
   source: AnnotationSource! = APP
 }
 
+input UpdateDatasetBuiltinEvaluatorInput {
+  datasetEvaluatorId: ID!
+  name: Identifier!
+  inputMapping: EvaluatorInputMappingInput = null
+  outputConfigs: [AnnotationConfigInput!]
+  description: String
+}
+
+input UpdateDatasetLLMEvaluatorInput {
+  datasetEvaluatorId: ID!
+  datasetId: ID!
+  name: Identifier!
+  description: String = null
+  promptVersionId: ID
+  promptVersion: ChatPromptVersionInput!
+  outputConfigs: [AnnotationConfigInput!]!
+  inputMapping: EvaluatorInputMappingInput = null
+}
+
 input UpdateModelMutationInput {
   id: ID!
   name: String!
@@ -3301,6 +3565,22 @@ input UpdateModelMutationInput {
 
 type UpdateModelMutationPayload {
   model: GenerativeModel!
+  query: Query!
+}
+
+input UpsertOrDeleteSecretsMutationInput {
+  """
+  A list of secret key-value pairs to upsert or delete. Must contain at least one secret. When the same key appears multiple times in the list, the last occurrence determines the final action (upsert with that value, or delete if value is null).
+  """
+  secrets: [SecretKeyValueInput!]!
+}
+
+type UpsertOrDeleteSecretsMutationPayload {
+  """List of secrets that were created or updated."""
+  upsertedSecrets: [Secret!]!
+
+  """List of GlobalIDs for secrets that were deleted."""
+  deletedIds: [ID!]!
   query: Query!
 }
 
@@ -3373,8 +3653,4 @@ enum UserRoleInput {
 type ValidationResult {
   isValid: Boolean!
   errorMessage: String
-}
-
-enum VectorDriftMetric {
-  euclideanDistance
 }

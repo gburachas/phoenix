@@ -1,12 +1,11 @@
-import { forwardRef, Ref } from "react";
-import {
-  Select as AriaSelect,
-  SelectProps as AriaSelectProps,
-} from "react-aria-components";
 import { css } from "@emotion/react";
+import type { Ref } from "react";
+import { forwardRef } from "react";
+import type { SelectProps as AriaSelectProps } from "react-aria-components";
+import { Select as AriaSelect } from "react-aria-components";
 
 import { selectCSS } from "@phoenix/components/select/styles";
-import { SizingProps, StylableProps } from "@phoenix/components/types";
+import type { SizingProps, StylableProps } from "@phoenix/components/types";
 import { SizeProvider } from "@phoenix/contexts";
 
 import { fieldBaseCSS } from "../field/styles";
@@ -14,9 +13,8 @@ import { fieldBaseCSS } from "../field/styles";
 export interface SelectProps<
   T extends object = object,
   M extends "single" | "multiple" = "single",
-> extends AriaSelectProps<T, M>,
-    SizingProps,
-    StylableProps {}
+>
+  extends AriaSelectProps<T, M>, SizingProps, StylableProps {}
 
 function Select<T extends object, M extends "single" | "multiple">(
   props: SelectProps<T, M>,
@@ -27,7 +25,7 @@ function Select<T extends object, M extends "single" | "multiple">(
     <SizeProvider size={size}>
       <AriaSelect
         data-size={size}
-        className="ac-select"
+        className="select"
         ref={ref}
         css={css(fieldBaseCSS, selectCSS)}
         {...otherProps}

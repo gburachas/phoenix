@@ -1,16 +1,35 @@
-import { create, StateCreator } from "zustand";
+import type { StateCreator } from "zustand";
+import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-import { LastNTimeRangeKey } from "@phoenix/components/datetime/types";
-import { ProgrammingLanguage } from "@phoenix/types/code";
+import type { LastNTimeRangeKey } from "@phoenix/components/datetime/types";
+import type { ProgrammingLanguage } from "@phoenix/types/code";
 import { getSupportedTimezones } from "@phoenix/utils/timeUtils";
 
-import { ModelConfig } from "./playground";
+import type { ModelConfig } from "./playground";
 
 export type MarkdownDisplayMode = "text" | "markdown";
 
+export const awsBedrockModelPrefixes = [
+  "",
+  "apac",
+  "au",
+  "ca",
+  "eu",
+  "global",
+  "il",
+  "jp",
+  "us",
+  "us-gov",
+] as const;
+
+export type AwsBedrockModelPrefix = (typeof awsBedrockModelPrefixes)[number];
+
 export type ModelConfigByProvider = Partial<
-  Record<ModelProvider, Omit<ModelConfig, "supportedInvocationParameters">>
+  Record<
+    ModelProvider,
+    Omit<ModelConfig, "supportedInvocationParameters" | "customProvider">
+  >
 >;
 
 export type ProjectViewMode = "table" | "grid";
@@ -82,6 +101,12 @@ export interface PreferencesProps {
    * @default "Python"
    */
   programmingLanguage: ProgrammingLanguage;
+  /**
+   * The AWS Bedrock cross-region inference model prefix
+   * @default "us"
+   * @see https://docs.aws.amazon.com/bedrock/latest/userguide/inference-profiles-support.html
+   */
+  awsBedrockModelPrefix: AwsBedrockModelPrefix;
 }
 
 export interface PreferencesState extends PreferencesProps {
@@ -147,6 +172,12 @@ export interface PreferencesState extends PreferencesProps {
    * Setter for the preferred programming language
    */
   setProgrammingLanguage: (programmingLanguage: ProgrammingLanguage) => void;
+  /**
+   * Setter for the AWS Bedrock model prefix
+   */
+  setAwsBedrockModelPrefix: (
+    awsBedrockModelPrefix: AwsBedrockModelPrefix
+  ) => void;
 }
 
 export const createPreferencesStore = (
@@ -235,6 +266,12 @@ export const createPreferencesStore = (
     programmingLanguage: "Python",
     setProgrammingLanguage: (programmingLanguage) => {
       set({ programmingLanguage }, false, { type: "setProgrammingLanguage" });
+    },
+    awsBedrockModelPrefix: "us",
+    setAwsBedrockModelPrefix: (awsBedrockModelPrefix) => {
+      set({ awsBedrockModelPrefix }, false, {
+        type: "setAwsBedrockModelPrefix",
+      });
     },
     ...initialProps,
   });

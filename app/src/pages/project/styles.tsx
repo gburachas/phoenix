@@ -10,7 +10,7 @@ export const spansTableCSS = css`
   }
 
   // Style the column selector
-  .ac-dropdown-button {
-    min-width: var(--ac-global-dimension-static-size-300);
+  .dropdown__button {
+    min-width: var(--global-dimension-static-size-300);
   }
 `;

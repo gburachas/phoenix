@@ -106,6 +106,17 @@ Phoenix supports two types of database URLs:
 Note that if you plan on using SQLite, it's advised to to use a persistent volume
 and simply point the PHOENIX_WORKING_DIR to that volume.
 """
+ENV_PHOENIX_LOG_SQL = "PHOENIX_LOG_SQL"
+"""
+Whether to log all SQL statements to stdout.
+Useful for debugging database queries during development.
+
+Set to ``true`` to enable SQL logging, ``false`` (default) to disable it.
+
+Example::
+
+    PHOENIX_LOG_SQL=true
+"""
 ENV_PHOENIX_POSTGRES_HOST = "PHOENIX_POSTGRES_HOST"
 """
 As an alternative to setting PHOENIX_SQL_DATABASE_URL, you can set the following
@@ -165,6 +176,22 @@ ENV_PHOENIX_SQL_DATABASE_SCHEMA = "PHOENIX_SQL_DATABASE_SCHEMA"
 """
 The schema to use for the PostgresSQL database. (This is ignored for SQLite.)
 See e.g. https://www.postgresql.org/docs/current/ddl-schemas.html
+"""
+ENV_PHOENIX_MIGRATE_INDEX_CONCURRENTLY = "PHOENIX_MIGRATE_INDEX_CONCURRENTLY"
+"""
+When set to True, index creation migrations on PostgreSQL will use CREATE INDEX CONCURRENTLY,
+which avoids locking the table for writes during the build.
+
+Enable this for rolling deployments where an existing Phoenix instance is still ingesting
+traces while a new instance starts up and runs migrations. Without this flag, the default
+CREATE INDEX acquires a SHARE lock that blocks writes from the old instance for the duration
+of the index build.
+
+Note: CONCURRENTLY does not speed up the migration — it is roughly 2-3x slower and the new
+instance still blocks on startup until the build completes. For very large tables, consider
+pre-creating indexes manually before upgrading instead. See MIGRATION.md for details.
+
+Defaults to False. Ignored for SQLite.
 """
 ENV_PHOENIX_DATABASE_ALLOCATED_STORAGE_CAPACITY_GIBIBYTES = (
     "PHOENIX_DATABASE_ALLOCATED_STORAGE_CAPACITY_GIBIBYTES"
@@ -275,6 +302,12 @@ A secret key that can be used as a bearer token instead of an API key. It authen
 first system user. This key must be at least 32 characters long, include at least one digit and
 one lowercase letter, and must be different from PHOENIX_SECRET. Additionally, it must not be set
 if PHOENIX_SECRET is not configured.
+"""
+ENV_PHOENIX_ENABLE_STRONG_PASSWORD_POLICY = "PHOENIX_ENABLE_STRONG_PASSWORD_POLICY"
+"""
+Whether to enable the strong password policy. When enabled, passwords must be at least 12
+characters long and contain at least one uppercase letter, one lowercase letter, one digit,
+and one special character. Defaults to false.
 """
 ENV_PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD = "PHOENIX_DEFAULT_ADMIN_INITIAL_PASSWORD"
 """
@@ -943,7 +976,7 @@ def get_working_dir() -> Path:
     """
     working_dir_str = getenv(ENV_PHOENIX_WORKING_DIR)
     if working_dir_str is not None:
-        return Path(working_dir_str)
+        return Path(working_dir_str).resolve()
     # Fall back to ~/.phoenix if PHOENIX_WORKING_DIR is not set
     return Path.home().resolve() / ".phoenix"
 
@@ -1040,6 +1073,13 @@ def get_env_disable_basic_auth() -> bool:
     Gets the value of the ENV_PHOENIX_DISABLE_BASIC_AUTH environment variable.
     """
     return _bool_val(ENV_PHOENIX_DISABLE_BASIC_AUTH, False)
+
+
+def get_env_enable_strong_password_policy() -> bool:
+    """
+    Gets the value of the PHOENIX_ENABLE_STRONG_PASSWORD_POLICY environment variable.
+    """
+    return _bool_val(ENV_PHOENIX_ENABLE_STRONG_PASSWORD_POLICY, False)
 
 
 def get_env_disable_rate_limit() -> bool:
@@ -1289,7 +1329,7 @@ _ALLOWED_TOKEN_ENDPOINT_AUTH_METHODS = (
 """Allowed OAuth2 token endpoint authentication methods (OIDC Core §9)."""
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class OAuth2ClientConfig:
     """Configuration for an OAuth2/OIDC identity provider."""
 
@@ -1321,6 +1361,16 @@ class OAuth2ClientConfig:
     role_attribute_path: Optional[str]
     role_mapping: dict[str, AssignableUserRoleName]
     role_attribute_strict: bool
+
+    # Email extraction
+    email_attribute_path: Optional[str] = None
+    """JMESPath expression to extract email from user claims.
+
+    Default: "email" (standard OIDC claim)
+
+    For Azure AD/Entra ID without email attribute:
+        PHOENIX_OAUTH2_AZURE_AD_EMAIL_ATTRIBUTE_PATH=preferred_username
+    """
 
     @classmethod
     def from_env(cls, idp_name: str) -> "OAuth2ClientConfig":
@@ -1497,6 +1547,9 @@ class OAuth2ClientConfig:
                     f"only applies when role extraction is enabled via ROLE_ATTRIBUTE_PATH."
                 )
 
+        # Email extraction configuration
+        email_attribute_path = _get_optional("EMAIL_ATTRIBUTE_PATH")
+
         return cls(
             idp_name=idp_name,
             idp_display_name=_get_optional("DISPLAY_NAME")
@@ -1514,6 +1567,7 @@ class OAuth2ClientConfig:
             role_attribute_path=role_attribute_path,
             role_mapping=role_mapping,
             role_attribute_strict=role_attribute_strict,
+            email_attribute_path=email_attribute_path,
         )
 
 
@@ -2132,6 +2186,7 @@ _OAUTH2_CONFIG_SUFFIXES = (
     "TOKEN_ENDPOINT_AUTH_METHOD",  # How to authenticate at token endpoint (OIDC Core §9)
     # Additional OAuth2 scopes beyond "openid email profile" (RFC 6749 §3.3: space-delimited)
     "SCOPES",
+    "EMAIL_ATTRIBUTE_PATH",  # JMESPath expression to extract email from ID token
     "GROUPS_ATTRIBUTE_PATH",  # JMESPath expression to extract groups from ID token
     "ALLOWED_GROUPS",  # Comma-separated list of groups allowed to sign in
     "ROLE_ATTRIBUTE_PATH",  # JMESPath expression to extract role from ID token
@@ -2206,6 +2261,31 @@ def get_env_oauth2_settings() -> list[OAuth2ClientConfig]:
           These are added to the required baseline scopes "openid email profile". For example, set to
           "offline_access groups" to request refresh tokens and group information. The baseline scopes
           are always included and cannot be removed.
+
+        - PHOENIX_OAUTH2_{IDP_NAME}_EMAIL_ATTRIBUTE_PATH: JMESPath expression to extract email from
+          the OIDC ID token or userinfo endpoint response. Defaults to "email" (standard OIDC claim).
+          See https://jmespath.org for full syntax.
+
+          ⚠️ IMPORTANT: Claim keys with special characters (colons, dots, slashes, hyphens, etc.) MUST be
+          enclosed in double quotes. Examples: `"https://myapp.com/email"`, `"custom:email"`, `user.profile."app-email"`
+
+          Common patterns:
+            • Simple key: `email` - extracts top-level claim (default)
+            • Alternative claim: `preferred_username` - extracts from preferred_username (Azure AD/Entra ID)
+            • Nested key: `attributes.email` - dot notation for nested objects
+            • UPN claim: `upn` - extracts User Principal Name (Azure AD, requires optional claim config)
+
+          Common provider examples:
+            • Standard OIDC: `email` (default) - standard email claim
+            • Azure AD/Entra ID: `preferred_username` - when email claim is null but UPN is available
+            • Azure AD/Entra ID: `upn` - User Principal Name (requires Azure AD optional claim configuration)
+            • Custom nested: `attributes.email` - for providers with nested email structures
+
+          Values are automatically lowercased and trimmed before storage. This ensures consistent email
+          matching regardless of case differences between IDP claims and admin-provisioned users.
+
+          If not set, defaults to "email" (standard OIDC claim). This maintains backward compatibility
+          with existing deployments.
 
         - PHOENIX_OAUTH2_{IDP_NAME}_GROUPS_ATTRIBUTE_PATH: JMESPath expression to extract group/role claims
           from the OIDC ID token or userinfo endpoint response. See https://jmespath.org for full syntax.
@@ -2349,6 +2429,10 @@ def get_env_oauth2_settings() -> list[OAuth2ClientConfig]:
         With custom display name and auto-login:
             PHOENIX_OAUTH2_GOOGLE_DISPLAY_NAME=Google Workspace
             PHOENIX_OAUTH2_GOOGLE_AUTO_LOGIN=true
+
+        With custom email attribute path (Azure AD/Entra ID):
+            PHOENIX_OAUTH2_AZURE_AD_EMAIL_ATTRIBUTE_PATH=preferred_username
+            # Use preferred_username when email claim is null
 
         With group-based access control (simple path):
             PHOENIX_OAUTH2_GOOGLE_GROUPS_ATTRIBUTE_PATH=groups
@@ -2615,7 +2699,6 @@ class RestrictedPath(wrapt.ObjectProxy):  # type: ignore[misc]
 
 
 ROOT_DIR = RestrictedPath(WORKING_DIR)
-EXPORT_DIR = RestrictedPath(WORKING_DIR / "exports")
 INFERENCES_DIR = RestrictedPath(WORKING_DIR / "inferences")
 TRACE_DATASETS_DIR = RestrictedPath(WORKING_DIR / "trace_datasets")
 
@@ -2634,7 +2717,6 @@ def ensure_working_dir_if_needed() -> None:
     try:
         for path in (
             ROOT_DIR,
-            EXPORT_DIR,
             INFERENCES_DIR,
             TRACE_DATASETS_DIR,
         ):
@@ -2650,25 +2732,6 @@ def ensure_working_dir_if_needed() -> None:
 
 # Invoke ensure_working_dir_if_needed() to ensure the working directory exists
 ensure_working_dir_if_needed()
-
-
-def get_exported_files(directory: Path) -> list[Path]:
-    """
-    Yields the list of paths of exported files.
-
-    Parameters
-    ----------
-    directory: Path
-        Disk location to search exported files.
-
-    Returns
-    -------
-    list: list[Path]
-        List of paths of the exported files.
-    """
-    if _no_local_storage():
-        return []  # Do not attempt to access local storage
-    return list(directory.glob("*.parquet"))
 
 
 def get_env_port() -> int:
@@ -2738,6 +2801,10 @@ def get_env_database_connection_str() -> str:
 
     working_dir = get_working_dir()
     return f"sqlite:///{working_dir}/phoenix.db"
+
+
+def get_env_log_sql() -> bool:
+    return _bool_val(ENV_PHOENIX_LOG_SQL, False)
 
 
 def get_env_database_schema() -> Optional[str]:

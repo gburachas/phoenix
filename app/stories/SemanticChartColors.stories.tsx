@@ -1,4 +1,4 @@
-import { Meta, StoryFn } from "@storybook/react";
+import type { Meta, StoryFn } from "@storybook/react";
 
 import { Flex } from "@phoenix/components";
 import {
@@ -29,7 +29,7 @@ const Template: StoryFn = () => {
                 backgroundColor: colors[colorKey],
                 height: "40px",
                 width: "40px",
-                padding: "var(--ac-global-dimension-size-50)",
+                padding: "var(--global-dimension-size-50)",
               }}
             />
           </TriggerWrap>

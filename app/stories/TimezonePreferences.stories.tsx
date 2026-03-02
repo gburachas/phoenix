@@ -1,11 +1,11 @@
+import type { Meta, StoryFn } from "@storybook/react";
 import { useState } from "react";
-import { Meta, StoryFn } from "@storybook/react";
 
+import type { OpenTimeRangeWithKey } from "@phoenix/components";
 import {
   Card,
   Flex,
   Heading,
-  OpenTimeRangeWithKey,
   Text,
   TimeRangeSelector,
   View,

@@ -1,8 +1,9 @@
+import copy from "copy-to-clipboard";
 import { useCallback, useState } from "react";
 import { graphql, useMutation } from "react-relay";
 import { useNavigate } from "react-router";
-import copy from "copy-to-clipboard";
 
+import type { ButtonProps } from "@phoenix/components";
 import {
   Button,
   Dialog,
@@ -44,6 +45,7 @@ type ExperimentActionMenuProps =
       experimentId: string;
       metadata: unknown;
       canDeleteExperiment: true;
+      size?: ButtonProps["size"];
       onExperimentDeleted: () => void;
     }
   | {
@@ -51,6 +53,7 @@ type ExperimentActionMenuProps =
       experimentId: string;
       metadata: unknown;
       canDeleteExperiment: false;
+      size?: ButtonProps["size"];
       onExperimentDeleted?: undefined;
     };
 
@@ -167,9 +170,9 @@ export function ExperimentActionMenu(props: ExperimentActionMenuProps) {
     <StopPropagation>
       <MenuTrigger>
         <Button
+          size={props.size}
           aria-label="Experiment action menu"
           leadingVisual={<Icon svg={<Icons.MoreHorizontalOutline />} />}
-          size="S"
         />
         <Popover>
           <Menu

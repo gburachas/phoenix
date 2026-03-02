@@ -1,12 +1,9 @@
-import { ReactNode, useMemo } from "react";
-import {
-  graphql,
-  PreloadedQuery,
-  useFragment,
-  usePreloadedQuery,
-} from "react-relay";
-import { useSearchParams } from "react-router";
 import { css } from "@emotion/react";
+import type { ReactNode } from "react";
+import { useMemo } from "react";
+import type { PreloadedQuery } from "react-relay";
+import { graphql, useFragment, usePreloadedQuery } from "react-relay";
+import { useSearchParams } from "react-router";
 
 import {
   Flex,
@@ -38,18 +35,18 @@ import type {
 import type { ExperimentComparePageQueriesCompareMetricsQuery as ExperimentComparePageQueriesCompareMetricsQueryType } from "./__generated__/ExperimentComparePageQueriesCompareMetricsQuery.graphql";
 
 const thumbIconCSS = css`
-  font-size: var(--ac-global-text-font-size-l);
+  font-size: var(--global-text-font-size-l);
 `;
 
 const metricCardCSS = css`
-  padding: var(--ac-global-dimension-size-200);
-  border: 1px solid var(--ac-global-color-grey-200);
-  border-radius: var(--ac-global-rounding-medium);
+  padding: var(--global-dimension-size-200);
+  border: 1px solid var(--global-color-gray-200);
+  border-radius: var(--global-rounding-medium);
   transition: border-color 0.2s;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: var(--ac-global-dimension-size-200);
+  gap: var(--global-dimension-size-200);
   height: 100%;
 `;
 
@@ -418,7 +415,7 @@ export function ExperimentCompareMetricsPage({
     <div
       css={css`
         overflow: auto;
-        padding: var(--ac-global-dimension-size-200);
+        padding: var(--global-dimension-size-200);
         height: 100%;
       `}
     >
@@ -452,7 +449,7 @@ function MetricsColumn({
       <Heading
         level={2}
         css={css`
-          margin-bottom: var(--ac-global-dimension-size-150);
+          margin-bottom: var(--global-dimension-size-150);
         `}
       >
         {title}
@@ -461,7 +458,7 @@ function MetricsColumn({
         css={css`
           display: flex;
           flex-direction: column;
-          gap: var(--ac-global-dimension-size-200);
+          gap: var(--global-dimension-size-200);
           min-width: 300px;
         `}
       >

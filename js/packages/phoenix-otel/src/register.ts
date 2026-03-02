@@ -3,20 +3,16 @@ import {
   OpenInferenceBatchSpanProcessor,
   OpenInferenceSimpleSpanProcessor,
 } from "@arizeai/openinference-vercel";
+import type { DiagLogLevel } from "@opentelemetry/api";
+import { diag, DiagConsoleLogger } from "@opentelemetry/api";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
+import type { Instrumentation } from "@opentelemetry/instrumentation";
+import { registerInstrumentations } from "@opentelemetry/instrumentation";
+import { resourceFromAttributes } from "@opentelemetry/resources";
+import type { SpanProcessor } from "@opentelemetry/sdk-trace-node";
+import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 
 import { getEnvApiKey, getEnvCollectorURL } from "./config";
-
-import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
-import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-proto";
-import {
-  Instrumentation,
-  registerInstrumentations,
-} from "@opentelemetry/instrumentation";
-import { resourceFromAttributes } from "@opentelemetry/resources";
-import {
-  NodeTracerProvider,
-  SpanProcessor,
-} from "@opentelemetry/sdk-trace-node";
 
 /**
  * Type definition for HTTP headers used in OTLP communication
@@ -189,7 +185,7 @@ export type RegisterParams = {
  * @example
  * Full configuration with custom settings:
  * ```typescript
- * import { register } from '@arizeai/phoenix-otel';
+ * import { DiagLogLevel, register } from '@arizeai/phoenix-otel';
  * import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
  * import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
  *
@@ -229,6 +225,8 @@ export type RegisterParams = {
  * @example
  * Debugging configuration:
  * ```typescript
+ * import { DiagLogLevel, register } from '@arizeai/phoenix-otel';
+ *
  * const provider = register({
  *   projectName: 'debug-app',
  *   url: 'http://localhost:6006',

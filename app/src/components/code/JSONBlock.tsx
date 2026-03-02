@@ -1,12 +1,12 @@
-import { useMemo } from "react";
 import { json, jsonParseLinter } from "@codemirror/lang-json";
 import { linter } from "@codemirror/lint";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
-import CodeMirror, {
+import type {
   BasicSetupOptions,
-  EditorView,
   ReactCodeMirrorProps,
 } from "@uiw/react-codemirror";
+import CodeMirror, { EditorView } from "@uiw/react-codemirror";
+import { useMemo } from "react";
 
 import { useTheme } from "@phoenix/contexts";
 

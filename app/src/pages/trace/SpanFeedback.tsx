@@ -1,14 +1,13 @@
-import { useMemo, useState } from "react";
-import { graphql, useFragment } from "react-relay";
+import { css } from "@emotion/react";
+import type { ColumnDef, SortingState } from "@tanstack/react-table";
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
-  SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { css } from "@emotion/react";
+import { useMemo, useState } from "react";
+import { graphql, useFragment } from "react-relay";
 
 import { JSONText } from "@phoenix/components/code/JSONText";
 import { Icons } from "@phoenix/components/icon";
@@ -24,7 +23,7 @@ import { UserPicture } from "@phoenix/components/user/UserPicture";
 import { Truncate } from "@phoenix/components/utility/Truncate";
 import { useNotifyError, useNotifySuccess } from "@phoenix/contexts";
 
-import {
+import type {
   SpanFeedback_annotations$data,
   SpanFeedback_annotations$key,
 } from "./__generated__/SpanFeedback_annotations.graphql";
@@ -168,7 +167,6 @@ function SpanAnnotationsTable({
   const [sorting, setSorting] = useState<SortingState>([
     { id: "createdAt", desc: true },
   ]);
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     columns,
     data: tableData,

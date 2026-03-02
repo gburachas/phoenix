@@ -1,5 +1,11 @@
 "use no memo";
+import { css } from "@emotion/react";
 import React from "react";
+
+const iconWrapCSS = css`
+  display: inline-flex;
+  flex-shrink: 0;
+`;
 
 /**
  * Icons from https://icons.lobehub.com/
@@ -49,7 +55,7 @@ const GoogleSVG = ({ height }: { height: number }) => (
 
 const OpenAISVG = ({ height }: { height: number }) => (
   <svg
-    fill="var(--ac-global-text-color-900)"
+    fill="var(--global-text-color-900)"
     fillRule="evenodd"
     viewBox="0 0 24 24"
     width={height}
@@ -63,7 +69,7 @@ const OpenAISVG = ({ height }: { height: number }) => (
 
 const AnthropicSVG = ({ height }: { height: number }) => (
   <svg
-    fill="var(--ac-global-text-color-900)"
+    fill="var(--global-text-color-900)"
     fillRule="evenodd"
     viewBox="0 0 24 24"
     width={height}
@@ -92,7 +98,7 @@ const DeepSeekSVG = ({ height }: { height: number }) => (
 
 const XAISVG = ({ height }: { height: number }) => (
   <svg
-    fill="var(--ac-global-text-color-900)"
+    fill="var(--global-text-color-900)"
     fillRule="evenodd"
     viewBox="0 0 24 24"
     width={height}
@@ -171,5 +177,5 @@ export function GenerativeProviderIcon({
   provider,
   height = 18,
 }: GenerativeProviderIconProps) {
-  return PROVIDER_ICONS[provider]({ height });
+  return <span css={iconWrapCSS}>{PROVIDER_ICONS[provider]({ height })}</span>;
 }

@@ -1,19 +1,19 @@
-import { useMemo } from "react";
-import { graphql, useFragment } from "react-relay";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useMemo } from "react";
+import { graphql, useFragment } from "react-relay";
 
 import { Card, Flex, Icon, Icons, Link } from "@phoenix/components";
 import { TextCell } from "@phoenix/components/table";
 import { tableCSS } from "@phoenix/components/table/styles";
 import { TableEmpty } from "@phoenix/components/table/TableEmpty";
 
-import { PromptVersionTagsConfigCard_data$key } from "./__generated__/PromptVersionTagsConfigCard_data.graphql";
+import type { PromptVersionTagsConfigCard_data$key } from "./__generated__/PromptVersionTagsConfigCard_data.graphql";
 import { DeletePromptVersionTagButton } from "./DeletePromptVersionTagButton";
 
 export function PromptVersionTagsConfigCard({
@@ -97,7 +97,6 @@ export function PromptVersionTagsConfigCard({
     }));
   }, [data]);
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<(typeof tableData)[number]>({
     columns,
     data: tableData,

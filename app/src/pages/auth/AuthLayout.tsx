@@ -1,5 +1,5 @@
-import { PropsWithChildren } from "react";
 import { css } from "@emotion/react";
+import type { PropsWithChildren } from "react";
 
 import { View } from "@phoenix/components";
 
@@ -39,21 +39,21 @@ export function AuthLayout({ children }: PropsWithChildren) {
         css={css`
           display: flex;
           justify-content: center;
-          padding: var(--ac-global-dimension-size-400);
-          gap: var(--ac-global-dimension-size-200);
+          padding: var(--global-dimension-size-400);
+          gap: var(--global-dimension-size-200);
           a {
-            color: var(--ac-global-text-color-700);
+            color: var(--global-text-color-700);
             transition: color 0.2s ease-in-out;
             text-decoration: none;
             &:hover {
-              color: var(--ac-global-text-color-900);
+              color: var(--global-text-color-900);
               text-decoration: underline;
             }
           }
         `}
       >
         <a href="https://arize.com/docs/phoenix">Documentation</a>|
-        <a href="https://arize-ai.slack.com/join/shared_invite/zt-2w57bhem8-hq24MB6u7yE_ZF_ilOYSBw#/shared-invite/email">
+        <a href="https://join.slack.com/t/arize-ai/shared_invite/zt-3r07iavnk-ammtATWSlF0pSrd1DsMW7g">
           Community
         </a>
         |<a href="https://twitter.com/ArizePhoenix">Social</a>|

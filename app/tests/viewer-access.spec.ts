@@ -1,13 +1,7 @@
-import { expect, test } from "@playwright/test";
 import { randomUUID } from "crypto";
+import { expect, test } from "@playwright/test";
 
-test.beforeEach(async ({ page }) => {
-  await page.goto(`/login`);
-  await page.getByLabel("Email").fill("viewer@localhost.com");
-  await page.getByLabel("Password").fill("viewer123");
-  await page.getByRole("button", { name: "Log In", exact: true }).click();
-  await page.waitForURL("**/projects");
-});
+test.use({ storageState: "playwright/.auth/viewer.json" });
 
 test("can create user key", async ({ page }) => {
   // Navigate to profile page
@@ -30,9 +24,7 @@ test("can create user key", async ({ page }) => {
     .click();
 
   // Verify the named key appears in the table - which means key creation succeeded
-  await expect(page.getByRole("cell", { name: keyName })).toBeVisible({
-    timeout: 60000,
-  });
+  await expect(page.getByRole("cell", { name: keyName })).toBeVisible();
 });
 
 test("should not be able to create a new project", async ({ page }) => {

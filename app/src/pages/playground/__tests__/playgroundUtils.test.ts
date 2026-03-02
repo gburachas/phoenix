@@ -1,16 +1,16 @@
+import type { InvocationParameter } from "@phoenix/components/playground/model/InvocationParametersFormFields";
 import { TemplateFormats } from "@phoenix/components/templateEditor/constants";
 import { DEFAULT_MODEL_PROVIDER } from "@phoenix/constants/generativeConstants";
-import { LlmProviderToolDefinition } from "@phoenix/schemas";
-import { LlmProviderToolCall } from "@phoenix/schemas/toolCallSchemas";
+import type { LlmProviderToolDefinition } from "@phoenix/schemas";
+import type { LlmProviderToolCall } from "@phoenix/schemas/toolCallSchemas";
+import type { PlaygroundInput, PlaygroundInstance } from "@phoenix/store";
 import {
   _resetInstanceId,
   _resetMessageId,
   createOpenAIResponseFormat,
-  PlaygroundInput,
-  PlaygroundInstance,
 } from "@phoenix/store";
 
-import { InvocationParameterInput } from "../__generated__/PlaygroundDatasetExamplesTableSubscription.graphql";
+import type { InvocationParameterInput } from "../__generated__/PlaygroundDatasetExamplesTableSubscription.graphql";
 import {
   INPUT_MESSAGES_PARSING_ERROR,
   MODEL_CONFIG_PARSING_ERROR,
@@ -22,10 +22,14 @@ import {
   SPAN_ATTRIBUTES_PARSING_ERROR,
   TOOLS_PARSING_ERROR,
 } from "../constants";
-import { InvocationParameter } from "../InvocationParametersFormFields";
 import {
   areInvocationParamsEqual,
+  mergeInvocationParametersWithDefaults,
+} from "../invocationParameterUtils";
+import {
   areRequiredInvocationParametersConfigured,
+  extractRootVariable,
+  extractRootVariables,
   extractVariablesFromInstances,
   getAzureConfigFromAttributes,
   getBaseModelConfigFromAttributes,
@@ -37,22 +41,18 @@ import {
   getTemplateMessagesFromAttributes,
   getToolsFromAttributes,
   getVariablesMapFromInstances,
-  mergeInvocationParametersWithDefaults,
-  normalizeMessageContent,
   processAttributeToolCalls,
   transformSpanAttributesToPlaygroundInstance,
 } from "../playgroundUtils";
-import { PlaygroundSpan } from "../spanPlaygroundPageLoader";
-
+import type { PlaygroundSpan } from "../spanPlaygroundPageLoader";
+import type { SpanTool, SpanToolCall } from "./fixtures";
 import {
   basePlaygroundSpan,
   expectedAnthropicToolCall,
   expectedTestOpenAIToolCall,
   expectedUnknownToolCall,
   spanAttributesWithInputMessages,
-  SpanTool,
-  SpanToolCall,
-  tesSpanAnthropicTool,
+  testSpanAnthropicTool,
   testSpanAnthropicToolDefinition,
   testSpanOpenAITool,
   testSpanOpenAIToolJsonSchema,
@@ -436,6 +436,7 @@ describe("transformSpanAttributesToPlaygroundInstance", () => {
         tools: [
           {
             id: expect.any(Number),
+            editorType: "json",
             definition: testSpanOpenAIToolJsonSchema,
           },
         ],
@@ -1350,7 +1351,7 @@ describe("getToolsFromAttributes", () => {
   const ProviderToToolTestMap: ProviderToolTestMap = {
     ANTHROPIC: [
       "ANTHROPIC",
-      tesSpanAnthropicTool,
+      testSpanAnthropicTool,
       testSpanAnthropicToolDefinition,
     ],
     OPENAI: ["OPENAI", testSpanOpenAITool, testSpanOpenAIToolJsonSchema],
@@ -1380,6 +1381,7 @@ describe("getToolsFromAttributes", () => {
         tools: [
           {
             id: expect.any(Number),
+            editorType: "json",
             definition: toolDefinition,
           },
         ],
@@ -1663,76 +1665,6 @@ describe("mergeInvocationParametersWithDefaults", () => {
   });
 });
 
-describe("normalizeMessageContent", () => {
-  it("should return unknown json content as a string", () => {
-    const content = "Hello, world!";
-    expect(normalizeMessageContent(content)).toBe('"Hello, world!"');
-    const content2 = ".123";
-    expect(normalizeMessageContent(content2)).toBe('".123"');
-    const content3 = "True";
-    expect(normalizeMessageContent(content3)).toBe('"True"');
-    const content4 = "False";
-    expect(normalizeMessageContent(content4)).toBe('"False"');
-    const content5 = "Null";
-    expect(normalizeMessageContent(content5)).toBe('"Null"');
-    const content6 = "a";
-    expect(normalizeMessageContent(content6)).toBe('"a"');
-    const content7 = "u";
-    expect(normalizeMessageContent(content7)).toBe('"u"');
-  });
-
-  it("should return the content as a stringified JSON with pretty printing if it is an object", () => {
-    const content = { foo: "bar" };
-    expect(normalizeMessageContent(content)).toBe(
-      JSON.stringify(content, null, 2)
-    );
-  });
-
-  it("should return the content as a string if it is a number", () => {
-    const content = 123;
-    expect(normalizeMessageContent(content)).toBe("123");
-    const content2 = 123.456;
-    expect(normalizeMessageContent(content2)).toBe("123.456");
-    const content3 = -123.456;
-    expect(normalizeMessageContent(content3)).toBe("-123.456");
-    const content4 = 0;
-    expect(normalizeMessageContent(content4)).toBe("0");
-    const content6 = 0.5;
-    expect(normalizeMessageContent(content6)).toBe("0.5");
-  });
-
-  it("should return the content as a string if it is a boolean", () => {
-    const content = true;
-    expect(normalizeMessageContent(content)).toBe("true");
-    const content2 = false;
-    expect(normalizeMessageContent(content2)).toBe("false");
-  });
-
-  it("should return the content as a string if it is null", () => {
-    const content = null;
-    expect(normalizeMessageContent(content)).toBe("null");
-  });
-
-  it("should return the content as a string if it is an array", () => {
-    const content = [1, "2", 3, { foo: "bar" }];
-    expect(normalizeMessageContent(content)).toBe(
-      `[
-  1,
-  "2",
-  3,
-  {
-    "foo": "bar"
-  }
-]`
-    );
-  });
-
-  it("should handle double quoted strings", () => {
-    const content = `"\\"Hello, world!\\""`;
-    expect(normalizeMessageContent(content)).toBe(`"Hello, world!"`);
-  });
-});
-
 describe("getAzureConfigFromAttributes", () => {
   it("returns values from URL when only URL is present (URL precedence)", () => {
     const attrs = {
@@ -1744,7 +1676,6 @@ describe("getAzureConfigFromAttributes", () => {
     const result = getAzureConfigFromAttributes(attrs);
     expect(result).toEqual({
       deploymentName: "gpt-4o-mini",
-      apiVersion: "2024-10-01-preview",
       endpoint: "https://example.openai.azure.com",
     });
   });
@@ -1759,7 +1690,6 @@ describe("getAzureConfigFromAttributes", () => {
     const result = getAzureConfigFromAttributes(attrs);
     expect(result).toEqual({
       deploymentName: "my-azure-deployment",
-      apiVersion: null,
       endpoint: null,
     });
   });
@@ -1777,7 +1707,6 @@ describe("getAzureConfigFromAttributes", () => {
     const result = getAzureConfigFromAttributes(attrs);
     expect(result).toEqual({
       deploymentName: "url-deploy",
-      apiVersion: "2024-06-01",
       endpoint: "https://example.openai.azure.com",
     });
   });
@@ -1787,7 +1716,6 @@ describe("getAzureConfigFromAttributes", () => {
     const result = getAzureConfigFromAttributes(attrs);
     expect(result).toEqual({
       deploymentName: null,
-      apiVersion: null,
       endpoint: null,
     });
   });
@@ -1805,7 +1733,6 @@ describe("getAzureConfigFromAttributes", () => {
     const result = getAzureConfigFromAttributes(attrs);
     expect(result).toEqual({
       deploymentName: "meta-deploy",
-      apiVersion: null,
       endpoint: null,
     });
   });
@@ -1819,7 +1746,6 @@ describe("getAzureConfigFromAttributes", () => {
     const result = getAzureConfigFromAttributes(attrs);
     expect(result).toEqual({
       deploymentName: "url-deploy",
-      apiVersion: null,
       endpoint: "https://example.openai.azure.com",
     });
   });
@@ -1836,7 +1762,6 @@ describe("getAzureConfigFromAttributes", () => {
     const result = getAzureConfigFromAttributes(attrs);
     expect(result).toEqual({
       deploymentName: "meta-deploy",
-      apiVersion: null,
       endpoint: "https://example.openai.azure.com",
     });
   });
@@ -1850,8 +1775,64 @@ describe("getAzureConfigFromAttributes", () => {
     const result = getAzureConfigFromAttributes(attrs);
     expect(result).toEqual({
       deploymentName: "meta-deploy",
-      apiVersion: null,
       endpoint: null,
     });
+  });
+});
+
+describe("extractRootVariable", () => {
+  it("should return simple variable names unchanged", () => {
+    expect(extractRootVariable("name")).toBe("name");
+    expect(extractRootVariable("input")).toBe("input");
+    expect(extractRootVariable("reference")).toBe("reference");
+  });
+
+  it("should extract root from dot notation paths", () => {
+    expect(extractRootVariable("reference.label")).toBe("reference");
+    expect(extractRootVariable("user.name")).toBe("user");
+    expect(extractRootVariable("input.input.messages")).toBe("input");
+    expect(extractRootVariable("user.address.city")).toBe("user");
+  });
+
+  it("should extract root from bracket notation", () => {
+    expect(extractRootVariable("items[0]")).toBe("items");
+    expect(extractRootVariable("reference[label]")).toBe("reference");
+  });
+
+  it("should extract root from mixed notation", () => {
+    expect(extractRootVariable("items[0].name")).toBe("items");
+    expect(extractRootVariable("user.addresses[0].city")).toBe("user");
+  });
+
+  it("should handle empty string", () => {
+    expect(extractRootVariable("")).toBe("");
+  });
+});
+
+describe("extractRootVariables", () => {
+  it("should extract unique root variables from paths", () => {
+    const paths = [
+      "input.input.messages",
+      "reference.label",
+      "input.question",
+      "metadata",
+    ];
+    const result = extractRootVariables(paths);
+    expect(result).toEqual(["input", "reference", "metadata"]);
+  });
+
+  it("should return empty array for empty input", () => {
+    expect(extractRootVariables([])).toEqual([]);
+  });
+
+  it("should deduplicate root variables", () => {
+    const paths = [
+      "user.name",
+      "user.email",
+      "user.address.city",
+      "reference.label",
+    ];
+    const result = extractRootVariables(paths);
+    expect(result).toEqual(["user", "reference"]);
   });
 });

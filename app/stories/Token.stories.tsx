@@ -1,4 +1,4 @@
-import { Meta, StoryFn } from "@storybook/react";
+import type { Meta, StoryFn } from "@storybook/react";
 
 import {
   Card,
@@ -118,13 +118,13 @@ const SizeTemplate: StoryFn<TokenProps> = (args) => (
   <Card title="Token Size">
     <View width="600px" padding="size-200">
       <Flex gap="size-100" wrap>
-        <Token {...args} size="S" color="var(--ac-global-color-primary)">
+        <Token {...args} size="S" color="var(--global-color-primary)">
           Small Token
         </Token>
-        <Token {...args} size="M" color="var(--ac-global-color-primary)">
+        <Token {...args} size="M" color="var(--global-color-primary)">
           Medium Token
         </Token>
-        <Token {...args} size="L" color="var(--ac-global-color-primary)">
+        <Token {...args} size="L" color="var(--global-color-primary)">
           Large Token
         </Token>
       </Flex>
@@ -144,13 +144,13 @@ const GroupTemplate: StoryFn<TokenProps> = (args) => (
     <View width="600px" padding="size-200">
       <Flex gap="size-100" wrap>
         <Token {...args}>Default Token</Token>
-        <Token {...args} color="var(--ac-global-color-primary)">
+        <Token {...args} color="var(--global-color-primary)">
           Primary Token
         </Token>
-        <Token {...args} color="var(--ac-global-color-danger)">
+        <Token {...args} color="var(--global-color-danger)">
           Danger Token
         </Token>
-        <Token {...args} color="var(--ac-global-color-success)">
+        <Token {...args} color="var(--global-color-success)">
           Success Token
         </Token>
       </Flex>
@@ -164,5 +164,40 @@ export const Group: Meta<typeof Token> = {
     isDisabled: false,
     onPress: () => alert("Token clicked!"),
     onRemove: () => alert("Token removed!"),
+  },
+};
+
+const TruncatedTemplate: StoryFn<TokenProps> = (args) => (
+  <Card title="Token Truncation (hover for full text)">
+    <View width="600px" padding="size-200">
+      <Flex gap="size-100" direction="column" alignItems="start">
+        <Token {...args}>
+          Default truncates at 160px - this long text will be cut off
+        </Token>
+        <Token {...args} maxWidth="100px">
+          Custom maxWidth=`&quot;`100px`&quot;` for narrower spaces
+        </Token>
+        <Token {...args} maxWidth="300px" color="var(--global-color-primary)">
+          Custom maxWidth=`&quot;`300px`&quot;` allows more text before
+          truncation happens
+        </Token>
+        <Token {...args} maxWidth="none">
+          maxWidth=`&quot;`none`&quot;` is technically possible but unwise to
+          use because it enables unreasonable behavior and some very wide
+          noodles.
+        </Token>
+      </Flex>
+    </View>
+  </Card>
+);
+
+/**
+ * Tokens have a default max-width of 160px and truncate with an ellipsis.
+ * Use the `maxWidth` prop to customize the truncation point.
+ */
+export const Truncated: Meta<typeof Token> = {
+  render: TruncatedTemplate,
+  args: {
+    isDisabled: false,
   },
 };

@@ -1,11 +1,12 @@
-import { CSSProperties, forwardRef, ReactNode, Ref } from "react";
-import { Tooltip as AriaTooltip } from "react-aria-components";
 import { css } from "@emotion/react";
+import type { CSSProperties, ReactNode, Ref } from "react";
+import { forwardRef } from "react";
+import { Tooltip as AriaTooltip } from "react-aria-components";
 
-import { Heading, Text, View } from "@phoenix/components";
-
+import { Heading, Text } from "../content";
+import { View } from "../view";
 import { richTooltipCSS } from "./styles";
-import { TooltipProps } from "./types";
+import type { TooltipProps } from "./types";
 export interface RichTooltipProps extends TooltipProps {
   /**
    * The width of the tooltip. If not provided, the tooltip will grow up to 300px to fit the content.
@@ -43,7 +44,7 @@ export function RichTooltipTitle({ children }: { children: ReactNode }) {
     <Heading
       level={4}
       css={css`
-        margin-bottom: var(--ac-global-dimension-static-size-100);
+        margin-bottom: var(--global-dimension-static-size-100);
       `}
     >
       {children}
@@ -57,7 +58,7 @@ export function RichTooltipDescription({ children }: { children: ReactNode }) {
       size="S"
       color="text-700"
       css={css`
-        margin-bottom: var(--ac-global-dimension-static-size-100);
+        margin-bottom: var(--global-dimension-static-size-100);
       `}
     >
       {children}

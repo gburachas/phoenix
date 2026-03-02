@@ -3,6 +3,7 @@ import contextlib
 import importlib
 import json
 import logging
+import mimetypes
 import os
 from contextlib import AbstractAsyncContextManager, AsyncExitStack
 from dataclasses import dataclass, field
@@ -65,21 +66,21 @@ from phoenix.config import (
     get_env_fastapi_middleware_paths,
     get_env_gql_extension_paths,
     get_env_grpc_interceptor_paths,
+    get_env_grpc_port,
     get_env_host,
+    get_env_log_sql,
     get_env_max_spans_queue_size,
     get_env_port,
     get_env_support_email,
     server_instrumentation_is_enabled,
     verify_server_environment_variables,
 )
-from phoenix.core.model_schema import Model
 from phoenix.db import models
 from phoenix.db.bulk_inserter import BulkInserter
 from phoenix.db.engines import create_engine
 from phoenix.db.facilitator import Facilitator
 from phoenix.db.helpers import SupportedSQLDialect
 from phoenix.exceptions import PhoenixMigrationError
-from phoenix.pointcloud.umap_parameters import UMAPParameters
 from phoenix.server.api.auth_messages import AUTH_ERROR_MESSAGES, AuthErrorCode
 from phoenix.server.api.context import Context, DataLoaders
 from phoenix.server.api.dataloaders import (
@@ -89,10 +90,14 @@ from phoenix.server.api.dataloaders import (
     AverageExperimentRunLatencyDataLoader,
     CacheForDataLoaders,
     DatasetDatasetSplitsDataLoader,
+    DatasetEvaluatorsByEvaluatorDataLoader,
+    DatasetEvaluatorsByIdDataLoader,
+    DatasetEvaluatorsDataLoader,
     DatasetExampleRevisionsDataLoader,
     DatasetExamplesAndVersionsByExperimentRunDataLoader,
     DatasetExampleSpansDataLoader,
     DatasetExampleSplitsDataLoader,
+    DatasetsByEvaluatorDataLoader,
     DocumentEvaluationsDataLoader,
     DocumentEvaluationSummaryDataLoader,
     DocumentRetrievalMetricsDataLoader,
@@ -107,6 +112,7 @@ from phoenix.server.api.dataloaders import (
     ExperimentSequenceNumberDataLoader,
     LastUsedTimesByGenerativeModelIdDataLoader,
     LatencyMsQuantileDataLoader,
+    LatestPromptVersionIdDataLoader,
     MinStartOrMaxEndTimeDataLoader,
     NumChildSpansDataLoader,
     NumSpansPerTraceDataLoader,
@@ -114,6 +120,7 @@ from phoenix.server.api.dataloaders import (
     ProjectIdsByTraceRetentionPolicyIdDataLoader,
     PromptVersionSequenceNumberDataLoader,
     RecordCountDataLoader,
+    SecretsDataLoader,
     SessionAnnotationsBySessionDataLoader,
     SessionIODataLoader,
     SessionNumTracesDataLoader,
@@ -151,7 +158,6 @@ from phoenix.server.api.dataloaders import (
 from phoenix.server.api.dataloaders.dataset_labels import DatasetLabelsDataLoader
 from phoenix.server.api.routers import (
     create_auth_router,
-    create_embeddings_router,
     create_v1_router,
     oauth2_router,
 )
@@ -164,6 +170,7 @@ from phoenix.server.daemons.span_cost_calculator import SpanCostCalculator
 from phoenix.server.dml_event import DmlEvent
 from phoenix.server.dml_event_handler import DmlEventHandler
 from phoenix.server.email.types import EmailSender
+from phoenix.server.encryption import EncryptionService
 from phoenix.server.grpc_server import GrpcServer
 from phoenix.server.jwt_store import JwtStore
 from phoenix.server.middleware.gzip import GZipMiddleware
@@ -199,6 +206,12 @@ if TYPE_CHECKING:
     from opentelemetry.trace import TracerProvider
 
     from phoenix.config import LDAPConfig
+
+# Fix incorrect MIME types on Windows where the registry may have wrong entries.
+# See: https://github.com/python/cpython/issues/88141
+# Using text/javascript per RFC 9239: https://www.rfc-editor.org/rfc/rfc9239
+mimetypes.add_type("text/javascript", ".js", strict=True)
+mimetypes.add_type("text/javascript", ".mjs", strict=True)
 
 logger = logging.getLogger(__name__)
 
@@ -246,12 +259,6 @@ class OAuth2Idp(TypedDict):
 
 
 class AppConfig(NamedTuple):
-    has_inferences: bool
-    """ Whether the model has inferences (e.g. a primary dataset) """
-    has_corpus: bool
-    min_dist: float
-    n_neighbors: int
-    n_samples: int
     is_development: bool
     web_manifest_path: Path
     authentication_enabled: bool
@@ -277,6 +284,8 @@ class AppConfig(NamedTuple):
     """ Whether the database has a threshold for usage """
     allow_external_resources: bool = True
     """ Whether to allow external resources like Google Fonts in the web interface """
+    dev_vite_port: int = 5173
+    """ Port the Vite dev server runs on. Only used in development mode. """
 
 
 class Static(StaticFiles):
@@ -321,15 +330,11 @@ class Static(StaticFiles):
             response = templates.TemplateResponse(
                 "index.html",
                 context={
-                    "has_inferences": self._app_config.has_inferences,
-                    "has_corpus": self._app_config.has_corpus,
-                    "min_dist": self._app_config.min_dist,
-                    "n_neighbors": self._app_config.n_neighbors,
-                    "n_samples": self._app_config.n_samples,
                     "basename": get_root_path(scope),
                     "platform_version": phoenix_version,
                     "request": request,
                     "is_development": self._app_config.is_development,
+                    "vite_port": self._app_config.dev_vite_port,
                     "manifest": self._web_manifest,
                     "authentication_enabled": self._app_config.authentication_enabled,
                     "oauth2_idps": self._app_config.oauth2_idps,
@@ -596,11 +601,13 @@ def _lifespan(
     startup_callbacks: Iterable[_Callback] = (),
     shutdown_callbacks: Iterable[_Callback] = (),
     read_only: bool = False,
+    grpc_port: Optional[int] = None,
     scaffolder_config: Optional[ScaffolderConfig] = None,
     grpc_interceptors: Iterable[AsyncServerInterceptor] = (),
 ) -> StatefulLifespan[FastAPI]:
     @contextlib.asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
+        resolved_grpc_port = get_env_grpc_port() if grpc_port is None else grpc_port
         for callback in startup_callbacks:
             if isinstance((res := callback()), Awaitable):
                 await res
@@ -619,6 +626,7 @@ def _lifespan(
             ]
             grpc_server = GrpcServer(
                 enqueue_span,
+                port=resolved_grpc_port,
                 disabled=read_only,
                 tracer_provider=tracer_provider,
                 enable_prometheus=enable_prometheus,
@@ -641,6 +649,7 @@ def _lifespan(
                 await stack.enter_async_context(scaffolder)
             if isinstance(token_store, AbstractAsyncContextManager):
                 await stack.enter_async_context(token_store)
+            _warn_if_missing_aioboto3()
             yield {
                 "event_queue": dml_event_handler,
                 "enqueue_annotations": enqueue_annotations,
@@ -675,12 +684,11 @@ def create_graphql_router(
     *,
     graphql_schema: strawberry.Schema,
     db: DbSessionFactory,
-    model: Model,
-    export_path: Path,
     last_updated_at: CanGetLastUpdatedAt,
     authentication_enabled: bool,
     span_cost_calculator: SpanCostCalculator,
-    corpus: Optional[Model] = None,
+    encrypt: Callable[[bytes], bytes],
+    decrypt: Callable[[bytes], bytes],
     cache_for_dataloaders: Optional[CacheForDataLoaders] = None,
     event_queue: CanPutItem[DmlEvent],
     read_only: bool = False,
@@ -693,13 +701,10 @@ def create_graphql_router(
     Args:
         schema (BaseSchema): The GraphQL schema.
         db (DbSessionFactory): The database session factory pointing to a SQL database.
-        model (Model): The Model representing inferences (legacy)
-        export_path (Path): the file path to export data to for download (legacy)
         last_updated_at (CanGetLastUpdatedAt): How to get the last updated timestamp for updates.
         authentication_enabled (bool): Whether authentication is enabled.
         span_cost_calculator (SpanCostCalculator): The span cost calculator for calculating costs.
         event_queue (CanPutItem[DmlEvent]): The event queue for DML events.
-        corpus (Optional[Model], optional): the corpus for UMAP projection. Defaults to None.
         cache_for_dataloaders (Optional[CacheForDataLoaders], optional): GraphQL data loaders.
         read_only (bool, optional): Marks the app as read-only. Defaults to False.
         secret (Optional[Secret], optional): The application secret for auth. Defaults to None.
@@ -713,9 +718,6 @@ def create_graphql_router(
     def get_context() -> Context:
         return Context(
             db=db,
-            model=model,
-            corpus=corpus,
-            export_path=export_path,
             last_updated_at=last_updated_at,
             event_queue=event_queue,
             data_loaders=DataLoaders(
@@ -724,6 +726,12 @@ def create_graphql_router(
                     db
                 ),
                 average_experiment_run_latency=AverageExperimentRunLatencyDataLoader(db),
+                code_evaluator_fields=TableFieldsDataLoader(db, models.CodeEvaluator),
+                dataset_evaluator_fields=TableFieldsDataLoader(db, models.DatasetEvaluators),
+                dataset_evaluators_by_evaluator=DatasetEvaluatorsByEvaluatorDataLoader(db),
+                dataset_evaluators_by_id=DatasetEvaluatorsByIdDataLoader(db),
+                dataset_evaluators=DatasetEvaluatorsDataLoader(db),
+                datasets_by_evaluator=DatasetsByEvaluatorDataLoader(db),
                 dataset_dataset_splits=DatasetDatasetSplitsDataLoader(db),
                 dataset_example_fields=TableFieldsDataLoader(db, models.DatasetExample),
                 dataset_example_revisions=DatasetExampleRevisionsDataLoader(db),
@@ -773,6 +781,9 @@ def create_graphql_router(
                 ),
                 experiment_sequence_number=ExperimentSequenceNumberDataLoader(db),
                 generative_model_fields=TableFieldsDataLoader(db, models.GenerativeModel),
+                generative_model_custom_provider_fields=TableFieldsDataLoader(
+                    db, models.GenerativeModelCustomProvider
+                ),
                 last_used_times_by_generative_model_id=LastUsedTimesByGenerativeModelIdDataLoader(
                     db
                 ),
@@ -782,6 +793,7 @@ def create_graphql_router(
                         cache_for_dataloaders.latency_ms_quantile if cache_for_dataloaders else None
                     ),
                 ),
+                llm_evaluator_fields=TableFieldsDataLoader(db, models.LLMEvaluator),
                 min_start_or_max_end_times=MinStartOrMaxEndTimeDataLoader(
                     db,
                     cache_map=(
@@ -800,6 +812,7 @@ def create_graphql_router(
                 prompt_label_fields=TableFieldsDataLoader(db, models.PromptLabel),
                 prompt_version_sequence_number=PromptVersionSequenceNumberDataLoader(db),
                 prompt_version_tag_fields=TableFieldsDataLoader(db, models.PromptVersionTag),
+                latest_prompt_version_ids=LatestPromptVersionIdDataLoader(db),
                 project_session_annotation_fields=TableFieldsDataLoader(
                     db, models.ProjectSessionAnnotation
                 ),
@@ -808,6 +821,8 @@ def create_graphql_router(
                     db,
                     cache_map=cache_for_dataloaders.record_count if cache_for_dataloaders else None,
                 ),
+                secret_fields=TableFieldsDataLoader(db, models.Secret),
+                secrets=SecretsDataLoader(db),
                 session_annotations_by_session=SessionAnnotationsBySessionDataLoader(db),
                 session_first_inputs=SessionIODataLoader(db, "first_input"),
                 session_last_outputs=SessionIODataLoader(db, "last_output"),
@@ -881,6 +896,8 @@ def create_graphql_router(
             token_store=token_store,
             email_sender=email_sender,
             span_cost_calculator=span_cost_calculator,
+            encrypt=encrypt,
+            decrypt=decrypt,
         )
 
     return GraphQLRouter(
@@ -901,7 +918,7 @@ def create_engine_and_run_migrations(
         return create_engine(
             connection_str=database_url,
             migrate=not Settings.disable_migrations,
-            log_to_stdout=False,
+            log_to_stdout=get_env_log_sql(),
         )
     except PhoenixMigrationError as e:
         msg = (
@@ -911,7 +928,7 @@ def create_engine_and_run_migrations(
             "revert any partial migrations and run `alembic stamp` to reset the migration state,\n"
             "then try starting Phoenix again.\n\n"
             "If issues persist, please reach out for support in the Arize community Slack:\n"
-            "https://arize-ai.slack.com\n\n"
+            "https://join.slack.com/t/arize-ai/shared_invite/zt-3r07iavnk-ammtATWSlF0pSrd1DsMW7g\n\n"
             "You can also refer to the Alembic documentation for more information:\n"
             "https://alembic.sqlalchemy.org/en/latest/tutorial.html\n\n"
             ""
@@ -978,14 +995,12 @@ class DbDiskUsageInterceptor(AsyncServerInterceptor):
 
 def create_app(
     db: DbSessionFactory,
-    export_path: Path,
-    model: Model,
     authentication_enabled: bool,
-    umap_params: UMAPParameters,
-    corpus: Optional[Model] = None,
     debug: bool = False,
     dev: bool = False,
+    dev_vite_port: int = 5173,
     read_only: bool = False,
+    grpc_port: Optional[int] = None,
     enable_prometheus: bool = False,
     initial_spans: Optional[Iterable[Union[Span, tuple[Span, str]]]] = None,
     initial_evaluations: Optional[Iterable[pb.Evaluation]] = None,
@@ -1006,16 +1021,6 @@ def create_app(
     management_url: Optional[str] = None,
 ) -> FastAPI:
     verify_server_environment_variables()
-    if model.embedding_dimensions:
-        try:
-            import fast_hdbscan  # noqa: F401
-            import umap  # noqa: F401
-        except ImportError as exc:
-            raise ImportError(
-                "To visualize embeddings, please install `umap-learn` and `fast-hdbscan` "
-                "via `pip install arize-phoenix[embeddings]`"
-            ) from exc
-    logger.info(f"Server umap params: {umap_params}")
     bulk_inserter_factory = bulk_inserter_factory or BulkInserter
     startup_callbacks_list: list[_Callback] = list(startup_callbacks)
     shutdown_callbacks_list: list[_Callback] = list(shutdown_callbacks)
@@ -1101,14 +1106,11 @@ def create_app(
                 self._tracer = cast(TracerProvider, tracer_provider).get_tracer("strawberry")
 
         graphql_schema_extensions.append(_OpenTelemetryExtension)
-
+    encryption_service = EncryptionService(secret=secret)
     graphql_router = create_graphql_router(
         db=db,
         graphql_schema=build_graphql_schema(graphql_schema_extensions),
-        model=model,
-        corpus=corpus,
         authentication_enabled=authentication_enabled,
-        export_path=export_path,
         last_updated_at=last_updated_at,
         event_queue=dml_event_handler,
         cache_for_dataloaders=cache_for_dataloaders,
@@ -1117,6 +1119,8 @@ def create_app(
         token_store=token_store,
         email_sender=email_sender,
         span_cost_calculator=span_cost_calculator,
+        encrypt=encryption_service.encrypt,
+        decrypt=encryption_service.decrypt,
     )
     if enable_prometheus:
         from phoenix.server.prometheus import PrometheusMiddleware
@@ -1130,6 +1134,7 @@ def create_app(
         lifespan=_lifespan(
             db=db,
             read_only=read_only,
+            grpc_port=grpc_port,
             bulk_inserter=bulk_inserter,
             dml_event_handler=dml_event_handler,
             trace_data_sweeper=trace_data_sweeper,
@@ -1154,7 +1159,6 @@ def create_app(
         },
     )
     app.include_router(create_v1_router(authentication_enabled))
-    app.include_router(create_embeddings_router(authentication_enabled))
     app.include_router(router)
     app.include_router(graphql_router)
     if authentication_enabled:
@@ -1162,8 +1166,18 @@ def create_app(
         app.include_router(create_auth_router(ldap_enabled=ldap_config is not None))
         app.include_router(oauth2_router)
     app.add_middleware(GZipMiddleware)
-    web_manifest_path = SERVER_DIR / "static" / ".vite" / "manifest.json"
-    if serve_ui and web_manifest_path.is_file():
+    static_dir = SERVER_DIR / "static"
+    web_manifest_path = static_dir / ".vite" / "manifest.json"
+    has_built_ui = web_manifest_path.is_file()
+    if dev:
+        static_dir.mkdir(parents=True, exist_ok=True)
+    if serve_ui and not dev and not has_built_ui:
+        logger.warning(
+            "Phoenix UI is not mounted because built frontend assets are missing at %s. "
+            "The package may be missing bundled UI files.",
+            web_manifest_path,
+        )
+    if serve_ui and (dev or has_built_ui):
         oauth2_idps = [
             OAuth2Idp(name=config.idp_name, displayName=config.idp_display_name)
             for config in oauth2_client_configs or []
@@ -1174,13 +1188,8 @@ def create_app(
         app.mount(
             "/",
             app=Static(
-                directory=SERVER_DIR / "static",
+                directory=static_dir,
                 app_config=AppConfig(
-                    has_inferences=model.is_empty is not True,
-                    has_corpus=corpus is not None,
-                    min_dist=umap_params.min_dist,
-                    n_neighbors=umap_params.n_neighbors,
-                    n_samples=umap_params.n_samples,
                     is_development=dev,
                     authentication_enabled=authentication_enabled,
                     web_manifest_path=web_manifest_path,
@@ -1202,13 +1211,13 @@ def create_app(
                     ),
                     allow_external_resources=get_env_allow_external_resources(),
                     auth_error_messages=dict(AUTH_ERROR_MESSAGES) if authentication_enabled else {},
+                    dev_vite_port=dev_vite_port,
                 ),
             ),
             name="static",
         )
     app.state.authentication_enabled = authentication_enabled
     app.state.read_only = read_only
-    app.state.export_path = export_path
     app.state.password_reset_token_expiry = password_reset_token_expiry
     app.state.access_token_expiry = access_token_expiry
     app.state.refresh_token_expiry = refresh_token_expiry
@@ -1221,6 +1230,8 @@ def create_app(
     app.state.db = db
     app.state.email_sender = email_sender
     app.state.span_cost_calculator = span_cost_calculator
+    app.state.encrypt = encryption_service.encrypt
+    app.state.decrypt = encryption_service.decrypt
     app.state.span_queue_is_full = lambda: bulk_inserter.is_full
     app = _add_get_secret_method(app=app, secret=secret)
     app = _add_get_token_store_method(app=app, token_store=token_store)
@@ -1271,3 +1282,27 @@ def _add_get_token_store_method(*, app: FastAPI, token_store: Optional[JwtStore]
 
     app.state.get_token_store = MethodType(get_token_store, app.state)
     return app
+
+
+def _warn_if_missing_aioboto3() -> None:
+    """
+    Check if boto3 is installed without aioboto3 and log a warning.
+
+    This helps users who have boto3 installed but haven't migrated to
+    aioboto3 for Phoenix's AWS Bedrock integration in Playground.
+    """
+
+    try:
+        import aioboto3  # type: ignore[import-untyped] # noqa: F401
+
+        return
+    except ImportError:
+        try:
+            import boto3  # type: ignore[import-untyped] # noqa: F401
+
+            logger.warning(
+                "boto3 is installed but aioboto3 is not. To use AWS Bedrock models "
+                "in Playground, install aioboto3: pip install aioboto3"
+            )
+        except ImportError:
+            pass

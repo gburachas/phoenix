@@ -6,6 +6,10 @@ Evaluations do not all require LLMs, and often it's useful to create Evaluators 
 
 These evaluations that don't use an LLM are indicated by a `kind="code"` flag on the scores.
 
+<Info>
+This page covers **programmatic code evaluators** — functions you write in Python or TypeScript and run via the `arize-phoenix-evals` SDK. If you want deterministic checks that run automatically in the Phoenix UI without any code, see [Server Evals](/docs/phoenix/evaluation/server-evals/overview).
+</Info>
+
 ### Using `create_evaluator`
 
 For convenience, a simple (sync or async) function can be converted into an Evaluator using the `create_evaluator` decorator. This function can either directly return a `Score` object or a value that can be converted into a score.
@@ -40,7 +44,7 @@ exact_match.evaluate({"input": "hello world", "output": "hello world"})
     name="contains-link", kind="code", direction="maximize"
 )
 async def contains_link(output: str) -> Score:
-    link = "https://arize-phoenix.readthedocs.io/projects/evals"
+    link = "https://arize-phoenix.readthedocs.io/projects/evals/"
     return link in output
 ```
 </Tab>
@@ -67,7 +71,7 @@ const result = await exactMatch.evaluate({
 
 const containsLink = createEvaluator<{ output: string }>(
   async ({ output }) => {
-    const link = "https://arize-phoenix.readthedocs.io/projects/evals";
+    const link = "https://arize-phoenix.readthedocs.io/projects/evals/";
     return output.includes(link) ? 1 : 0;
   },
   {
@@ -90,7 +94,7 @@ exact_match("hello", "world")
 
 await contains_link(
     "read the documentation here: "
-    "https://arize-phoenix.readthedocs.io/projects/evals"
+    "https://arize-phoenix.readthedocs.io/projects/evals/"
 )
 # True
 ```
@@ -103,12 +107,12 @@ exactMatchFn("hello", "world");
 // false
 
 const containsLinkFn = async (output: string) => {
-  const link = "https://arize-phoenix.readthedocs.io/projects/evals";
+  const link = "https://arize-phoenix.readthedocs.io/projects/evals/";
   return output.includes(link);
 };
 await containsLinkFn(
   "read the documentation here: " +
-  "https://arize-phoenix.readthedocs.io/projects/evals"
+  "https://arize-phoenix.readthedocs.io/projects/evals/"
 );
 // true
 ```

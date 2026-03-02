@@ -1,18 +1,14 @@
 from asyncio import get_running_loop
 from dataclasses import dataclass
 from functools import cached_property, partial
-from pathlib import Path
-from typing import Any, Optional, cast
+from typing import TYPE_CHECKING, Any, Callable, Optional, cast
 
 from starlette.datastructures import Secret
 from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response as StarletteResponse
 from strawberry.fastapi import BaseContext
 
-from phoenix.auth import (
-    compute_password_hash,
-)
-from phoenix.core.model_schema import Model
+from phoenix.auth import compute_password_hash
 from phoenix.db import models
 from phoenix.server.api.dataloaders import (
     AnnotationConfigsByProjectDataLoader,
@@ -21,10 +17,14 @@ from phoenix.server.api.dataloaders import (
     AverageExperimentRunLatencyDataLoader,
     CacheForDataLoaders,
     DatasetDatasetSplitsDataLoader,
+    DatasetEvaluatorsByEvaluatorDataLoader,
+    DatasetEvaluatorsByIdDataLoader,
+    DatasetEvaluatorsDataLoader,
     DatasetExampleRevisionsDataLoader,
     DatasetExamplesAndVersionsByExperimentRunDataLoader,
     DatasetExampleSpansDataLoader,
     DatasetExampleSplitsDataLoader,
+    DatasetsByEvaluatorDataLoader,
     DocumentEvaluationsDataLoader,
     DocumentEvaluationSummaryDataLoader,
     DocumentRetrievalMetricsDataLoader,
@@ -39,6 +39,7 @@ from phoenix.server.api.dataloaders import (
     ExperimentSequenceNumberDataLoader,
     LastUsedTimesByGenerativeModelIdDataLoader,
     LatencyMsQuantileDataLoader,
+    LatestPromptVersionIdDataLoader,
     MinStartOrMaxEndTimeDataLoader,
     NumChildSpansDataLoader,
     NumSpansPerTraceDataLoader,
@@ -46,6 +47,7 @@ from phoenix.server.api.dataloaders import (
     ProjectIdsByTraceRetentionPolicyIdDataLoader,
     PromptVersionSequenceNumberDataLoader,
     RecordCountDataLoader,
+    SecretsDataLoader,
     SessionAnnotationsBySessionDataLoader,
     SessionIODataLoader,
     SessionNumTracesDataLoader,
@@ -93,6 +95,9 @@ from phoenix.server.types import (
     UserId,
 )
 
+if TYPE_CHECKING:
+    pass
+
 
 @dataclass
 class DataLoaders:
@@ -102,6 +107,12 @@ class DataLoaders:
         AverageExperimentRepeatedRunGroupLatencyDataLoader
     )
     average_experiment_run_latency: AverageExperimentRunLatencyDataLoader
+    code_evaluator_fields: TableFieldsDataLoader
+    dataset_evaluator_fields: TableFieldsDataLoader
+    dataset_evaluators_by_evaluator: DatasetEvaluatorsByEvaluatorDataLoader
+    dataset_evaluators_by_id: DatasetEvaluatorsByIdDataLoader
+    dataset_evaluators: DatasetEvaluatorsDataLoader
+    datasets_by_evaluator: DatasetsByEvaluatorDataLoader
     dataset_example_fields: TableFieldsDataLoader
     dataset_example_revisions: DatasetExampleRevisionsDataLoader
     dataset_example_spans: DatasetExampleSpansDataLoader
@@ -134,9 +145,11 @@ class DataLoaders:
     experiment_runs_by_experiment_and_example: ExperimentRunsByExperimentAndExampleDataLoader
     experiment_sequence_number: ExperimentSequenceNumberDataLoader
     generative_model_fields: TableFieldsDataLoader
+    generative_model_custom_provider_fields: TableFieldsDataLoader
     last_used_times_by_generative_model_id: LastUsedTimesByGenerativeModelIdDataLoader
     latency_ms_quantile: LatencyMsQuantileDataLoader
     min_start_or_max_end_times: MinStartOrMaxEndTimeDataLoader
+    llm_evaluator_fields: TableFieldsDataLoader
     num_child_spans: NumChildSpansDataLoader
     num_spans_per_trace: NumSpansPerTraceDataLoader
     project_by_name: ProjectByNameDataLoader
@@ -147,9 +160,12 @@ class DataLoaders:
     prompt_label_fields: TableFieldsDataLoader
     prompt_version_sequence_number: PromptVersionSequenceNumberDataLoader
     prompt_version_tag_fields: TableFieldsDataLoader
+    latest_prompt_version_ids: LatestPromptVersionIdDataLoader
     project_session_annotation_fields: TableFieldsDataLoader
     project_session_fields: TableFieldsDataLoader
     record_counts: RecordCountDataLoader
+    secret_fields: TableFieldsDataLoader
+    secrets: SecretsDataLoader
     session_annotations_by_session: SessionAnnotationsBySessionDataLoader
     session_first_inputs: SessionIODataLoader
     session_last_outputs: SessionIODataLoader
@@ -209,12 +225,11 @@ class Context(BaseContext):
     db: DbSessionFactory
     data_loaders: DataLoaders
     cache_for_dataloaders: Optional[CacheForDataLoaders]
-    model: Model
-    export_path: Path
     span_cost_calculator: SpanCostCalculator
+    encrypt: Callable[[bytes], bytes]
+    decrypt: Callable[[bytes], bytes]
     last_updated_at: CanGetLastUpdatedAt = _NoOp()
     event_queue: CanPutItem[DmlEvent] = _NoOp()
-    corpus: Optional[Model] = None
     read_only: bool = False
     locked: bool = False
     auth_enabled: bool = False

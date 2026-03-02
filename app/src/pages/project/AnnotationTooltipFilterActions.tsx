@@ -1,5 +1,5 @@
-import { useMemo } from "react";
 import { css } from "@emotion/react";
+import { useMemo } from "react";
 
 import { Token } from "@phoenix/components";
 
@@ -71,7 +71,7 @@ export function AnnotationTooltipFilterActions(
         display: flex;
         height: 100%;
         flex-direction: row;
-        gap: var(--ac-global-dimension-size-100);
+        gap: var(--global-dimension-size-100);
 
         flex-wrap: wrap;
       `}

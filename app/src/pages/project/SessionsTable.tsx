@@ -1,3 +1,17 @@
+import { css } from "@emotion/react";
+import type {
+  ColumnDef,
+  ExpandedState,
+  SortingState,
+  Table,
+} from "@tanstack/react-table";
+import {
+  flexRender,
+  getCoreRowModel,
+  getExpandedRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import React, {
   startTransition,
   useEffect,
@@ -7,18 +21,6 @@ import React, {
 } from "react";
 import { graphql, usePaginationFragment } from "react-relay";
 import { useNavigate } from "react-router";
-import {
-  ColumnDef,
-  ExpandedState,
-  flexRender,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getSortedRowModel,
-  SortingState,
-  Table,
-  useReactTable,
-} from "@tanstack/react-table";
-import { css } from "@emotion/react";
 
 import {
   ContextualHelp,
@@ -42,9 +44,8 @@ import { useTracingContext } from "@phoenix/contexts/TracingContext";
 import { SummaryValueLabels } from "@phoenix/pages/project/AnnotationSummary";
 
 import { IntCell, TextCell } from "../../components/table";
-
-import { SessionsTable_sessions$key } from "./__generated__/SessionsTable_sessions.graphql";
-import { SessionsTableQuery } from "./__generated__/SessionsTableQuery.graphql";
+import type { SessionsTable_sessions$key } from "./__generated__/SessionsTable_sessions.graphql";
+import type { SessionsTableQuery } from "./__generated__/SessionsTableQuery.graphql";
 import { DEFAULT_PAGE_SIZE } from "./constants";
 import { SessionColumnSelector } from "./SessionColumnSelector";
 import { useSessionSearchContext } from "./SessionSearchContext";
@@ -71,6 +72,7 @@ const TableBody = <T extends { id: string }>({
 }: {
   table: Table<T>;
 }) => {
+  "use no memo";
   const navigate = useNavigate();
   return (
     <tbody>
@@ -487,7 +489,7 @@ export function SessionsTable(props: SessionsTableProps) {
         paddingBottom="size-100"
         paddingStart="size-200"
         paddingEnd="size-200"
-        borderBottomColor="grey-300"
+        borderBottomColor="gray-300"
         borderBottomWidth="thin"
         flex="none"
       >

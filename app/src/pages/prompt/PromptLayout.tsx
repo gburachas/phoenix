@@ -1,7 +1,7 @@
+import { css } from "@emotion/react";
 import { useFragment, usePreloadedQuery } from "react-relay";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { graphql } from "relay-runtime";
-import { css } from "@emotion/react";
 
 import {
   Button,
@@ -23,7 +23,7 @@ import {
 } from "@phoenix/components";
 import { ClonePromptDialog } from "@phoenix/pages/prompt/ClonePromptDialog";
 
-import { PromptLayout__main$key } from "./__generated__/PromptLayout__main.graphql";
+import type { PromptLayout__main$key } from "./__generated__/PromptLayout__main.graphql";
 import type { promptLoaderQuery as promptLoaderQueryType } from "./__generated__/promptLoaderQuery.graphql";
 import { promptLoaderQuery } from "./promptLoader";
 import { usePromptIdLoader } from "./usePromptIdLoader";
@@ -33,7 +33,7 @@ const mainCSS = css`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  .ac-tabs {
+  .tabs {
     flex: 1 1 auto;
     overflow: hidden;
     display: flex;
@@ -41,7 +41,7 @@ const mainCSS = css`
     div[role="tablist"] {
       flex: none;
     }
-    .ac-tabs__pane-container {
+    .tabs__pane-container {
       flex: 1 1 auto;
       display: flex;
       flex-direction: column;
@@ -132,7 +132,7 @@ export function PromptLayout() {
             <LinkButton
               variant="primary"
               leadingVisual={<Icon svg={<Icons.PlayCircleOutline />} />}
-              to="playground"
+              to={`/playground?promptId=${encodeURIComponent(data.id)}`}
               size="M"
               aria-label="Open this Prompt in Playground"
             >

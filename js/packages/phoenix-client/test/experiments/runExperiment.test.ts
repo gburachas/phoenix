@@ -1,4 +1,6 @@
 import { createClassificationEvaluator } from "@arizeai/phoenix-evals";
+import { MockLanguageModelV3 } from "ai/test";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as getDatasetModule from "../../src/datasets/getDataset";
 import {
@@ -7,9 +9,6 @@ import {
 } from "../../src/experiments/runExperiment";
 import type { Example } from "../../src/types/datasets";
 import type { EvaluatorParams } from "../../src/types/experiments";
-
-import { MockLanguageModelV2 } from "ai/test";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockDataset = {
   id: "dataset-1",
@@ -187,7 +186,11 @@ describe("runExperiment (dryRun)", () => {
         dryRun: true,
         repetitions: 0,
       })
-    ).rejects.toThrow("repetitions must be an integer greater than 0");
+    ).rejects.toMatchObject({
+      message: expect.stringContaining(
+        "repetitions must be an integer greater than 0"
+      ),
+    });
     await expect(
       runExperiment({
         dataset: { datasetId: mockDataset.id },
@@ -195,16 +198,28 @@ describe("runExperiment (dryRun)", () => {
         dryRun: true,
         repetitions: -1,
       })
-    ).rejects.toThrow("repetitions must be an integer greater than 0");
+    ).rejects.toMatchObject({
+      message: expect.stringContaining(
+        "repetitions must be an integer greater than 0"
+      ),
+    });
   });
   it("should work with phoenix-evals evaluators", async () => {
     const task = (example: Example) => `Hi, ${example.input.name}`;
     const correctnessEvaluator = createClassificationEvaluator({
       name: "correctness",
-      model: new MockLanguageModelV2({
+      model: new MockLanguageModelV3({
         doGenerate: async () => ({
-          finishReason: "stop",
-          usage: { inputTokens: 10, outputTokens: 20, totalTokens: 30 },
+          finishReason: { unified: "stop", raw: undefined },
+          usage: {
+            inputTokens: {
+              total: 10,
+              noCache: 10,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: { total: 20, text: 20, reasoning: undefined },
+          },
           content: [
             {
               type: "text",
@@ -257,10 +272,18 @@ describe("runExperiment (dryRun)", () => {
     // Phoenix-evals evaluator
     const phoenixEvaluator = createClassificationEvaluator({
       name: "politeness",
-      model: new MockLanguageModelV2({
+      model: new MockLanguageModelV3({
         doGenerate: async () => ({
-          finishReason: "stop",
-          usage: { inputTokens: 15, outputTokens: 25, totalTokens: 40 },
+          finishReason: { unified: "stop", raw: undefined },
+          usage: {
+            inputTokens: {
+              total: 15,
+              noCache: 15,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: { total: 25, text: 25, reasoning: undefined },
+          },
           content: [
             {
               type: "text",

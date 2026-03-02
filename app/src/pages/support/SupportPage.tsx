@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
 import { css } from "@emotion/react";
+import type { ReactNode } from "react";
 
 import {
   Flex,
@@ -14,8 +14,8 @@ import {
 const supportItemsCSS = css`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: var(--ac-global-dimension-size-200);
-  padding: var(--ac-global-dimension-size-200);
+  gap: var(--global-dimension-size-200);
+  padding: var(--global-dimension-size-200);
 `;
 
 export function SupportPage() {
@@ -49,7 +49,7 @@ export function SupportPage() {
           />
           <SupportItem
             leadingVisual={<Icon svg={<Icons.Slack />} />}
-            href="https://arize-ai.slack.com/join/shared_invite/zt-11t1vbu4x-xkBIHmOREQnYnYDH1GDfCg?__hstc=259489365.a667dfafcfa0169c8aee4178d115dc81.1733501603539.1733501603539.1733501603539.1&__hssc=259489365.1.1733501603539&__hsfp=3822854628&submissionGuid=381a0676-8f38-437b-96f2-fc10875658df#/shared-invite/email"
+            href="https://join.slack.com/t/arize-ai/shared_invite/zt-3r07iavnk-ammtATWSlF0pSrd1DsMW7g"
             title="Slack"
             description="Join our Slack community to chat with other users and the team."
           />
@@ -66,21 +66,20 @@ export function SupportPage() {
 }
 
 const supportItemCSS = css`
-  padding: var(--ac-global-dimension-size-200)
-    var(--ac-global-dimension-size-200) var(--ac-global-dimension-size-200);
-  border: var(--ac-global-border-size-thin) solid
-    var(--ac-global-border-color-dark);
-  border-radius: var(--ac-global-dimension-size-100);
+  padding: var(--global-dimension-size-200) var(--global-dimension-size-200)
+    var(--global-dimension-size-200);
+  border: var(--global-border-size-thin) solid var(--global-border-color-dark);
+  border-radius: var(--global-dimension-size-100);
   cursor: pointer;
-  background-color: var(--ac-global-background-color-dark);
+  background-color: var(--global-background-color-dark);
   display: flex;
   flex-direction: column;
-  gap: var(--ac-global-dimension-size-50);
-  color: var(--ac-global-color-text-700);
+  gap: var(--global-dimension-size-50);
+  color: var(--global-color-text-700);
   transition: border-color 0.2s ease-in-out;
   text-decoration: none;
   &:hover {
-    border-color: var(--ac-global-color-primary);
+    border-color: var(--global-color-primary);
   }
 `;
 

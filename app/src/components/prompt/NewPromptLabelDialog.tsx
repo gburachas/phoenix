@@ -9,10 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@phoenix/components";
-import { LabelParams, NewLabelForm } from "@phoenix/components/label";
+import type { LabelParams } from "@phoenix/components/label";
+import { NewLabelForm } from "@phoenix/components/label";
 import { getErrorMessagesFromRelayMutationError } from "@phoenix/utils/errorUtils";
 
-import { NewPromptLabelDialogMutation } from "./__generated__/NewPromptLabelDialogMutation.graphql";
+import type { NewPromptLabelDialogMutation } from "./__generated__/NewPromptLabelDialogMutation.graphql";
 
 type NewPromptLabelDialogProps = {
   onCompleted: () => void;
@@ -28,10 +29,7 @@ export function NewPromptLabelDialog(props: NewPromptLabelDialogProps) {
       ) {
         createPromptLabel(input: $label) {
           promptLabels
-            @prependNode(
-              connections: $connections
-              edgeTypeName: "PromptLabelEdge"
-            ) {
+            @prependNode(connections: $connections, edgeTypeName: "PromptLabelEdge") {
             id
             name
             color

@@ -13,6 +13,7 @@ import strawberry
 from openinference.semconv.trace import SpanAttributes
 from strawberry import ID, UNSET
 from strawberry.relay import Connection, Node, NodeID
+from strawberry.scalars import JSON
 from strawberry.types import Info
 from typing_extensions import Annotated, TypeAlias
 
@@ -65,6 +66,7 @@ class SpanKind(Enum):
     chain = "CHAIN"
     tool = "TOOL"
     llm = "LLM"
+    prompt = "PROMPT"
     retriever = "RETRIEVER"
     embedding = "EMBEDDING"
     agent = "AGENT"
@@ -102,6 +104,7 @@ class SpanEvent:
     name: str
     message: str
     timestamp: datetime
+    attributes: JSON
 
     @staticmethod
     def from_dict(
@@ -111,6 +114,7 @@ class SpanEvent:
             name=event["name"],
             message=cast(str, event["attributes"].get(trace_schema.EXCEPTION_MESSAGE) or ""),
             timestamp=datetime.fromisoformat(event["timestamp"]),
+            attributes=cast(JSON, event["attributes"]),
         )
 
 
@@ -718,17 +722,20 @@ class Span(Node):
             else await info.context.data_loaders.span_by_id.load(self.id)
         )
 
-        # Fetch annotations associated with this span
-        span_annotations = await self.span_annotations(info)
-        annotations = dict()
+        # Fetch annotations associated with this span using the dataloader
+        # which returns ORM objects directly
+        span_annotations = await info.context.data_loaders.span_annotations.load(self.id)
+        annotations: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for annotation in span_annotations:
-            annotations[annotation.name] = {
-                "label": annotation.label,
-                "score": annotation.score,
-                "explanation": annotation.explanation,
-                "metadata": annotation.metadata,
-                "annotator_kind": annotation.annotator_kind.value,
-            }
+            annotations[annotation.name].append(
+                {
+                    "label": annotation.label,
+                    "score": annotation.score,
+                    "explanation": annotation.explanation,
+                    "metadata": annotation.metadata_,
+                    "annotator_kind": annotation.annotator_kind,
+                }
+            )
         # Merge annotations into the metadata
         metadata = {
             "span_kind": span.span_kind,

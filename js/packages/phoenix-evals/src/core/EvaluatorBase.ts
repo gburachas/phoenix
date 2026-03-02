@@ -1,4 +1,4 @@
-import {
+import type {
   CreateEvaluatorArgs,
   EvaluationKind,
   EvaluationResult,
@@ -6,14 +6,14 @@ import {
   OptimizationDirection,
   TelemetryConfig,
 } from "../types";
-import { ObjectMapping } from "../types/data";
+import type { ObjectMapping } from "../types/data";
 
 /**
  * Base class for all evaluators
  */
-export abstract class EvaluatorBase<RecordType extends Record<string, unknown>>
-  implements EvaluatorInterface<RecordType>
-{
+export abstract class EvaluatorBase<
+  RecordType extends Record<string, unknown>,
+> implements EvaluatorInterface<RecordType> {
   readonly name: string;
   readonly kind: EvaluationKind;
   readonly optimizationDirection?: OptimizationDirection;

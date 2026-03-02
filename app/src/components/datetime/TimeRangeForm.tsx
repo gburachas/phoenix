@@ -1,29 +1,29 @@
+import { css } from "@emotion/react";
+import { getLocalTimeZone, parseAbsolute } from "@internationalized/date";
 import { useCallback } from "react";
+import type { DateValue } from "react-aria-components";
 import {
   DateInput,
   DateSegment,
-  DateValue,
   FieldError,
   Form,
   Label,
 } from "react-aria-components";
 import { Controller, useForm } from "react-hook-form";
-import { getLocalTimeZone, parseAbsolute } from "@internationalized/date";
-import { css } from "@emotion/react";
 
-import { Button, Icon, Icons } from "@phoenix/components";
-
+import { Button } from "../button";
+import { Icon, Icons } from "../icon";
 import { DateField } from "./DateField";
 
 const containerCSS = css`
   display: flex;
   flex-direction: column;
-  gap: var(--ac-global-dimension-size-200);
+  gap: var(--global-dimension-size-200);
 `;
 
 const formRowCSS = css`
   display: flex;
-  gap: var(--ac-global-dimension-size-100);
+  gap: var(--global-dimension-size-100);
   align-items: start;
   justify-content: end;
   /* Move the button down to align */
@@ -36,7 +36,7 @@ const controlsRowCSS = css`
   width: 100%;
   display: flex;
   justify-content: flex-end;
-  gap: var(--ac-global-dimension-size-100);
+  gap: var(--global-dimension-size-100);
 `;
 
 const dateFieldCSS = css`

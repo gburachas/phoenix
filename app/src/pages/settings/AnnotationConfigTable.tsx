@@ -1,15 +1,17 @@
-import React, { useMemo, useState } from "react";
-import { graphql, useFragment } from "react-relay";
-import {
+import { css } from "@emotion/react";
+import type {
   CellContext,
   ColumnDef,
+  RowSelectionState,
+} from "@tanstack/react-table";
+import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
-  RowSelectionState,
   useReactTable,
 } from "@tanstack/react-table";
-import { css } from "@emotion/react";
+import React, { useMemo, useState } from "react";
+import { graphql, useFragment } from "react-relay";
 
 import {
   Flex,
@@ -27,9 +29,9 @@ import { IndeterminateCheckboxCell } from "@phoenix/components/table/Indetermina
 import { tableCSS } from "@phoenix/components/table/styles";
 import { TableEmpty } from "@phoenix/components/table/TableEmpty";
 import { Truncate } from "@phoenix/components/utility/Truncate";
-import { AnnotationConfigTableFragment$key } from "@phoenix/pages/settings/__generated__/AnnotationConfigTableFragment.graphql";
+import type { AnnotationConfigTableFragment$key } from "@phoenix/pages/settings/__generated__/AnnotationConfigTableFragment.graphql";
 import { AnnotationConfigSelectionToolbar } from "@phoenix/pages/settings/AnnotationConfigSelectionToolbar";
-import { AnnotationConfig } from "@phoenix/pages/settings/types";
+import type { AnnotationConfig } from "@phoenix/pages/settings/types";
 
 const columns = [
   {
@@ -216,7 +218,6 @@ export const AnnotationConfigTable = ({
     () => data.annotationConfigs.edges.map((edge) => edge.annotationConfig),
     [data.annotationConfigs.edges]
   ) as AnnotationConfig[]; // cast to AnnotationConfig[] because otherwise 'name' and 'annotationType' are optional
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: configs,
     columns,

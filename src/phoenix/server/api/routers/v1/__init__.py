@@ -5,12 +5,15 @@ from phoenix.server.bearer_auth import PhoenixUser, is_authenticated
 
 from .annotation_configs import router as annotation_configs_router
 from .annotations import router as annotations_router
+from .corpus_sampling import router as corpus_sampling_router
+from .data_generation import router as data_generation_router
 from .datasets import router as datasets_router
 from .documents import router as documents_router
 from .evaluations import router as evaluations_router
 from .experiment_evaluations import router as experiment_evaluations_router
 from .experiment_runs import router as experiment_runs_router
 from .experiments import router as experiments_router
+from .llm_adapters import router as llm_adapters_router
 from .projects import router as projects_router
 from .prompts import router as prompts_router
 from .sessions import router as sessions_router
@@ -77,6 +80,8 @@ def create_v1_router(authentication_enabled: bool) -> APIRouter:
     )
     router.include_router(annotation_configs_router)
     router.include_router(annotations_router)
+    router.include_router(corpus_sampling_router)
+    router.include_router(data_generation_router)
     router.include_router(datasets_router)
     router.include_router(experiments_router)
     router.include_router(experiment_runs_router)
@@ -84,6 +89,7 @@ def create_v1_router(authentication_enabled: bool) -> APIRouter:
     router.include_router(traces_router)
     router.include_router(spans_router)
     router.include_router(evaluations_router)
+    router.include_router(llm_adapters_router)
     router.include_router(prompts_router)
     router.include_router(projects_router)
     router.include_router(sessions_router)

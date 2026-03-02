@@ -1,7 +1,7 @@
+import { css } from "@emotion/react";
 import { usePreloadedQuery } from "react-relay";
 import { useLoaderData } from "react-router";
 import invariant from "tiny-invariant";
-import { css } from "@emotion/react";
 
 import {
   Card,
@@ -15,22 +15,20 @@ import {
 } from "@phoenix/components";
 import { CanManageRetentionPolicy, IsAdmin } from "@phoenix/components/auth";
 import { BASE_URL, VERSION } from "@phoenix/config";
-import { settingsGeneralPageLoaderQuery } from "@phoenix/pages/settings/__generated__/settingsGeneralPageLoaderQuery.graphql";
+import type { settingsGeneralPageLoaderQuery } from "@phoenix/pages/settings/__generated__/settingsGeneralPageLoaderQuery.graphql";
 import { APIKeysCard } from "@phoenix/pages/settings/APIKeysCard";
 import { DBUsagePieChart } from "@phoenix/pages/settings/DBUsagePieChart";
 import { GlobalRetentionPolicyCard } from "@phoenix/pages/settings/GlobalRetentionPolicyCard";
-import {
-  settingsGeneralPageLoaderGQL,
-  settingsGeneralPageLoaderType,
-} from "@phoenix/pages/settings/settingsGeneralPageLoader";
+import type { settingsGeneralPageLoaderType } from "@phoenix/pages/settings/settingsGeneralPageLoader";
+import { settingsGeneralPageLoaderGQL } from "@phoenix/pages/settings/settingsGeneralPageLoader";
 import { UsersCard } from "@phoenix/pages/settings/UsersCard";
 
 const formCSS = css`
-  .ac-field {
+  .field {
     // Hacky solution to make the text fields fill the remaining space
-    width: calc(100% - var(--ac-global-dimension-size-600));
+    width: calc(100% - var(--global-dimension-size-600));
   }
-  padding: var(--ac-global-dimension-size-200);
+  padding: var(--global-dimension-size-200);
 `;
 
 export function SettingsGeneralPage() {
@@ -66,17 +64,18 @@ export function SettingsGeneralPage() {
               </Flex>
               <Flex direction="row" gap="size-100" alignItems="end">
                 <TextField
-                  value={`pip install 'arize-phoenix==${VERSION}'`}
+                  value={`pip install "arize-phoenix==${VERSION}"`}
                   isReadOnly
                 >
-                  <Label>Python Version</Label>
+                  <Label>Installation Instructions</Label>
                   <Input />
                   <Text slot="description">
-                    The version of the Python client library to use to connect
-                    to this Phoenix
+                    The command to install the Phoenix Python package
                   </Text>
                 </TextField>
-                <CopyToClipboardButtonWithPadding text={VERSION} />
+                <CopyToClipboardButtonWithPadding
+                  text={`pip install "arize-phoenix==${VERSION}"`}
+                />
               </Flex>
             </form>
           </Card>

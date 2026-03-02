@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { css } from "@emotion/react";
+import { useState } from "react";
 
 import {
   Button,
@@ -14,8 +14,8 @@ import {
   Text,
   View,
 } from "@phoenix/components";
-import { AnnotationConfigDialog } from "@phoenix/pages/settings/AnnotationConfigDialog";
-import { AnnotationConfig } from "@phoenix/pages/settings/types";
+import { AnnotationConfigDialog } from "@phoenix/components/annotation/AnnotationConfigDialog";
+import type { AnnotationConfig } from "@phoenix/pages/settings/types";
 
 interface AnnotationConfigSelectionToolbarProps {
   selectedConfig: AnnotationConfig;
@@ -43,12 +43,12 @@ export const AnnotationConfigSelectionToolbar = ({
       data-editing={isEditing}
       css={css`
         position: fixed;
-        bottom: var(--ac-global-dimension-size-600);
+        bottom: var(--global-dimension-size-600);
         left: 50%;
         transform: translateX(-50%);
         z-index: 1000;
         box-shadow: 8px 8px 20px 0 rgba(0, 0, 0, 0.4);
-        border-radius: var(--ac-global-rounding-medium);
+        border-radius: var(--global-rounding-medium);
         &[data-editing="true"] {
           display: none;
         }

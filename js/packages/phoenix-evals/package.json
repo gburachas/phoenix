@@ -1,7 +1,29 @@
 {
   "name": "@arizeai/phoenix-evals",
-  "version": "0.6.5",
+  "version": "1.0.0",
   "description": "A library for running evaluations for AI use cases",
+  "keywords": [
+    "arize",
+    "evals",
+    "evaluation",
+    "llm",
+    "phoenix"
+  ],
+  "homepage": "https://github.com/Arize-ai/phoenix/tree/main/js/packages/phoenix-evals",
+  "bugs": {
+    "url": "https://github.com/Arize-ai/phoenix/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "oss@arize.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Arize-ai/phoenix.git"
+  },
+  "files": [
+    "dist",
+    "src",
+    "package.json"
+  ],
   "main": "dist/src/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/src/index.d.ts",
@@ -31,42 +53,28 @@
       "require": "./dist/src/helpers/*.js"
     }
   },
-  "files": [
-    "dist",
-    "src",
-    "package.json"
-  ],
   "scripts": {
-    "clean": "rimraf dist",
-    "prebuild": "pnpm run clean",
     "build": "tsc --build tsconfig.json tsconfig.esm.json && tsc-alias -p tsconfig.esm.json",
+    "clean": "rimraf dist",
+    "docs": "typedoc",
+    "docs:preview": "pnpx http-server ./docs -p 8080 -o",
     "postbuild": "echo '{\"type\": \"module\"}' > ./dist/esm/package.json",
-    "type:check": "tsc --noEmit",
+    "prebuild": "pnpm run clean",
     "test": "vitest run",
     "test:watch": "vitest watch",
-    "docs": "typedoc",
-    "docs:preview": "pnpx http-server ./docs -p 8080 -o"
+    "typecheck": "tsc --noEmit"
   },
-  "keywords": [
-    "evals",
-    "arize",
-    "phoenix",
-    "llm",
-    "evaluation"
-  ],
-  "author": "oss@arize.com",
-  "license": "Apache-2.0",
-  "homepage": "https://github.com/Arize-ai/phoenix/tree/main/js/packages/phoenix-evals",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Arize-ai/phoenix.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Arize-ai/phoenix/issues"
+  "dependencies": {
+    "@arizeai/openinference-core": "^2.0.0",
+    "@opentelemetry/api": "^1.9.0",
+    "ai": "^6.0.90",
+    "jsonpath-plus": "^10.3.0",
+    "mustache": "^4.2.0",
+    "zod": "^4.0.14"
   },
   "devDependencies": {
-    "@ai-sdk/google": "^2.0.40",
-    "@ai-sdk/openai": "^2.0.0",
+    "@ai-sdk/google": "^3.0.29",
+    "@ai-sdk/openai": "^3.0.29",
     "@arizeai/openinference-instrumentation-openai": "^2.3.0",
     "@opentelemetry/sdk-trace-node": "^1.30.1",
     "@types/mustache": "^4.2.6",
@@ -74,20 +82,10 @@
     "msw": "^2.11.6",
     "nock": "^14.0.5",
     "tsx": "^4.19.3",
-    "typedoc": "^0.27.9",
-    "typescript": "^5.8.2",
+    "typedoc": "^0.28.17",
     "vitest": "^4.0.10"
   },
-  "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "@arizeai/openinference-core": "^2.0.0",
-    "@opentelemetry/api": "^1.9.0",
-    "ai": "^5.0.0",
-    "jsonpath-plus": "^10.3.0",
-    "mustache": "^4.2.0",
-    "zod": "^4.0.14"
   }
 }

@@ -1,8 +1,8 @@
+import { css } from "@emotion/react";
 import { Suspense, useCallback, useMemo } from "react";
 import { graphql, usePreloadedQuery } from "react-relay";
 import { Outlet, useLoaderData, useLocation, useNavigate } from "react-router";
 import invariant from "tiny-invariant";
-import { css } from "@emotion/react";
 
 import {
   Counter,
@@ -19,11 +19,12 @@ import {
 import { DatasetLabelConfigButton } from "@phoenix/components/dataset";
 import { Truncate } from "@phoenix/components/utility/Truncate";
 import { DatasetProvider } from "@phoenix/contexts/DatasetContext";
-import { useFeatureFlag } from "@phoenix/contexts/FeatureFlagsContext";
-import { datasetLoader } from "@phoenix/pages/dataset/datasetLoader";
+import type { datasetLoader } from "@phoenix/pages/dataset/datasetLoader";
 
-import type { datasetLoaderQuery$data } from "./__generated__/datasetLoaderQuery.graphql";
-import { DatasetPageQuery } from "./__generated__/DatasetPageQuery.graphql";
+import type {
+  DatasetPageQuery,
+  DatasetPageQuery$data,
+} from "./__generated__/DatasetPageQuery.graphql";
 import { DatasetDownloadMenu } from "./DatasetDownloadMenu";
 import { RunDatasetExperimentButton } from "./RunDatasetExperimentButton";
 
@@ -37,15 +38,13 @@ export const DatasetPageQueryNode = graphql`
         description
         exampleCount
         experimentCount
+        evaluatorCount
         labels {
           id
           name
           color
         }
-        latestVersions: versions(
-          first: 1
-          sort: { col: createdAt, dir: desc }
-        ) {
+        latestVersions: versions(first: 1, sort: { col: createdAt, dir: desc }) {
           edges {
             version: node {
               id
@@ -93,7 +92,7 @@ const mainCSS = css`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  .ac-tabs {
+  .tabs {
     flex: 1 1 auto;
     overflow: hidden;
     display: flex;
@@ -101,7 +100,7 @@ const mainCSS = css`
     div[role="tablist"] {
       flex: none;
     }
-    .ac-tabs__pane-container {
+    .tabs__pane-container {
       flex: 1 1 auto;
       display: flex;
       flex-direction: column;
@@ -119,8 +118,8 @@ const mainCSS = css`
 const TABS_CONFIG = {
   0: "experiments",
   1: "examples",
-  2: "versions",
-  3: "evaluators",
+  2: "evaluators",
+  3: "versions",
 } as const;
 
 const TABS_LIST = Object.values(TABS_CONFIG);
@@ -132,10 +131,13 @@ function isTabName(name: unknown): name is TabName {
 }
 
 function getTabIndexFromPathname(pathname: string): number {
-  // We only need the last part of the path
-  const path = pathname.split("/").at(-1);
-  if (isTabName(path)) {
-    return TABS_LIST.indexOf(path);
+  // Check all path segments for a valid tab name
+  // This handles nested routes like /datasets/:id/examples/:exampleId
+  const segments = pathname.split("/");
+  for (const segment of segments) {
+    if (isTabName(segment)) {
+      return TABS_LIST.indexOf(segment);
+    }
   }
   return 0;
 }
@@ -143,9 +145,8 @@ function getTabIndexFromPathname(pathname: string): number {
 function DatasetPageContent({
   dataset,
 }: {
-  dataset: datasetLoaderQuery$data["dataset"];
+  dataset: DatasetPageQuery$data["dataset"];
 }) {
-  const isEvaluatorsEnabled = useFeatureFlag("evaluators");
   const datasetId = dataset.id;
 
   const navigate = useNavigate();
@@ -173,7 +174,7 @@ function DatasetPageContent({
                 css={css`
                   display: flex;
                   flex-direction: row;
-                  gap: var(--ac-global-dimension-size-100);
+                  gap: var(--global-dimension-size-100);
                   min-width: 0;
                   flex-wrap: wrap;
                 `}
@@ -201,13 +202,7 @@ function DatasetPageContent({
         }
       />
       <Tabs
-        defaultSelectedKey={
-          initialIndex === 0
-            ? "experiments"
-            : initialIndex === 1
-              ? "examples"
-              : "versions"
-        }
+        selectedKey={TABS_LIST[initialIndex]}
         onSelectionChange={(key) => {
           if (isTabName(key)) {
             onTabChange(TABS_LIST.indexOf(key));
@@ -221,12 +216,10 @@ function DatasetPageContent({
           <Tab id="examples">
             Examples <Counter>{dataset.exampleCount}</Counter>
           </Tab>
+          <Tab id="evaluators">
+            Evaluators <Counter>{dataset.evaluatorCount}</Counter>
+          </Tab>
           <Tab id="versions">Versions</Tab>
-          {isEvaluatorsEnabled ? (
-            <Tab id="evaluators" isDisabled={!isEvaluatorsEnabled}>
-              Evaluators
-            </Tab>
-          ) : null}
         </TabList>
         <LazyTabPanel id="experiments">
           <Suspense>
@@ -238,12 +231,12 @@ function DatasetPageContent({
             <Outlet />
           </Suspense>
         </LazyTabPanel>
-        <LazyTabPanel id="versions">
+        <LazyTabPanel id="evaluators">
           <Suspense>
             <Outlet />
           </Suspense>
         </LazyTabPanel>
-        <LazyTabPanel id="evaluators">
+        <LazyTabPanel id="versions">
           <Suspense>
             <Outlet />
           </Suspense>

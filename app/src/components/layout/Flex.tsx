@@ -1,12 +1,13 @@
-import { forwardRef, ReactNode, Ref } from "react";
-import { filterDOMProps } from "@react-aria/utils";
 import { css } from "@emotion/react";
+import { filterDOMProps } from "@react-aria/utils";
+import type { ElementType, ReactNode, Ref } from "react";
+import { forwardRef } from "react";
 
-import { DOMProps, FlexStyleProps } from "@phoenix/components/types";
+import type { DOMProps, FlexStyleProps } from "@phoenix/components/types";
+import type { StyleHandlers } from "@phoenix/components/utils";
 import {
   passthroughStyle,
   responsiveDimensionValue,
-  StyleHandlers,
   useStyleProps,
 } from "@phoenix/components/utils";
 import { classNames } from "@phoenix/utils";
@@ -14,6 +15,8 @@ import { classNames } from "@phoenix/utils";
 export interface FlexProps extends DOMProps, FlexStyleProps {
   /** Children of the flex container. */
   children: ReactNode;
+  /** The HTML element type to render as. Defaults to 'div'. */
+  elementType?: ElementType;
 }
 
 const flexCSS = css`
@@ -28,14 +31,18 @@ const flexStyleProps: StyleHandlers = {
   alignContent: ["alignContent", flexAlignValue],
 };
 
-function Flex(props: FlexProps, ref: Ref<HTMLDivElement>) {
-  const { children, className, ...otherProps } = props;
+function Flex(props: FlexProps, ref: Ref<HTMLElement>) {
+  const {
+    children,
+    className,
+    elementType: Component = "div",
+    ...otherProps
+  } = props;
 
   const matchedBreakpoints = ["base"];
   const { styleProps } = useStyleProps(otherProps);
   const { styleProps: flexStyle } = useStyleProps(otherProps, flexStyleProps);
 
-  // If no gaps, or native support exists, then we only need to render a single div.
   const style = {
     ...styleProps.style,
     ...flexStyle.style,
@@ -57,7 +64,7 @@ function Flex(props: FlexProps, ref: Ref<HTMLDivElement>) {
   }
 
   return (
-    <div
+    <Component
       css={flexCSS}
       {...filterDOMProps(otherProps)}
       className={classNames("flex", className)}
@@ -65,7 +72,7 @@ function Flex(props: FlexProps, ref: Ref<HTMLDivElement>) {
       ref={ref}
     >
       {children}
-    </div>
+    </Component>
   );
 }
 

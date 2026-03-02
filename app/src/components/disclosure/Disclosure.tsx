@@ -1,4 +1,5 @@
-import { CSSProperties, PropsWithChildren } from "react";
+import { css } from "@emotion/react";
+import type { CSSProperties, PropsWithChildren } from "react";
 import {
   Button,
   Disclosure as AriaDisclosure,
@@ -9,13 +10,12 @@ import {
   type DisclosureProps as AriaDisclosureProps,
   Heading,
 } from "react-aria-components";
-import { css } from "@emotion/react";
 
-import { Flex, Icon, Icons } from "@phoenix/components";
 import { classNames } from "@phoenix/utils";
 
-import { FlexStyleProps, SizingProps, StylableProps } from "../types";
-
+import { Icon, Icons } from "../icon";
+import { Flex } from "../layout";
+import type { FlexStyleProps, SizingProps, StylableProps } from "../types";
 import { disclosureCSS, disclosureGroupCSS } from "./styles";
 
 export type DisclosureGroupProps = AriaDisclosureGroupProps &
@@ -37,7 +37,7 @@ export const DisclosureGroup = ({
   return (
     <AriaDisclosureGroup
       allowsMultipleExpanded
-      className={classNames("ac-disclosure-group", className)}
+      className={classNames("disclosure-group", className)}
       css={css(disclosureGroupCSS, propCSS)}
       data-size={size}
       {...props}
@@ -55,7 +55,7 @@ export type DisclosureProps = AriaDisclosureProps & SizingProps;
 export const Disclosure = ({ size, className, ...props }: DisclosureProps) => {
   return (
     <AriaDisclosure
-      className={classNames("ac-disclosure", className)}
+      className={classNames("disclosure", className)}
       css={disclosureCSS}
       data-size={size}
       defaultExpanded
@@ -77,7 +77,7 @@ export const DisclosurePanel = ({
 }: DisclosurePanelProps) => {
   return (
     <AriaDisclosurePanel
-      className={classNames("ac-disclosure-panel", className)}
+      className={classNames("disclosure__panel", className)}
       {...props}
     />
   );
@@ -86,6 +86,8 @@ export const DisclosurePanel = ({
 export type DisclosureTriggerProps = PropsWithChildren<{
   arrowPosition?: "start" | "end" | "none";
   justifyContent?: FlexStyleProps["justifyContent"];
+  alignItems?: FlexStyleProps["alignItems"];
+  direction?: FlexStyleProps["direction"];
   asHeading?: boolean;
   width?: CSSProperties["width"];
 }>;
@@ -99,10 +101,12 @@ export const DisclosureTrigger = ({
   children,
   arrowPosition,
   justifyContent,
+  alignItems = "center",
+  direction = "row",
   width,
 }: DisclosureTriggerProps) => {
   return (
-    <Heading className="react-aria-Heading ac-disclosure-trigger">
+    <Heading className="react-aria-Heading disclosure__trigger">
       <Button
         slot="trigger"
         data-arrow-position={arrowPosition}
@@ -110,9 +114,10 @@ export const DisclosureTrigger = ({
       >
         <Flex
           justifyContent={justifyContent}
-          alignItems="center"
+          direction={direction}
+          alignItems={alignItems}
           width="100%"
-          gap="size-100"
+          gap={direction === "row" ? "size-100" : "size-50"}
         >
           {children}
         </Flex>

@@ -1,11 +1,10 @@
-import { forwardRef, Ref } from "react";
-import {
-  Breadcrumb as AriaBreadcrumb,
-  BreadcrumbProps as AriaBreadcrumbProps,
-} from "react-aria-components";
 import { css } from "@emotion/react";
+import type { Ref } from "react";
+import { forwardRef } from "react";
+import type { BreadcrumbProps as AriaBreadcrumbProps } from "react-aria-components";
+import { Breadcrumb as AriaBreadcrumb } from "react-aria-components";
 
-import { Icon, Icons } from "@phoenix/components";
+import { Icon, Icons } from "../icon";
 
 interface BreadcrumbProps extends AriaBreadcrumbProps {}
 
@@ -14,8 +13,12 @@ const breadcrumbCSS = css`
   align-items: center;
 
   a {
-    color: var(--ac-global-text-color-700);
+    color: var(--global-text-color-700);
     text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 40ch;
     &:hover {
       text-decoration: underline;
     }
@@ -23,7 +26,7 @@ const breadcrumbCSS = css`
 
   &[data-current],
   &[data-current] a {
-    color: var(--ac-global-text-color-900);
+    color: var(--global-text-color-900);
     font-weight: 600;
     cursor: default;
     &:hover {

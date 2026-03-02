@@ -1,7 +1,5 @@
-import { Flex } from "@phoenix/components";
-
-import { StylableProps } from "../types/style";
-
+import { Flex } from "../layout";
+import type { StylableProps } from "../types/style";
 import { Skeleton } from "./Skeleton";
 
 interface ContentSkeletonProps extends StylableProps {}

@@ -1,8 +1,8 @@
+import { css } from "@emotion/react";
 import { useCallback } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { graphql, useFragment, useMutation } from "react-relay";
 import { useNavigate } from "react-router";
-import { css } from "@emotion/react";
 
 import {
   Button,
@@ -17,8 +17,8 @@ import {
 import { useNotifyError } from "@phoenix/contexts";
 import { createRedirectUrlWithReturn } from "@phoenix/utils/routingUtils";
 
-import { ResetPasswordFormMutation } from "./__generated__/ResetPasswordFormMutation.graphql";
-import { ResetPasswordFormQuery$key } from "./__generated__/ResetPasswordFormQuery.graphql";
+import type { ResetPasswordFormMutation } from "./__generated__/ResetPasswordFormMutation.graphql";
+import type { ResetPasswordFormQuery$key } from "./__generated__/ResetPasswordFormQuery.graphql";
 
 const MIN_PASSWORD_LENGTH = 4;
 
@@ -212,8 +212,8 @@ export function ResetPasswordForm(props: {
         css={css`
           display: flex;
           flex-direction: row;
-          gap: var(--ac-global-dimension-size-200);
-          padding-top: var(--ac-global-dimension-size-100);
+          gap: var(--global-dimension-size-200);
+          padding-top: var(--global-dimension-size-100);
           overflow: hidden;
           & > * {
             width: 50%;

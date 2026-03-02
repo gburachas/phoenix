@@ -1,13 +1,13 @@
-import { useCallback, useMemo, useRef } from "react";
-import { graphql, usePaginationFragment } from "react-relay";
-import { useNavigate } from "react-router";
+import { css } from "@emotion/react";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { css } from "@emotion/react";
+import { useCallback, useMemo, useRef } from "react";
+import { graphql, usePaginationFragment } from "react-relay";
+import { useNavigate } from "react-router";
 
 import { Button, Flex, Icon, Icons, Text, View } from "@phoenix/components";
 import {
@@ -19,8 +19,8 @@ import { TextCell } from "@phoenix/components/table/TextCell";
 import { TimestampCell } from "@phoenix/components/table/TimestampCell";
 import { LatencyText } from "@phoenix/components/trace/LatencyText";
 
-import { ExampleExperimentRunsTableFragment$key } from "./__generated__/ExampleExperimentRunsTableFragment.graphql";
-import { ExampleExperimentRunsTableQuery } from "./__generated__/ExampleExperimentRunsTableQuery.graphql";
+import type { ExampleExperimentRunsTableFragment$key } from "./__generated__/ExampleExperimentRunsTableFragment.graphql";
+import type { ExampleExperimentRunsTableQuery } from "./__generated__/ExampleExperimentRunsTableQuery.graphql";
 
 const PAGE_SIZE = 100;
 
@@ -32,8 +32,7 @@ export function ExampleExperimentsTableEmpty() {
           colSpan={100}
           css={css`
             text-align: center;
-            padding: var(--ac-global-dimension-size-300)
-              var(--ac-global-dimension-size-300) !important;
+            padding: var(--global-dimension-size-300) var(--global-dimension-size-300) !important;
           `}
         >
           No experiments have been run for this example.
@@ -47,8 +46,8 @@ const annotationTooltipExtraCSS = css`
   display: flex;
   flex-direction: row;
   align-items: center;
-  color: var(--ac-global-color-primary);
-  gap: var(--ac-global-dimension-size-50);
+  color: var(--global-color-primary);
+  gap: var(--global-dimension-size-50);
 `;
 
 export function ExampleExperimentRunsTable({
@@ -219,7 +218,6 @@ export function ExampleExperimentRunsTable({
       },
     },
   ];
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<TableRow>({
     columns,
     data: tableData,

@@ -1,20 +1,15 @@
-import React, { Ref } from "react";
 import { css } from "@emotion/react";
+import type { Ref } from "react";
+import React from "react";
 
 import { buttonCSS } from "./styles";
-import { ButtonProps } from "./types";
+import type { ButtonProps } from "./types";
 
 // Custom props for the button styling and visuals
-interface ExternalLinkButtonCustomProps
-  extends Pick<
-    ButtonProps,
-    | "size"
-    | "variant"
-    | "leadingVisual"
-    | "trailingVisual"
-    | "css"
-    | "isDisabled"
-  > {}
+interface ExternalLinkButtonCustomProps extends Pick<
+  ButtonProps,
+  "size" | "variant" | "leadingVisual" | "trailingVisual" | "css" | "isDisabled"
+> {}
 
 // Main props type: all anchor props + custom button props
 export type ExternalLinkButtonProps =
@@ -26,7 +21,7 @@ const externalLinkButtonCSS = css`
   &[data-disabled="true"] {
     pointer-events: none;
     cursor: default;
-    opacity: var(--ac-opacity-disabled);
+    opacity: var(--global-opacity-disabled);
   }
 `;
 

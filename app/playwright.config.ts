@@ -1,4 +1,5 @@
-import { defineConfig, devices, Project } from "@playwright/test";
+import type { Project } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 /**
  * Read environment variables from file.
@@ -8,29 +9,46 @@ import { defineConfig, devices, Project } from "@playwright/test";
 // dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 // Skip WebKit for CI because of recurring issues with caching binaries.
+const isCI = !!process.env.CI;
 const skipWebKit = process.env.CI_PLAYWRIGHT_SKIP_WEBKIT === "true";
 
 const projects: Project[] = [
   {
+    name: "setup",
+    testMatch: "**/auth.setup.ts",
+  },
+  {
     name: "chromium",
-    use: { ...devices["Desktop Chrome"] },
+    use: {
+      ...devices["Desktop Chrome"],
+      storageState: "playwright/.auth/admin.json",
+    },
+    dependencies: ["setup"],
     // The test below runs last in the 'rate limit' project so that we don't lock ourselves out
-    testIgnore: "**/*.rate-limit.spec.ts",
+    testIgnore: ["**/*.rate-limit.spec.ts", "**/*.setup.ts"],
   },
   {
     name: "firefox",
-    use: { ...devices["Desktop Firefox"] },
+    use: {
+      ...devices["Desktop Firefox"],
+      storageState: "playwright/.auth/admin.json",
+    },
+    dependencies: ["setup"],
     // The test below runs last in the 'rate limit' project so that we don't lock ourselves out
-    testIgnore: "**/*.rate-limit.spec.ts",
+    testIgnore: ["**/*.rate-limit.spec.ts", "**/*.setup.ts"],
   },
 ];
 
 if (!skipWebKit) {
   projects.push({
     name: "webkit",
-    use: { ...devices["Desktop Safari"] },
+    use: {
+      ...devices["Desktop Safari"],
+      storageState: "playwright/.auth/admin.json",
+    },
+    dependencies: ["setup"],
     // The test below runs last in the 'rate limit' project so that we don't lock ourselves out
-    testIgnore: "**/*.rate-limit.spec.ts",
+    testIgnore: ["**/*.rate-limit.spec.ts", "**/*.setup.ts"],
   });
 }
 
@@ -47,21 +65,21 @@ projects.push({
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  globalSetup: require.resolve("./global-setup"),
-  timeout: process.env.CI ? 60000 : 30000,
-  // Limit the number of workers on CI, use default locally
-  workers: process.env.CI ? 2 : undefined,
-  testDir: "./tests",
-  /* Run tests in files in parallel */
+  timeout: isCI ? 90_000 : 45_000,
+  expect: {
+    /* CI runners are slower; use one centralized expect timeout policy */
+    timeout: isCI ? 30_000 : 10_000,
+  },
+  // Use default workers (cpu count)
+  workers: undefined,
   fullyParallel: true,
+  testDir: "./tests",
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
-  retries: process.env.CI ? 2 : 0,
+  retries: isCI ? 2 : 0,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: "html",
-  /* Opt out of parallel tests on CI. */
-  // workers: process.env.CI ? 1 : undefined,
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -70,8 +88,8 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
 
-    /* Wait for 15 seconds for each page navigation to complete */
-    navigationTimeout: 15000,
+    /* Wait for each page navigation to complete */
+    navigationTimeout: isCI ? 30_000 : 15_000,
   },
 
   /* Configure projects for major browsers */
@@ -81,7 +99,7 @@ export default defineConfig({
   webServer: {
     command: "pnpm run dev:server:test",
     url: "http://localhost:6006",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    reuseExistingServer: !isCI,
+    timeout: isCI ? 240_000 : 120_000,
   },
 });

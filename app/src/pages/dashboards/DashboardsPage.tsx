@@ -1,13 +1,13 @@
-import { useMemo, useRef } from "react";
-import { useLoaderData } from "react-router";
+import { css } from "@emotion/react";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { css } from "@emotion/react";
+import { useMemo, useRef } from "react";
+import { useLoaderData } from "react-router";
 
 import {
   Flex,
@@ -25,7 +25,7 @@ import { selectableTableCSS } from "@phoenix/components/table/styles";
 import { TableEmpty } from "@phoenix/components/table/TableEmpty";
 import { TimestampCell } from "@phoenix/components/table/TimestampCell";
 
-import { dashboardsLoader } from "./dashboardsLoader";
+import type { dashboardsLoader } from "./dashboardsLoader";
 import { ProjectDashboardsTable } from "./ProjectDashboardsTable";
 
 // Inline DashboardsTable component
@@ -67,7 +67,6 @@ function DashboardsTable({ dashboards }: { dashboards: Dashboard[] }) {
     ],
     []
   );
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     columns,
     data: dashboards,

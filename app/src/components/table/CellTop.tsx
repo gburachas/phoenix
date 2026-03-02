@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
 import { css } from "@emotion/react";
+import type { ReactNode } from "react";
 
 /**
  * A component that renders a row at the top of a table cell
@@ -23,15 +23,14 @@ export function CellTop({
 }
 
 const cellTopCSS = css`
-  padding: 0 var(--ac-global-dimension-static-size-100) 0
-    var(--ac-global-dimension-static-size-200);
-  border-bottom: var(--ac-global-border-size-thin) solid
-    var(--ac-global-color-grey-100);
-  background-color: var(--ac-global-color-grey-50);
+  padding: 0 var(--global-dimension-static-size-100) 0
+    var(--global-dimension-static-size-200);
+  border-bottom: var(--global-border-size-thin) solid var(--global-color-gray-100);
+  background-color: var(--global-color-gray-50);
   min-height: 39px;
   display: flex;
   flex-direction: row;
-  gap: var(--ac-global-dimension-static-size-100);
+  gap: var(--global-dimension-static-size-100);
   align-items: center;
   justify-content: space-between;
   min-width: 0;
@@ -52,7 +51,7 @@ const childrenWrapCSS = css`
 const extraCSS = css`
   display: flex;
   flex-direction: row;
-  gap: var(--ac-global-dimension-static-size-50);
+  gap: var(--global-dimension-static-size-50);
   align-items: center;
   flex: none;
 `;

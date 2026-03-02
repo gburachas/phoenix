@@ -156,7 +156,7 @@ const response = await openai.chat.completions.create({
 Create custom spans using the OpenTelemetry API:
 
 ```typescript
-import { register, trace } from "@arizeai/phoenix-otel";
+import { register, trace, SpanStatusCode } from "@arizeai/phoenix-otel";
 
 register({ projectName: "my-app" });
 
@@ -188,8 +188,7 @@ async function processOrder(orderId: string) {
 **Development** (with debug logging):
 
 ```typescript
-import { register } from "@arizeai/phoenix-otel";
-import { DiagLogLevel } from "@opentelemetry/api";
+import { DiagLogLevel, register } from "@arizeai/phoenix-otel";
 
 register({
   projectName: "my-app-dev",
@@ -255,7 +254,7 @@ import {
   context, // Context API
   SpanStatusCode, // Span status codes
   registerInstrumentations, // Register instrumentations
-  type DiagLogLevel, // Diagnostic log levels
+  DiagLogLevel, // Diagnostic log levels
   type Tracer, // Tracer type
   type Instrumentation, // Instrumentation type
   type NodeTracerProvider, // Provider type
@@ -272,7 +271,7 @@ import {
 
 Join our community to connect with thousands of AI builders:
 
-- 🌍 Join our [Slack community](https://arize-ai.slack.com/join/shared_invite/zt-11t1vbu4x-xkBIHmOREQnYnYDH1GDfCg)
+- 🌍 Join our [Slack community](https://join.slack.com/t/arize-ai/shared_invite/zt-3r07iavnk-ammtATWSlF0pSrd1DsMW7g)
 - 💡 Ask questions and provide feedback in the _#phoenix-support_ channel
 - 🌟 Leave a star on our [GitHub](https://github.com/Arize-ai/phoenix)
 - 🐞 Report bugs with [GitHub Issues](https://github.com/Arize-ai/phoenix/issues)

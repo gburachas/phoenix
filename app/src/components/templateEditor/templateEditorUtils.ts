@@ -1,12 +1,12 @@
 import { assertUnreachable } from "@phoenix/typeUtils";
 
+import { TemplateFormats } from "./constants";
 import { extractVariablesFromFString, formatFString } from "./language/fString";
 import {
   extractVariablesFromMustacheLike,
   formatMustacheLike,
 } from "./language/mustacheLike";
-import { TemplateFormats } from "./constants";
-import { TemplateFormat } from "./types";
+import type { TemplateFormat } from "./types";
 
 /**
  * A function that formats a template with the given variables

@@ -1,5 +1,5 @@
-import { graphql, useLazyLoadQuery } from "react-relay";
 import { css } from "@emotion/react";
+import { graphql, useLazyLoadQuery } from "react-relay";
 
 import {
   Flex,
@@ -14,8 +14,7 @@ import { SessionTokenCount } from "@phoenix/components/trace/SessionTokenCount";
 import { SESSION_DETAILS_PAGE_SIZE } from "@phoenix/pages/trace/constants";
 
 import { costFormatter } from "../../utils/numberFormatUtils";
-
-import {
+import type {
   SessionDetailsQuery,
   SessionDetailsQuery$data,
 } from "./__generated__/SessionDetailsQuery.graphql";

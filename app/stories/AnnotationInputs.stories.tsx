@@ -1,13 +1,13 @@
+import type { Meta, StoryObj } from "@storybook/react";
 import { FocusScope } from "react-aria";
 import { Form } from "react-aria-components";
-import type { Meta, StoryObj } from "@storybook/react";
 
 import { Flex } from "@phoenix/components";
 import { AnnotationSaveButton } from "@phoenix/components/annotation/AnnotationSaveButton";
 import { CategoricalAnnotationInput } from "@phoenix/components/annotation/CategoricalAnnotationInput";
 import { ContinuousAnnotationInput } from "@phoenix/components/annotation/ContinuousAnnotationInput";
 import { FreeformAnnotationInput } from "@phoenix/components/annotation/FreeformAnnotationInput";
-import {
+import type {
   AnnotationConfigCategorical,
   AnnotationConfigContinuous,
   AnnotationConfigFreeform,

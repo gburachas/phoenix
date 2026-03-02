@@ -1,11 +1,11 @@
+import { css } from "@emotion/react";
 import {
   RadioGroup as AriaRadioGroup,
   type RadioGroupProps as AriaRadioGroupProps,
 } from "react-aria-components";
-import { css } from "@emotion/react";
 
 import { fieldBaseCSS } from "@phoenix/components/field/styles";
-import { SizingProps, StylableProps } from "@phoenix/components/types";
+import type { SizingProps, StylableProps } from "@phoenix/components/types";
 import { classNames } from "@phoenix/utils";
 
 const baseRadioGroupCSS = css(`
@@ -18,19 +18,19 @@ const baseRadioGroupCSS = css(`
   flex-direction: row;
   align-items: center;
   width: fit-content;
-  gap: var(--ac-global-dimension-size-200);
-  font-size: var(--ac-global-dimension-static-font-size-100);
+  gap: var(--global-dimension-size-200);
+  font-size: var(--global-dimension-static-font-size-100);
 
-  & > .ac-radio:not(:first-of-type) {
+  & > .radio:not(:first-of-type) {
     border-left: none;
   }
 
-  & > .ac-radio:first-of-type {
-    border-radius: var(--ac-global-rounding-small) 0 0 var(--ac-global-rounding-small);
+  & > .radio:first-of-type {
+    border-radius: var(--global-rounding-small) 0 0 var(--global-rounding-small);
   }
 
-  & > .ac-radio:last-of-type {
-    border-radius: 0 var(--ac-global-rounding-small) var(--ac-global-rounding-small) 0;
+  & > .radio:last-of-type {
+    border-radius: 0 var(--global-rounding-small) var(--global-rounding-small) 0;
   }
 
   &[data-direction="row"] {
@@ -52,14 +52,14 @@ const baseRadioGroupCSS = css(`
   }
 
   &[data-size="S"] {
-    .ac-radio {
-      padding: var(--ac-global-dimension-size-25) var(--ac-global-dimension-size-100);
+    .radio {
+      padding: var(--global-dimension-size-25) var(--global-dimension-size-100);
     }
   }
 
   &[data-size="L"] {
-    .ac-radio {
-      padding: var(--ac-global-dimension-size-100) var(--ac-global-dimension-size-150);
+    .radio {
+      padding: var(--global-dimension-size-100) var(--global-dimension-size-150);
     }
   }
 
@@ -68,16 +68,16 @@ const baseRadioGroupCSS = css(`
   }
 
   &[data-readonly] {
-    .ac-radio:before {
+    .radio:before {
       opacity: 0.5;
     }
   }
 
-  &:has(.ac-radio[data-focus-visible]) {
-    border-radius: var(--ac-global-rounding-small);
-    outline: 1px solid var(--ac-global-input-field-border-color-active);
+  &:has(.radio[data-focus-visible]) {
+    border-radius: var(--global-rounding-small);
+    outline: 1px solid var(--global-input-field-border-color-active);
     // display an outline offset around the radio group, accounting for the outline offset of the inner radios
-    outline-offset: var(--ac-global-dimension-size-100);
+    outline-offset: var(--global-dimension-size-100);
   }
 `);
 
@@ -96,7 +96,7 @@ export const RadioGroup = ({
     <AriaRadioGroup
       data-size={size}
       data-direction={direction}
-      className={classNames("ac-radio-group", className)}
+      className={classNames("radio-group", className)}
       css={css(fieldBaseCSS, baseRadioGroupCSS, cssProp)}
       {...props}
     />

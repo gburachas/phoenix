@@ -1,5 +1,5 @@
-import { graphql, useLazyLoadQuery } from "react-relay";
 import { css } from "@emotion/react";
+import { graphql, useLazyLoadQuery } from "react-relay";
 
 import { Dialog, Modal, ModalOverlay } from "@phoenix/components";
 import {
@@ -10,7 +10,7 @@ import {
   DialogTitleExtra,
 } from "@phoenix/components/dialog";
 
-import { DatasetHistoryDialogQuery } from "./__generated__/DatasetHistoryDialogQuery.graphql";
+import type { DatasetHistoryDialogQuery } from "./__generated__/DatasetHistoryDialogQuery.graphql";
 import { DatasetHistoryTable } from "./DatasetHistoryTable";
 
 export type DatasetHistoryDialogProps = {

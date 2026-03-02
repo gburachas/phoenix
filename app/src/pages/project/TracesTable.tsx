@@ -1,6 +1,21 @@
+import { css } from "@emotion/react";
+import type {
+  CellContext,
+  ColumnDef,
+  ExpandedState,
+  SortingState,
+  Table,
+} from "@tanstack/react-table";
+import {
+  flexRender,
+  getCoreRowModel,
+  getExpandedRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 /* eslint-disable react/prop-types */
+import type { ComponentProps } from "react";
 import React, {
-  ComponentProps,
   Fragment,
   startTransition,
   useCallback,
@@ -11,19 +26,6 @@ import React, {
 } from "react";
 import { graphql, usePaginationFragment } from "react-relay";
 import { useNavigate, useParams } from "react-router";
-import {
-  CellContext,
-  ColumnDef,
-  ExpandedState,
-  flexRender,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getSortedRowModel,
-  SortingState,
-  Table,
-  useReactTable,
-} from "@tanstack/react-table";
-import { css } from "@emotion/react";
 
 import {
   Flex,
@@ -47,8 +49,9 @@ import { SpanKindToken } from "@phoenix/components/trace/SpanKindToken";
 import { SpanStatusCodeIcon } from "@phoenix/components/trace/SpanStatusCodeIcon";
 import { TraceTokenCosts } from "@phoenix/components/trace/TraceTokenCosts";
 import { TraceTokenCount } from "@phoenix/components/trace/TraceTokenCount";
-import { ISpanItem } from "@phoenix/components/trace/types";
-import { createSpanTree, SpanTreeNode } from "@phoenix/components/trace/utils";
+import type { ISpanItem } from "@phoenix/components/trace/types";
+import type { SpanTreeNode } from "@phoenix/components/trace/utils";
+import { createSpanTree } from "@phoenix/components/trace/utils";
 import { Truncate } from "@phoenix/components/utility/Truncate";
 import { SELECTED_SPAN_NODE_ID_PARAM } from "@phoenix/constants/searchParams";
 import { useStreamState } from "@phoenix/contexts/StreamStateContext";
@@ -57,12 +60,12 @@ import { SummaryValueLabels } from "@phoenix/pages/project/AnnotationSummary";
 import { MetadataTableCell } from "@phoenix/pages/project/MetadataTableCell";
 import { useTracePagination } from "@phoenix/pages/trace/TracePaginationContext";
 
-import {
+import type {
   SpanStatusCode,
   TracesTable_spans$data,
   TracesTable_spans$key,
 } from "./__generated__/TracesTable_spans.graphql";
-import { TracesTableQuery } from "./__generated__/TracesTableQuery.graphql";
+import type { TracesTableQuery } from "./__generated__/TracesTableQuery.graphql";
 import { DEFAULT_PAGE_SIZE } from "./constants";
 import { ProjectTableEmpty } from "./ProjectTableEmpty";
 import { RetrievalEvaluationLabel } from "./RetrievalEvaluationLabel";
@@ -108,6 +111,7 @@ const TableBody = <
 }: {
   table: Table<T>;
 }) => {
+  "use no memo";
   const navigate = useNavigate();
   const { traceId } = useParams();
   return (
@@ -165,7 +169,7 @@ const MetadataCell = <TData extends ISpanItem, TValue>({
 
 const trCSS = css`
   &[data-is-additional-row="true"] {
-    box-shadow: inset 0 -10px 20px var(--ac-global-color-grey-100);
+    box-shadow: inset 0 -10px 20px var(--global-color-gray-100);
   }
 `;
 
@@ -206,10 +210,7 @@ export function TracesTable(props: TracesTableProps) {
         @argumentDefinitions(
           after: { type: "String", defaultValue: null }
           first: { type: "Int", defaultValue: 30 }
-          sort: {
-            type: "SpanSort"
-            defaultValue: { col: startTime, dir: desc }
-          }
+          sort: { type: "SpanSort", defaultValue: { col: startTime, dir: desc } }
           filterCondition: { type: "String", defaultValue: null }
         ) {
           name
@@ -821,7 +822,7 @@ export function TracesTable(props: TracesTableProps) {
         paddingBottom="size-100"
         paddingStart="size-200"
         paddingEnd="size-200"
-        borderBottomColor="grey-300"
+        borderBottomColor="gray-300"
         borderBottomWidth="thin"
         flex="none"
       >

@@ -776,6 +776,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/sessions/{session_identifier}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get session by ID or session_id */
+        get: operations["getSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/projects/{project_identifier}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List sessions for a project */
+        get: operations["listProjectSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/session_annotations": {
         parameters: {
             query?: never;
@@ -1478,6 +1512,17 @@ export interface components {
         GetPromptsResponseBody: {
             /** Data */
             data: components["schemas"]["Prompt"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** GetSessionResponseBody */
+        GetSessionResponseBody: {
+            data: components["schemas"]["SessionData"];
+        };
+        /** GetSessionsResponseBody */
+        GetSessionsResponseBody: {
+            /** Data */
+            data: components["schemas"]["SessionData"][];
             /** Next Cursor */
             next_cursor: string | null;
         };
@@ -2515,6 +2560,44 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /** SessionData */
+        SessionData: {
+            /** Id */
+            id: string;
+            /** Session Id */
+            session_id: string;
+            /** Project Id */
+            project_id: string;
+            /**
+             * Start Time
+             * Format: date-time
+             */
+            start_time: string;
+            /**
+             * End Time
+             * Format: date-time
+             */
+            end_time: string;
+            /** Traces */
+            traces: components["schemas"]["SessionTraceData"][];
+        };
+        /** SessionTraceData */
+        SessionTraceData: {
+            /** Id */
+            id: string;
+            /** Trace Id */
+            trace_id: string;
+            /**
+             * Start Time
+             * Format: date-time
+             */
+            start_time: string;
+            /**
+             * End Time
+             * Format: date-time
+             */
+            end_time: string;
+        };
         /** Span */
         Span: {
             /**
@@ -2543,13 +2626,13 @@ export interface components {
             /**
              * Start Time
              * Format: date-time
-             * @description Start time of the span
+             * @description Start time of the span (must be timezone-aware)
              */
             start_time: string;
             /**
              * End Time
              * Format: date-time
-             * @description End time of the span
+             * @description End time of the span (must be timezone-aware)
              */
             end_time: string;
             /**
@@ -2732,7 +2815,7 @@ export interface components {
             /**
              * Timestamp
              * Format: date-time
-             * @description When the event occurred
+             * @description When the event occurred (must be timezone-aware)
              */
             timestamp: string;
             /**
@@ -3000,6 +3083,10 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, unknown>;
         };
     };
     responses: never;
@@ -3616,6 +3703,8 @@ export interface operations {
                     metadata?: Record<string, unknown>[];
                     /** @description Split per example: string, string array, or null */
                     splits?: (string | string[] | null)[];
+                    /** @description Span IDs to link examples back to spans */
+                    span_ids?: (string | null)[];
                 };
                 "multipart/form-data": {
                     /** @enum {string} */
@@ -3627,6 +3716,8 @@ export interface operations {
                     "metadata_keys[]"?: string[];
                     /** @description Column names for auto-assigning examples to splits */
                     "split_keys[]"?: string[];
+                    /** @description Column name for span IDs to link examples back to spans */
+                    span_id_key?: string;
                     /** Format: binary */
                     file: string;
                 };
@@ -4007,7 +4098,10 @@ export interface operations {
     };
     deleteExperiment: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description If true, also delete the project associated with the experiment that contains traces and spans for the experiment tasks. */
+                delete_project?: boolean;
+            };
             header?: never;
             path: {
                 experiment_id: string;
@@ -5375,6 +5469,8 @@ export interface operations {
                 limit?: number;
                 /** @description Include experiment projects in the response. Experiment projects are created from running experiments. */
                 include_experiment_projects?: boolean;
+                /** @description Include dataset evaluator projects in the response. Dataset evaluator projects are created when running experiments with persisted evaluators. */
+                include_dataset_evaluator_projects?: boolean;
             };
             header?: never;
             path?: never;
@@ -5575,6 +5671,113 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The session identifier: either a GlobalID or user-provided session_id string. */
+                session_identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetSessionResponseBody"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listProjectSessions: {
+        parameters: {
+            query?: {
+                /** @description Cursor for pagination (session ID) */
+                cursor?: string | null;
+                /** @description The max number of sessions to return at a time. */
+                limit?: number;
+                /** @description Sort order by ID: 'asc' (ascending) or 'desc' (descending). */
+                order?: "asc" | "desc";
+            };
+            header?: never;
+            path: {
+                /** @description The project identifier: either project ID or project name. */
+                project_identifier: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetSessionsResponseBody"];
+                };
             };
             /** @description Forbidden */
             403: {

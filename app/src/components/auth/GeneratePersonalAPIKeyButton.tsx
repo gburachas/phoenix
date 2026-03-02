@@ -3,7 +3,7 @@ import { graphql, useMutation } from "react-relay";
 import { Button } from "@phoenix/components";
 import { useNotifyError } from "@phoenix/contexts";
 
-import { GeneratePersonalAPIKeyButtonMutation } from "./__generated__/GeneratePersonalAPIKeyButtonMutation.graphql";
+import type { GeneratePersonalAPIKeyButtonMutation } from "./__generated__/GeneratePersonalAPIKeyButtonMutation.graphql";
 
 type GeneratePersonalAPIKeyButtonProps = {
   /**
@@ -30,9 +30,7 @@ export function GeneratePersonalAPIKeyButton({
 
   const [commit, isCommitting] =
     useMutation<GeneratePersonalAPIKeyButtonMutation>(graphql`
-      mutation GeneratePersonalAPIKeyButtonMutation(
-        $input: CreateUserApiKeyInput!
-      ) {
+      mutation GeneratePersonalAPIKeyButtonMutation($input: CreateUserApiKeyInput!) {
         createUserApiKey(input: $input) {
           jwt
           apiKey {

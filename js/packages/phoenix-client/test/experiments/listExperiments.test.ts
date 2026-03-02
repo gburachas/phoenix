@@ -1,7 +1,7 @@
-import { components } from "../../src/__generated__/api/v1";
-import { listExperiments } from "../../src/experiments/listExperiments";
-
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { components } from "../../src/__generated__/api/v1";
+import { listExperiments } from "../../src/experiments/listExperiments";
 
 const mockGet = vi.fn();
 

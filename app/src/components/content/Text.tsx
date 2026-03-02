@@ -1,11 +1,10 @@
-import { CSSProperties, forwardRef, ReactNode, Ref } from "react";
-import {
-  Text as AriaText,
-  TextProps as AriaTextProps,
-} from "react-aria-components";
 import { css } from "@emotion/react";
+import type { CSSProperties, ReactNode, Ref } from "react";
+import { forwardRef } from "react";
+import type { TextProps as AriaTextProps } from "react-aria-components";
+import { Text as AriaText } from "react-aria-components";
 
-import {
+import type {
   ColorValue,
   DOMProps,
   StyleProps,
@@ -15,9 +14,8 @@ import {
 import { classNames } from "@phoenix/utils";
 
 import { colorValue, useStyleProps } from "../utils";
-
 import { textBaseCSS } from "./styles";
-import { TextElementType, Weight } from "./types";
+import type { TextElementType, Weight } from "./types";
 
 export interface TextProps extends AriaTextProps, DOMProps, StyleProps {
   /**
@@ -66,7 +64,7 @@ const getTextColor = (color: TextColorValue): string => {
   }
   if (color.startsWith("text-")) {
     const [, num] = color.split("-");
-    return `var(--ac-global-text-color-${num})`;
+    return `var(--global-text-color-${num})`;
   }
   return colorValue(color as ColorValue);
 };
@@ -98,7 +96,7 @@ function Text(props: TextProps, ref: Ref<HTMLElement>) {
 
   return (
     <AriaText
-      className={classNames("ac-text", `font-${fontFamily}`, className)}
+      className={classNames("text", `font-${fontFamily}`, className)}
       {...restProps}
       {...styleProps}
       css={css`

@@ -11,7 +11,6 @@ import {
   runExperiment,
   type RunExperimentParams,
 } from "@arizeai/phoenix-client/experiments";
-
 import { confirm, intro, log, outro, select, spinner } from "@clack/prompts";
 import { Factuality } from "autoevals";
 import dotenv from "dotenv";
@@ -133,7 +132,10 @@ const main = async () => {
         ...log,
         log: (message) => s.message(message),
         info: (message) => s.message(message),
+        warn: (message) => s.message(message),
         error: (message) => s.message(message),
+        debug: (message) => s.message(message),
+        table: (data) => s.message(JSON.stringify(data)),
       },
       evaluators: [
         // You can implement code based evaluators like this

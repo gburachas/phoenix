@@ -1,3 +1,11 @@
+import { css } from "@emotion/react";
+import type { ColumnDef } from "@tanstack/react-table";
+import {
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import {
   startTransition,
   useCallback,
@@ -7,14 +15,6 @@ import {
 } from "react";
 import { graphql, usePaginationFragment } from "react-relay";
 import { useNavigate } from "react-router";
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import { css } from "@emotion/react";
 
 import {
   Flex,
@@ -31,8 +31,8 @@ import { TimestampCell } from "@phoenix/components/table/TimestampCell";
 import { useViewerCanModify } from "@phoenix/contexts";
 import { usePromptsFilterContext } from "@phoenix/pages/prompts/PromptsFilterProvider";
 
-import { PromptsTable_prompts$key } from "./__generated__/PromptsTable_prompts.graphql";
-import { PromptsTablePromptsQuery } from "./__generated__/PromptsTablePromptsQuery.graphql";
+import type { PromptsTable_prompts$key } from "./__generated__/PromptsTable_prompts.graphql";
+import type { PromptsTablePromptsQuery } from "./__generated__/PromptsTablePromptsQuery.graphql";
 import { PromptActionMenu } from "./PromptActionMenu";
 import { PromptsEmpty } from "./PromptsEmpty";
 
@@ -69,12 +69,8 @@ export function PromptsTable(props: PromptsTableProps) {
           filter: { type: "PromptFilter", defaultValue: null }
           labelIds: { type: "[ID!]", defaultValue: null }
         ) {
-          prompts(
-            first: $first
-            after: $after
-            filter: $filter
-            labelIds: $labelIds
-          ) @connection(key: "PromptsTable_prompts") {
+          prompts(first: $first, after: $after, filter: $filter, labelIds: $labelIds)
+            @connection(key: "PromptsTable_prompts") {
             edges {
               prompt: node {
                 id
@@ -153,11 +149,11 @@ export function PromptsTable(props: PromptsTableProps) {
               css={css`
                 display: flex;
                 flex-direction: row;
-                gap: var(--ac-global-dimension-size-100);
+                gap: var(--global-dimension-size-100);
               `}
             >
               {row.original.labels.map((label) => (
-                <Token key={label.id} color={label.color}>
+                <Token key={label.id} color={label.color ?? undefined}>
                   {label.name}
                 </Token>
               ))}
@@ -215,7 +211,6 @@ export function PromptsTable(props: PromptsTableProps) {
     return cols;
   }, [refetch, queryArgs, canModify]);
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     columns,
     data: tableData,

@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { css } from "@emotion/react";
+import { useEffect } from "react";
 
 import { Flex } from "@phoenix/components";
 import { useViewer } from "@phoenix/contexts/ViewerContext";
@@ -14,7 +14,7 @@ const profilePageCSS = css`
 `;
 
 const profilePageInnerCSS = css`
-  padding: var(--ac-global-dimension-size-400);
+  padding: var(--global-dimension-size-400);
   max-width: 800px;
   min-width: 500px;
   box-sizing: border-box;

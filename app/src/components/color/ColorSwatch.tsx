@@ -1,11 +1,9 @@
-import { forwardRef } from "react";
-import {
-  ColorSwatch as AriaColorSwatch,
-  ColorSwatchProps as AriaColorSwatchProps,
-} from "react-aria-components";
 import { css } from "@emotion/react";
+import { forwardRef } from "react";
+import type { ColorSwatchProps as AriaColorSwatchProps } from "react-aria-components";
+import { ColorSwatch as AriaColorSwatch } from "react-aria-components";
 
-import { SizingProps } from "@phoenix/components/types";
+import type { SizingProps } from "@phoenix/components/types";
 
 type ColorSwatchShape = "square" | "circle";
 
@@ -36,6 +34,7 @@ export const ColorSwatch = forwardRef<HTMLDivElement, ColorSwatchProps>(
             width: var(--color-swatch-size);
             height: var(--color-swatch-size);
             display: inline-block;
+            flex-shrink: 0;
             &[data-shape="square"] {
               border-radius: 2px;
             }

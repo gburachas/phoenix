@@ -107,6 +107,8 @@ Manage prompt templates and versions:
 from phoenix.client import Client
 from phoenix.client.types import PromptVersion
 
+client = Client()
+
 content = """
 You're an expert educator in {{ topic }}. Summarize the following article
 in a few concise bullet points that are easy for beginners to understand.
@@ -145,7 +147,10 @@ print(resp.choices[0].message.content)
 Manage evaluation datasets and examples for experiments and evaluation:
 
 ```python
+from phoenix.client import Client
 import pandas as pd
+
+client = Client()
 
 # List all available datasets
 datasets = client.datasets.list()
@@ -203,7 +208,10 @@ dataset = client.datasets.create_dataset(
 Query for spans and annotations from your projects for custom evaluation and annotation workflows:
 
 ```python
+from phoenix.client import Client
 from datetime import datetime, timedelta
+
+client = Client()
 
 # Get spans as pandas DataFrame for analysis
 spans_df = client.spans.get_spans_dataframe(
@@ -227,6 +235,10 @@ annotations_df = client.spans.get_span_annotations_dataframe(
 Add annotations to spans for evaluation, user feedback, and custom annotation workflows:
 
 ```python
+from phoenix.client import Client
+
+client = Client()
+
 # Add a single annotation with human feedback
 client.annotations.add_span_annotation(
     span_id="span-123",
@@ -260,6 +272,10 @@ client.annotations.log_span_annotations(span_annotations=annotations)
 Manage Phoenix projects that organize your AI application data:
 
 ```python
+from phoenix.client import Client
+
+client = Client()
+
 # List all projects
 projects = client.projects.list()
 for project in projects:
@@ -283,7 +299,7 @@ print(f"Created project with ID: {new_project['id']}")
 
 Join our community to connect with thousands of AI builders:
 
-- 🌍 Join our [Slack community](https://arize-ai.slack.com/join/shared_invite/zt-11t1vbu4x-xkBIHmOREQnYnYDH1GDfCg).
+- 🌍 Join our [Slack community](https://join.slack.com/t/arize-ai/shared_invite/zt-3r07iavnk-ammtATWSlF0pSrd1DsMW7g).
 - 💡 Ask questions and provide feedback in the _#phoenix-support_ channel.
 - 🌟 Leave a star on our [GitHub](https://github.com/Arize-ai/phoenix).
 - 🐞 Report bugs with [GitHub Issues](https://github.com/Arize-ai/phoenix/issues).

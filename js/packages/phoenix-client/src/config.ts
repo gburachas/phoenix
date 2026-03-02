@@ -1,9 +1,8 @@
+import type { EnvironmentConfig } from "@arizeai/phoenix-config";
 import {
   DEFAULT_PHOENIX_BASE_URL,
-  EnvironmentConfig,
   getEnvironmentConfig,
 } from "@arizeai/phoenix-config";
-
 import type { ClientOptions } from "openapi-fetch";
 
 /**

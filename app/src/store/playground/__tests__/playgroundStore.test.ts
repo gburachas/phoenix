@@ -1,12 +1,19 @@
+import type { InvocationParameter } from "@phoenix/components/playground/model/InvocationParametersFormFields";
 import {
   DEFAULT_MODEL_NAME,
   DEFAULT_MODEL_PROVIDER,
 } from "@phoenix/constants/generativeConstants";
+import {
+  RESPONSE_FORMAT_PARAM_CANONICAL_NAME,
+  RESPONSE_FORMAT_PARAM_NAME,
+} from "@phoenix/pages/playground/constants";
 
 import {
   _resetInstanceId,
   createNormalizedPlaygroundInstance,
+  createOpenAIResponseFormat,
   createPlaygroundStore,
+  DEFAULT_TEMPLATE_VARIABLES_PATH,
   getInitialInstances,
 } from "../playgroundStore";
 import type { InitialPlaygroundState } from "../types";
@@ -37,6 +44,7 @@ describe("getInitialInstances", () => {
 
     // simulated props that would be passed to the PlaygroundProvider
     const initialProps: InitialPlaygroundState = {
+      datasetId: null,
       instances: [newInstance],
       modelConfigByProvider: {},
     };
@@ -58,6 +66,7 @@ describe("getInitialInstances", () => {
   it("should create a new default instance if no instances exist in initialProps and there are no saved modelConfigs", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const { instances } = getInitialInstances(initialProps);
 
@@ -69,6 +78,7 @@ describe("getInitialInstances", () => {
 
   it("should use saved model config if available", () => {
     const initialProps: InitialPlaygroundState = {
+      datasetId: null,
       modelConfigByProvider: {
         OPENAI: {
           modelName: "test-model",
@@ -87,6 +97,7 @@ describe("getInitialInstances", () => {
 
   it("should use default model provider config if available", () => {
     const initialProps: InitialPlaygroundState = {
+      datasetId: null,
       modelConfigByProvider: {
         OPENAI: {
           modelName: "test-model-openai",
@@ -110,6 +121,7 @@ describe("getInitialInstances", () => {
 
   it("should use any saved config if available if the default provider config is not", () => {
     const initialProps: InitialPlaygroundState = {
+      datasetId: null,
       modelConfigByProvider: {
         ANTHROPIC: {
           modelName: "test-model-anthropic",
@@ -131,6 +143,7 @@ describe("setSelectedRepetitionNumber", () => {
   it("should set selected repetition number for an instance", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().addInstance();
@@ -153,6 +166,7 @@ describe("appendRepetitionOutput", () => {
   it("should append content to null and existing output and preserve other repetitions", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().setRepetitions(2);
@@ -179,6 +193,7 @@ describe("setRepetitionError", () => {
   it("should set repetition error and preserve other repetition properties", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().runPlaygroundInstances();
@@ -220,6 +235,7 @@ describe("setRepetitionStatus", () => {
   it("should set repetition status", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().runPlaygroundInstances();
@@ -248,6 +264,7 @@ describe("setRepetitionSpanId", () => {
   it("should set repetition span id", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().runPlaygroundInstances();
@@ -268,6 +285,7 @@ describe("addRepetitionPartialToolCall", () => {
   it("should add new tool call and concatenate arguments to existing tool call", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().runPlaygroundInstances();
@@ -346,6 +364,7 @@ describe("setRepetitionToolCalls", () => {
   it("should set the tool calls for a repetition and replace existing tool calls if present", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().runPlaygroundInstances();
@@ -418,6 +437,7 @@ describe("clearRepetitions", () => {
   it("should clear repetitions for one instance without affecting other instances", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().addInstance();
@@ -461,6 +481,7 @@ describe("runPlaygroundInstances", () => {
   it("should create repetitions, set activeRunId, initialize status, and clear previous data", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().addInstance();
@@ -535,6 +556,7 @@ describe("markPlaygroundInstanceComplete", () => {
   it("should mark a specific instance as complete without affecting other instances", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().addInstance();
@@ -614,6 +636,7 @@ describe("cancelPlaygroundInstances", () => {
   it("should cancel all instances and set all repetitions to finished", () => {
     const initialProps: InitialPlaygroundState = {
       modelConfigByProvider: {},
+      datasetId: null,
     };
     const store = createPlaygroundStore(initialProps);
     store.getState().addInstance();
@@ -684,5 +707,307 @@ describe("cancelPlaygroundInstances", () => {
         )
       ),
     });
+  });
+});
+
+describe("updateModelSupportedInvocationParameters", () => {
+  it("should preserve response format when updating supported invocation parameters", () => {
+    // This test captures the bug where response format disappears when
+    // the model changes (e.g., GPT-4o to GPT-4.1) because it's not marked as dirty.
+    const initialProps: InitialPlaygroundState = {
+      modelConfigByProvider: {},
+      datasetId: null,
+    };
+    const store = createPlaygroundStore(initialProps);
+    const instanceId = store.getState().instances[0].id;
+
+    // Add a response format via upsertInvocationParameterInput
+    // Note: This mimics how the UI adds response format - WITHOUT dirty: true
+    const responseFormatValue = createOpenAIResponseFormat();
+    store.getState().upsertInvocationParameterInput({
+      instanceId,
+      invocationParameterInput: {
+        invocationName: RESPONSE_FORMAT_PARAM_NAME,
+        canonicalName: RESPONSE_FORMAT_PARAM_CANONICAL_NAME,
+        valueJson: responseFormatValue,
+      },
+    });
+
+    // Verify response format was added
+    let responseFormat = store
+      .getState()
+      .instances[0].model.invocationParameters.find(
+        (p) =>
+          p.canonicalName === RESPONSE_FORMAT_PARAM_CANONICAL_NAME ||
+          p.invocationName === RESPONSE_FORMAT_PARAM_NAME
+      );
+    expect(responseFormat).toBeDefined();
+    expect(responseFormat?.valueJson).toEqual(responseFormatValue);
+
+    // Create some mock supported invocation parameters that include response format
+    const supportedInvocationParameters: InvocationParameter[] = [
+      {
+        __typename: "FloatInvocationParameter",
+        invocationName: "temperature",
+        canonicalName: "TEMPERATURE",
+        required: false,
+        floatDefaultValue: 1.0,
+        invocationInputField: "value_float",
+      },
+      {
+        __typename: "JSONInvocationParameter",
+        invocationName: RESPONSE_FORMAT_PARAM_NAME,
+        canonicalName: RESPONSE_FORMAT_PARAM_CANONICAL_NAME,
+        required: false,
+        invocationInputField: "value_json",
+      },
+    ];
+
+    // Simulate what happens when ModelSupportedParamsFetcher triggers after a model change
+    store.getState().updateModelSupportedInvocationParameters({
+      instanceId,
+      supportedInvocationParameters,
+      modelConfigByProvider: {},
+    });
+
+    // Assert response format is still present after the update
+    responseFormat = store
+      .getState()
+      .instances[0].model.invocationParameters.find(
+        (p) =>
+          p.canonicalName === RESPONSE_FORMAT_PARAM_CANONICAL_NAME ||
+          p.invocationName === RESPONSE_FORMAT_PARAM_NAME
+      );
+    expect(responseFormat).toBeDefined();
+    expect(responseFormat?.valueJson).toEqual(responseFormatValue);
+  });
+
+  it("should preserve response format when copied via addInstance (Compare feature)", () => {
+    // This test captures the bug where response format disappears when
+    // clicking "Compare" because the new instance triggers updateModelSupportedInvocationParameters.
+    const initialProps: InitialPlaygroundState = {
+      modelConfigByProvider: {},
+      datasetId: null,
+    };
+    const store = createPlaygroundStore(initialProps);
+    const firstInstanceId = store.getState().instances[0].id;
+
+    // Add a response format to the first instance
+    const responseFormatValue = createOpenAIResponseFormat();
+    store.getState().upsertInvocationParameterInput({
+      instanceId: firstInstanceId,
+      invocationParameterInput: {
+        invocationName: RESPONSE_FORMAT_PARAM_NAME,
+        canonicalName: RESPONSE_FORMAT_PARAM_CANONICAL_NAME,
+        valueJson: responseFormatValue,
+      },
+    });
+
+    // Add a second instance (simulates clicking "Compare")
+    store.getState().addInstance();
+    const secondInstanceId = store.getState().instances[1].id;
+
+    // Verify the response format was copied to the second instance
+    let responseFormat = store
+      .getState()
+      .instances[1].model.invocationParameters.find(
+        (p) =>
+          p.canonicalName === RESPONSE_FORMAT_PARAM_CANONICAL_NAME ||
+          p.invocationName === RESPONSE_FORMAT_PARAM_NAME
+      );
+    expect(responseFormat).toBeDefined();
+    expect(responseFormat?.valueJson).toEqual(responseFormatValue);
+
+    // Simulate what happens when ModelSupportedParamsFetcher triggers for the new instance
+    const supportedInvocationParameters: InvocationParameter[] = [
+      {
+        __typename: "FloatInvocationParameter",
+        invocationName: "temperature",
+        canonicalName: "TEMPERATURE",
+        required: false,
+        floatDefaultValue: 1.0,
+        invocationInputField: "value_float",
+      },
+      {
+        __typename: "JSONInvocationParameter",
+        invocationName: RESPONSE_FORMAT_PARAM_NAME,
+        canonicalName: RESPONSE_FORMAT_PARAM_CANONICAL_NAME,
+        required: false,
+        invocationInputField: "value_json",
+      },
+    ];
+
+    store.getState().updateModelSupportedInvocationParameters({
+      instanceId: secondInstanceId,
+      supportedInvocationParameters,
+      modelConfigByProvider: {},
+    });
+
+    // Assert response format is still present after the update
+    responseFormat = store
+      .getState()
+      .instances[1].model.invocationParameters.find(
+        (p) =>
+          p.canonicalName === RESPONSE_FORMAT_PARAM_CANONICAL_NAME ||
+          p.invocationName === RESPONSE_FORMAT_PARAM_NAME
+      );
+    expect(responseFormat).toBeDefined();
+    expect(responseFormat?.valueJson).toEqual(responseFormatValue);
+  });
+
+  it("should not create duplicate response format when dirty: true is set", () => {
+    // This test verifies that when response format has dirty: true (set when users
+    // modify it via the form), it doesn't get duplicated in the final parameters.
+    // The dirty parameter flows through mergedInvocationParameters, and then the
+    // code should NOT append it again.
+    const initialProps: InitialPlaygroundState = {
+      modelConfigByProvider: {},
+      datasetId: null,
+    };
+    const store = createPlaygroundStore(initialProps);
+    const instanceId = store.getState().instances[0].id;
+
+    // Add a response format WITH dirty: true (as if user modified it via form)
+    const responseFormatValue = createOpenAIResponseFormat();
+    store.getState().upsertInvocationParameterInput({
+      instanceId,
+      invocationParameterInput: {
+        invocationName: RESPONSE_FORMAT_PARAM_NAME,
+        canonicalName: RESPONSE_FORMAT_PARAM_CANONICAL_NAME,
+        valueJson: responseFormatValue,
+        dirty: true, // User modified via form
+      },
+    });
+
+    // Verify response format was added
+    let params = store.getState().instances[0].model.invocationParameters;
+    let responseFormats = params.filter(
+      (p) =>
+        p.canonicalName === RESPONSE_FORMAT_PARAM_CANONICAL_NAME ||
+        p.invocationName === RESPONSE_FORMAT_PARAM_NAME
+    );
+    expect(responseFormats).toHaveLength(1);
+
+    // Create supported invocation parameters that include response format
+    const supportedInvocationParameters: InvocationParameter[] = [
+      {
+        __typename: "FloatInvocationParameter",
+        invocationName: "temperature",
+        canonicalName: "TEMPERATURE",
+        required: false,
+        floatDefaultValue: 1.0,
+        invocationInputField: "value_float",
+      },
+      {
+        __typename: "JSONInvocationParameter",
+        invocationName: RESPONSE_FORMAT_PARAM_NAME,
+        canonicalName: RESPONSE_FORMAT_PARAM_CANONICAL_NAME,
+        required: false,
+        invocationInputField: "value_json",
+      },
+    ];
+
+    // Simulate what happens when ModelSupportedParamsFetcher triggers after a model change
+    store.getState().updateModelSupportedInvocationParameters({
+      instanceId,
+      supportedInvocationParameters,
+      modelConfigByProvider: {},
+    });
+
+    // Assert there is exactly ONE response format parameter (no duplicates)
+    params = store.getState().instances[0].model.invocationParameters;
+    responseFormats = params.filter(
+      (p) =>
+        p.canonicalName === RESPONSE_FORMAT_PARAM_CANONICAL_NAME ||
+        p.invocationName === RESPONSE_FORMAT_PARAM_NAME
+    );
+    expect(responseFormats).toHaveLength(1);
+    expect(responseFormats[0]?.valueJson).toEqual(responseFormatValue);
+  });
+});
+
+describe("dataset-scoped state", () => {
+  beforeEach(() => {
+    _resetInstanceId();
+  });
+
+  it("should initialize templateVariablesPath when store is created with a dataset ID", () => {
+    const datasetId = "test-dataset-123";
+    const initialProps: InitialPlaygroundState = {
+      modelConfigByProvider: {},
+      datasetId,
+    };
+    const store = createPlaygroundStore(initialProps);
+
+    // verify the dataset ID is set
+    expect(store.getState().datasetId).toBe(datasetId);
+
+    // verify templateVariablesPath is initialized to the default value
+    expect(store.getState().stateByDatasetId[datasetId]).toEqual({
+      templateVariablesPath: DEFAULT_TEMPLATE_VARIABLES_PATH,
+    });
+  });
+
+  it("should initialize templateVariablesPath when dataset ID is changed to a new value", () => {
+    const initialProps: InitialPlaygroundState = {
+      modelConfigByProvider: {},
+      datasetId: null,
+    };
+    const store = createPlaygroundStore(initialProps);
+
+    // verify initial state has no dataset
+    expect(store.getState().datasetId).toBe(null);
+    expect(store.getState().stateByDatasetId).toEqual({});
+
+    // change to a new dataset
+    const newDatasetId = "new-dataset-456";
+    store.getState().setDatasetId(newDatasetId);
+
+    // verify the dataset ID is updated
+    expect(store.getState().datasetId).toBe(newDatasetId);
+
+    // verify templateVariablesPath is initialized to the default value for the new dataset
+    expect(store.getState().stateByDatasetId[newDatasetId]).toEqual({
+      templateVariablesPath: DEFAULT_TEMPLATE_VARIABLES_PATH,
+    });
+  });
+
+  it("should not re-initialize when switching back to a previously visited dataset", () => {
+    const datasetId1 = "dataset-1";
+    const datasetId2 = "dataset-2";
+    const customPath = "custom.path";
+
+    const initialProps: InitialPlaygroundState = {
+      modelConfigByProvider: {},
+      datasetId: datasetId1,
+    };
+    const store = createPlaygroundStore(initialProps);
+
+    // set a custom template variables path for dataset 1
+    store.getState().setTemplateVariablesPath({
+      templateVariablesPath: customPath,
+      datasetId: datasetId1,
+    });
+
+    // verify the custom path is set
+    expect(
+      store.getState().stateByDatasetId[datasetId1].templateVariablesPath
+    ).toBe(customPath);
+
+    // switch to dataset 2
+    store.getState().setDatasetId(datasetId2);
+    expect(store.getState().datasetId).toBe(datasetId2);
+    expect(store.getState().stateByDatasetId[datasetId2]).toEqual({
+      templateVariablesPath: DEFAULT_TEMPLATE_VARIABLES_PATH,
+    });
+
+    // switch back to dataset 1
+    store.getState().setDatasetId(datasetId1);
+    expect(store.getState().datasetId).toBe(datasetId1);
+
+    // verify the custom path is still preserved
+    expect(
+      store.getState().stateByDatasetId[datasetId1].templateVariablesPath
+    ).toBe(customPath);
   });
 });

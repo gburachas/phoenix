@@ -1,3 +1,11 @@
+import { css } from "@emotion/react";
+import type { ColumnDef, SortingState, Table } from "@tanstack/react-table";
+import {
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import React, {
   startTransition,
   useCallback,
@@ -8,16 +16,6 @@ import React, {
 } from "react";
 import { graphql, usePaginationFragment } from "react-relay";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  SortingState,
-  Table,
-  useReactTable,
-} from "@tanstack/react-table";
-import { css } from "@emotion/react";
 
 import {
   Flex,
@@ -53,11 +51,11 @@ import { SummaryValueLabels } from "@phoenix/pages/project/AnnotationSummary";
 import { MetadataTableCell } from "@phoenix/pages/project/MetadataTableCell";
 import { useTracePagination } from "@phoenix/pages/trace/TracePaginationContext";
 
-import {
+import type {
   SpansTable_spans$key,
   SpanStatusCode,
 } from "./__generated__/SpansTable_spans.graphql";
-import { SpansTableSpansQuery } from "./__generated__/SpansTableSpansQuery.graphql";
+import type { SpansTableSpansQuery } from "./__generated__/SpansTableSpansQuery.graphql";
 import { DEFAULT_PAGE_SIZE } from "./constants";
 import { ProjectFilterConfigButton } from "./ProjectFilterConfigButton";
 import { ProjectTableEmpty } from "./ProjectTableEmpty";
@@ -95,6 +93,7 @@ const TableBody = <T extends { trace: { traceId: string }; id: string }>({
   onLoadNext: () => void;
   isLoadingNext: boolean;
 }) => {
+  "use no memo";
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { traceId } = useParams();
@@ -173,10 +172,7 @@ export function SpansTable(props: SpansTableProps) {
           after: { type: "String", defaultValue: null }
           first: { type: "Int", defaultValue: 30 }
           rootSpansOnly: { type: "Boolean", defaultValue: true }
-          sort: {
-            type: "SpanSort"
-            defaultValue: { col: startTime, dir: desc }
-          }
+          sort: { type: "SpanSort", defaultValue: { col: startTime, dir: desc } }
           filterCondition: { type: "String", defaultValue: null }
         ) {
           name
@@ -635,7 +631,7 @@ export function SpansTable(props: SpansTableProps) {
         paddingBottom="size-100"
         paddingStart="size-200"
         paddingEnd="size-200"
-        borderBottomColor="grey-300"
+        borderBottomColor="gray-300"
         borderBottomWidth="thin"
         flex="none"
       >

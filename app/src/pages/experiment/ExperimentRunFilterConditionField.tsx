@@ -1,3 +1,13 @@
+import type {
+  CompletionContext,
+  CompletionResult,
+} from "@codemirror/autocomplete";
+import { autocompletion } from "@codemirror/autocomplete";
+import { python } from "@codemirror/lang-python";
+import { css } from "@emotion/react";
+import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
+import type { EditorView } from "@uiw/react-codemirror";
+import CodeMirror, { keymap } from "@uiw/react-codemirror";
 import {
   startTransition,
   useDeferredValue,
@@ -6,16 +16,7 @@ import {
   useState,
 } from "react";
 import { useSearchParams } from "react-router";
-import {
-  autocompletion,
-  CompletionContext,
-  CompletionResult,
-} from "@codemirror/autocomplete";
-import { python } from "@codemirror/lang-python";
-import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
-import CodeMirror, { EditorView, keymap } from "@uiw/react-codemirror";
 import { fetchQuery, graphql } from "relay-runtime";
-import { css } from "@emotion/react";
 
 import {
   Button,
@@ -36,13 +37,13 @@ import { fieldBaseCSS } from "@phoenix/components/field/styles";
 import { useTheme } from "@phoenix/contexts";
 import environment from "@phoenix/RelayEnvironment";
 
-import { ExperimentRunFilterConditionFieldValidationQuery } from "./__generated__/ExperimentRunFilterConditionFieldValidationQuery.graphql";
+import type { ExperimentRunFilterConditionFieldValidationQuery } from "./__generated__/ExperimentRunFilterConditionFieldValidationQuery.graphql";
 import { useExperimentRunFilterCondition } from "./ExperimentRunFilterConditionContext";
 
 const codeMirrorCSS = css`
   flex: 1 1 auto;
   .cm-content {
-    padding: var(--ac-global-dimension-static-size-100) 0;
+    padding: var(--global-dimension-static-size-100) 0;
   }
   .cm-editor {
     background-color: transparent !important;
@@ -51,29 +52,29 @@ const codeMirrorCSS = css`
     outline: none;
   }
   .cm-selectionLayer .cm-selectionBackground {
-    background: var(--ac-global-color-cyan-400) !important;
+    background: var(--global-color-cyan-400) !important;
   }
 `;
 
 const fieldCSS = css`
-  border-width: var(--ac-global-border-size-thin);
+  border-width: var(--global-border-size-thin);
   border-style: solid;
-  border-color: var(--ac-global-input-field-border-color);
-  border-radius: var(--ac-global-rounding-small);
-  background-color: var(--ac-global-input-field-background-color);
+  border-color: var(--global-input-field-border-color);
+  border-radius: var(--global-rounding-small);
+  background-color: var(--global-input-field-background-color);
   transition: all 0.2s ease-in-out;
   overflow-x: hidden;
   &:hover,
   &[data-is-focused="true"] {
-    border-color: var(--ac-global-input-field-border-color-active);
+    border-color: var(--global-input-field-border-color-active);
   }
   &[data-is-invalid="true"] {
-    border-color: var(--ac-global-color-danger);
+    border-color: var(--global-color-danger);
   }
   box-sizing: border-box;
   .search-icon {
-    margin-left: var(--ac-global-dimension-static-size-100);
-    margin-top: var(--ac-global-dimension-static-size-100);
+    margin-left: var(--global-dimension-static-size-100);
+    margin-top: var(--global-dimension-static-size-100);
   }
 `;
 
@@ -83,7 +84,7 @@ function filterConditionCompletions(
   const word = context.matchBefore(/\w*/);
   if (!word) return null;
 
-  if (word.from == word.to && !context.explicit) return null;
+  if (word.from === word.to && !context.explicit) return null;
 
   return {
     from: word.from,
@@ -299,8 +300,8 @@ export function ExperimentRunFilterConditionField(
         />
         <button
           css={css`
-            margin-right: var(--ac-global-dimension-static-size-100);
-            color: var(--ac-global-text-color-700);
+            margin-right: var(--global-dimension-static-size-100);
+            color: var(--global-text-color-700);
             visibility: ${hasCondition ? "visible" : "hidden"};
           `}
           onClick={() => setFilterCondition("")}
@@ -311,12 +312,12 @@ export function ExperimentRunFilterConditionField(
         <DialogTrigger>
           <IconButton
             css={css`
-              color: var(--ac-global-text-color-700);
-              border-left: 1px solid var(--ac-global-input-field-border-color);
+              color: var(--global-text-color-700);
+              border-left: 1px solid var(--global-input-field-border-color);
               border-bottom: 0;
               border-top: 0;
-              padding-left: var(--ac-global-dimension-static-size-100);
-              padding-right: var(--ac-global-dimension-static-size-100);
+              padding-left: var(--global-dimension-static-size-100);
+              padding-right: var(--global-dimension-static-size-100);
               border-radius: 0;
               height: 36px !important;
             `}
@@ -333,7 +334,7 @@ export function ExperimentRunFilterConditionField(
       </Flex>
       <TooltipTrigger isOpen={hasError && isFocused}>
         <Tooltip placement="bottom" triggerRef={filterConditionFieldRef}>
-          {errorMessage != "" ? (
+          {errorMessage !== "" ? (
             <Text color="danger">{errorMessage}</Text>
           ) : (
             <Text color="success">Valid Expression</Text>

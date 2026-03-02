@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import re
 import ssl
@@ -8,7 +9,8 @@ import string
 import sys
 from abc import ABC, abstractmethod
 from base64 import b64decode, urlsafe_b64encode
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import AsyncIterator, Iterable, Iterator, Mapping
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import AbstractContextManager, contextmanager, nullcontext
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
@@ -245,9 +247,6 @@ class _User:
 
     def delete_api_key(self, app: _AppInfo, api_key: _ApiKey, /) -> None:
         return _delete_api_key(app, api_key, self)
-
-    def export_embeddings(self, app: _AppInfo, filename: str) -> None:
-        _export_embeddings(app, self, filename=filename)
 
     def initiate_password_reset(
         self,
@@ -1144,13 +1143,6 @@ def _reset_password(
 ) -> None:
     json_ = dict(token=token, password=password)
     resp = _httpx_client(app).post("auth/password-reset", json=json_)
-    resp.raise_for_status()
-
-
-def _export_embeddings(
-    app: _AppInfo, auth: Optional[_SecurityArtifact] = None, /, *, filename: str
-) -> None:
-    resp = _httpx_client(app, auth).get("/exports", params={"filename": filename})
     resp.raise_for_status()
 
 
@@ -2100,66 +2092,61 @@ def _get_existing_spans(
     span_ids: Iterable[_SpanId],
 ) -> set[_ExistingSpan]:
     ids = list(span_ids)
-    n = len(ids)
     query = """
-      query ($filterCondition: String, $first: Int) {
-        projects {
-          edges {
-            node {
+      query ($spanId: String!) {
+        getSpanByOtelId(spanId: $spanId) {
+          id
+          spanId
+          trace {
+            id
+            traceId
+            project {
               id
               name
-              spans (filterCondition: $filterCondition, first: $first) {
-                edges {
-                  node {
-                    id
-                    spanId
-                    trace {
-                      id
-                      traceId
-                      session {
-                        id
-                        sessionId
-                      }
-                    }
-                  }
-                }
-              }
+            }
+            session {
+              id
+              sessionId
             }
           }
         }
       }
     """
-    res, _ = _gql(
-        app,
-        app.admin_secret,
-        query=query,
-        variables={"filterCondition": f"span_id in {ids}", "first": n},
-    )
-    return {
-        _ExistingSpan(
-            id=GlobalID.from_id(span["node"]["id"]),
-            span_id=span["node"]["spanId"],
+
+    def fetch_span(span_id: _SpanId) -> _ExistingSpan | None:
+        res, _ = _gql(
+            app,
+            app.admin_secret,
+            query=query,
+            variables={"spanId": span_id},
+        )
+        span = res["data"]["getSpanByOtelId"]
+        if span is None:
+            return None
+        return _ExistingSpan(
+            id=GlobalID.from_id(span["id"]),
+            span_id=span["spanId"],
             trace=_ExistingTrace(
-                id=GlobalID.from_id(span["node"]["trace"]["id"]),
-                trace_id=span["node"]["trace"]["traceId"],
+                id=GlobalID.from_id(span["trace"]["id"]),
+                trace_id=span["trace"]["traceId"],
                 project=_ExistingProject(
-                    id=GlobalID.from_id(project["node"]["id"]),
-                    name=project["node"]["name"],
+                    id=GlobalID.from_id(span["trace"]["project"]["id"]),
+                    name=span["trace"]["project"]["name"],
                 ),
                 session=(
                     _ExistingSession(
-                        id=GlobalID.from_id(span["node"]["trace"]["session"]["id"]),
-                        session_id=span["node"]["trace"]["session"]["sessionId"],
+                        id=GlobalID.from_id(span["trace"]["session"]["id"]),
+                        session_id=span["trace"]["session"]["sessionId"],
                     )
-                    if span["node"]["trace"]["session"] is not None
+                    if span["trace"]["session"] is not None
                     else None
                 ),
             ),
         )
-        for project in res["data"]["projects"]["edges"]
-        for span in project["node"]["spans"]["edges"]
-        if span["node"]["spanId"] in ids
-    }
+
+    with ThreadPoolExecutor() as executor:
+        results = executor.map(fetch_span, ids)
+        return {span for span in results if span is not None}
 
 
 async def _until_spans_exist(app: _AppInfo, span_ids: Iterable[_SpanId]) -> None:
@@ -2213,6 +2200,9 @@ _COMMON_RESOURCE_ENDPOINTS = (
     (422, "GET", "v1/projects/fake-id-{}/session_annotations"),
     # Spans
     (422, "GET", "v1/spans"),
+    # Sessions
+    (404, "GET", "v1/projects/fake-id-{}/sessions"),
+    (404, "GET", "v1/sessions/fake-id-{}"),
 )
 
 # Admin-only endpoints (user management, project CRUD)
@@ -2336,3 +2326,120 @@ def _ensure_endpoint_coverage_is_exhaustive() -> None:
 
 
 _ensure_endpoint_coverage_is_exhaustive()
+
+
+# =============================================================================
+# Apollo Multipart Subscription Helpers
+# =============================================================================
+
+
+async def _parse_apollo_multipart_response(
+    response: httpx.Response,
+) -> AsyncIterator[dict[str, Any]]:
+    """Parse Apollo multipart subscription response.
+
+    The Apollo multipart subscription protocol streams GraphQL subscription
+    results over HTTP using multipart/mixed content type.
+
+    The response format is:
+    --boundary
+    Content-Type: application/json
+
+    {"data": {...}}
+    --boundary
+    ...
+    --boundary--
+
+    Usage:
+        async with client.stream(
+            "POST",
+            "/graphql",
+            json={"query": subscription_query, "variables": variables},
+            headers={
+                "Accept": "multipart/mixed; deferSpec=20220824, application/json",
+                "Content-Type": "application/json",
+            },
+        ) as response:
+            async for payload in _parse_apollo_multipart_response(response):
+                # payload is a dict like {"data": {...}}
+                ...
+    """
+    content_type = response.headers.get("content-type", "")
+
+    # Handle regular JSON response (non-streaming)
+    if "application/json" in content_type and "multipart" not in content_type:
+        data: dict[str, Any] = json.loads(await response.aread())
+        yield data
+        return
+
+    # Handle multipart response
+    buffer = b""
+    boundary: bytes | None = None
+
+    # Extract boundary from content-type header
+    if "boundary=" in content_type:
+        boundary = content_type.split("boundary=")[1].split(";")[0].strip().encode()
+
+    async for chunk in response.aiter_bytes():
+        buffer += chunk
+
+        # Try to extract complete parts
+        while True:
+            if boundary is None:
+                # Try to detect boundary from first line
+                if b"\r\n" in buffer:
+                    first_line = buffer.split(b"\r\n")[0]
+                    if first_line.startswith(b"--"):
+                        boundary = first_line[2:]
+
+            if boundary is None:
+                break
+
+            # Look for complete parts
+            delimiter = b"--" + boundary
+            end_delimiter = delimiter + b"--"
+
+            if end_delimiter in buffer:
+                # Final part - process remaining
+                parts = buffer.split(delimiter)
+                for part in parts[1:]:  # Skip empty first part
+                    if part.strip() and not part.startswith(b"--"):
+                        json_data = _extract_json_from_multipart_part(part)
+                        if json_data:
+                            yield json_data
+                return
+
+            # Check if we have a complete part
+            parts = buffer.split(delimiter)
+            if len(parts) > 2:
+                # We have at least one complete part
+                for part in parts[1:-1]:  # Skip first empty and last incomplete
+                    json_data = _extract_json_from_multipart_part(part)
+                    if json_data:
+                        yield json_data
+                buffer = delimiter + parts[-1]
+            else:
+                break
+
+
+def _extract_json_from_multipart_part(part: bytes) -> dict[str, Any] | None:
+    """Extract JSON from a multipart part.
+
+    Skips HTTP headers in the part and parses the JSON body.
+    """
+    # Skip headers to find JSON body
+    if b"\r\n\r\n" in part:
+        _, body = part.split(b"\r\n\r\n", 1)
+    elif b"\n\n" in part:
+        _, body = part.split(b"\n\n", 1)
+    else:
+        body = part
+
+    body = body.strip()
+    if not body or body == b"--":
+        return None
+
+    try:
+        return cast(dict[str, Any], json.loads(body.decode("utf-8")))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None

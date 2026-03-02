@@ -1,11 +1,11 @@
+import type { Meta, StoryFn } from "@storybook/react";
 import { useState } from "react";
-import { Meta, StoryFn } from "@storybook/react";
 
-import {
+import type {
   OpenTimeRangeWithKey,
-  TimeRangeSelector,
   TimeRangeSelectorProps,
 } from "@phoenix/components";
+import { TimeRangeSelector } from "@phoenix/components";
 import { PreferencesProvider } from "@phoenix/contexts";
 import { createTimeRangeFormatter } from "@phoenix/utils/timeFormatUtils";
 

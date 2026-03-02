@@ -1,7 +1,7 @@
+import { css } from "@emotion/react";
 import { useCallback } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { graphql, useLazyLoadQuery, useMutation } from "react-relay";
-import { css } from "@emotion/react";
 
 import {
   Button,
@@ -17,8 +17,8 @@ import {
   View,
 } from "@phoenix/components";
 import { useNotifyError, useNotifySuccess } from "@phoenix/contexts";
-import { GlobalRetentionPolicyCardMutation } from "@phoenix/pages/settings/__generated__/GlobalRetentionPolicyCardMutation.graphql";
-import { GlobalRetentionPolicyCardQuery } from "@phoenix/pages/settings/__generated__/GlobalRetentionPolicyCardQuery.graphql";
+import type { GlobalRetentionPolicyCardMutation } from "@phoenix/pages/settings/__generated__/GlobalRetentionPolicyCardMutation.graphql";
+import type { GlobalRetentionPolicyCardQuery } from "@phoenix/pages/settings/__generated__/GlobalRetentionPolicyCardQuery.graphql";
 
 export const GlobalRetentionPolicyCard = () => {
   const notifySuccess = useNotifySuccess();

@@ -1,5 +1,44 @@
 # Changelog
 
+## [1.29.1](https://github.com/Arize-ai/phoenix/compare/arize-phoenix-client-v1.29.0...arize-phoenix-client-v1.29.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* add parameter for deleting project after deleting experiment ([#11569](https://github.com/Arize-ai/phoenix/issues/11569)) ([57b7576](https://github.com/Arize-ai/phoenix/commit/57b7576408bc21b46ea03009f741c9ebb0a55ca1))
+* Update README snippets for JS and Python packages ([#11479](https://github.com/Arize-ai/phoenix/issues/11479)) ([76de803](https://github.com/Arize-ai/phoenix/commit/76de8039d86e81cf3a1749aef3da0128977aa4e7))
+* update slack invitation link ([#11612](https://github.com/Arize-ai/phoenix/issues/11612)) ([316833e](https://github.com/Arize-ai/phoenix/commit/316833e629baf1b9185d7c712d8816b927d69a96))
+
+## [1.29.0](https://github.com/Arize-ai/phoenix/compare/arize-phoenix-client-v1.28.1...arize-phoenix-client-v1.29.0) (2026-02-13)
+
+
+### Features
+
+* dataset evaluators ([5f47820](https://github.com/Arize-ai/phoenix/commit/5f4782012537d533570184a6ce1e005e9945d8bf))
+* dataset evaluators ([cf0e09a](https://github.com/Arize-ai/phoenix/commit/cf0e09a82a5e44c9df26619c6372d2474a289b49))
+
+## [1.28.1](https://github.com/Arize-ai/phoenix/compare/arize-phoenix-client-v1.28.0...arize-phoenix-client-v1.28.1) (2026-02-09)
+
+
+### Bug Fixes
+
+* add timezone validation to log_spans_dataframe ([#11283](https://github.com/Arize-ai/phoenix/issues/11283)) ([45a07bb](https://github.com/Arize-ai/phoenix/commit/45a07bb37c81dfd993d36172adc20ecbf01f9937))
+
+## [1.28.0](https://github.com/Arize-ai/phoenix/compare/arize-phoenix-client-v1.27.2...arize-phoenix-client-v1.28.0) (2026-01-21)
+
+
+### Features
+
+* add FaithfulnessEvaluator and deprecate HallucinationEvaluator ([#10962](https://github.com/Arize-ai/phoenix/issues/10962)) ([fc8b1b5](https://github.com/Arize-ai/phoenix/commit/fc8b1b5eaeadbd4e23ed684f0f2286f5a55d00a2))
+* add span_id_key to link dataset examples to traces ([#10942](https://github.com/Arize-ai/phoenix/issues/10942)) ([01eb1fb](https://github.com/Arize-ai/phoenix/commit/01eb1fbaa7ac029f044842d683f35c3fb21da627))
+
+## [1.27.2](https://github.com/Arize-ai/phoenix/compare/arize-phoenix-client-v1.27.1...arize-phoenix-client-v1.27.2) (2026-01-08)
+
+
+### Bug Fixes
+
+* use context.span_id column when DataFrame has integer index ([#10861](https://github.com/Arize-ai/phoenix/issues/10861)) ([607558d](https://github.com/Arize-ai/phoenix/commit/607558dff70500eee53d00f369936d4f5dce2db7))
+
 ## [1.27.1](https://github.com/Arize-ai/phoenix/compare/arize-phoenix-client-v1.27.0...arize-phoenix-client-v1.27.1) (2025-12-16)
 
 
@@ -334,7 +373,7 @@
 ### Bug Fixes
 
 * **annotations:** ensure response types for annotation configs are nested under a data key ([#7443](https://github.com/Arize-ai/phoenix/issues/7443)) ([145dba3](https://github.com/Arize-ai/phoenix/commit/145dba3978a2ae542a5b5d0e56098e3b0f019a6c))
-* formatting issues incase of escaped characters ([#7407](https://github.com/Arize-ai/phoenix/issues/7407)) ([3c0ab8b](https://github.com/Arize-ai/phoenix/commit/3c0ab8b33fdb3d97639fb5863643c3c32fe2d3af))
+* formatting issues in case of escaped characters ([#7407](https://github.com/Arize-ai/phoenix/issues/7407)) ([3c0ab8b](https://github.com/Arize-ai/phoenix/commit/3c0ab8b33fdb3d97639fb5863643c3c32fe2d3af))
 * Improve client semantics 2 ([#7484](https://github.com/Arize-ai/phoenix/issues/7484)) ([11656a1](https://github.com/Arize-ai/phoenix/commit/11656a1aad9b31434ee7f97715fc3d8a9ebe6228))
 
 ## [1.4.0](https://github.com/Arize-ai/phoenix/compare/arize-phoenix-client-v1.3.0...arize-phoenix-client-v1.4.0) (2025-05-02)

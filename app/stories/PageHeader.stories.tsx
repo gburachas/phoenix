@@ -1,12 +1,12 @@
-import { Meta, StoryFn } from "@storybook/react";
+import type { Meta, StoryFn } from "@storybook/react";
 
+import type { PageHeaderProps } from "@phoenix/components";
 import {
   Button,
   Flex,
   Icon,
   Icons,
   PageHeader,
-  PageHeaderProps,
   Token,
 } from "@phoenix/components";
 
@@ -112,8 +112,8 @@ export const CustomTitleContent = () => (
     title={
       <Flex direction="row" gap="size-100" alignItems="center">
         My Dataset
-        <Token color="var(--ac-global-color-primary)">production</Token>
-        <Token color="var(--ac-global-color-yellow-500)">v2.1</Token>
+        <Token color="var(--global-color-primary)">production</Token>
+        <Token color="var(--global-color-yellow-500)">v2.1</Token>
       </Flex>
     }
     subTitle="A dataset for training and evaluation"

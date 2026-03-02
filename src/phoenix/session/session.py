@@ -5,14 +5,13 @@ import shutil
 import warnings
 from abc import ABC, abstractmethod
 from collections import UserList
-from collections.abc import Iterable, Mapping
 from datetime import datetime
 from enum import Enum
 from importlib.util import find_spec
 from itertools import chain
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Awaitable, Callable, NamedTuple, Optional, Union
 from urllib.parse import urljoin
 
 import pandas as pd
@@ -28,13 +27,9 @@ from phoenix.config import (
     get_env_host,
     get_env_host_root_path,
     get_env_port,
-    get_exported_files,
     get_working_dir,
 )
-from phoenix.core.model_schema_adapter import create_model_from_inferences
 from phoenix.db import get_printable_db_url
-from phoenix.inferences.inferences import EMPTY_INFERENCES, Inferences
-from phoenix.pointcloud.umap_parameters import get_umap_parameters
 from phoenix.server.app import (
     _db,
     create_app,
@@ -51,16 +46,13 @@ from phoenix.trace import Evaluations
 from phoenix.trace.dsl.query import SpanQuery
 from phoenix.trace.trace_dataset import TraceDataset
 
-try:
-    from IPython.display import IFrame  # type: ignore
-except:  # noqa
-    pass
-
 logger = logging.getLogger(__name__)
 
 # type workaround
 # https://github.com/python/mypy/issues/5264#issuecomment-399407428
 if TYPE_CHECKING:
+    from IPython.display import IFrame
+
     _BaseList = UserList[pd.DataFrame]
 else:
     _BaseList = UserList
@@ -80,25 +72,6 @@ class NotebookEnvironment(Enum):
     DATABRICKS = "databricks"
 
 
-class ExportedData(_BaseList):
-    def __init__(self) -> None:
-        self.paths: set[Path] = set()
-        self.names: list[str] = []
-        super().__init__()
-
-    def __repr__(self) -> str:
-        return f"[{', '.join(f'<DataFrame {name}>' for name in self.names)}]"
-
-    def add(self, paths: Iterable[Path]) -> None:
-        new_paths = sorted(
-            set(paths) - self.paths,
-            key=lambda p: p.stat().st_mtime,
-        )
-        self.paths.update(new_paths)
-        self.names.extend(path.stem for path in new_paths)
-        self.data.extend(pd.read_parquet(path) for path in new_paths)
-
-
 class Session(TraceDataExtractor, ABC):
     """Session that maintains a 1-1 shared state with the Phoenix App."""
 
@@ -107,33 +80,22 @@ class Session(TraceDataExtractor, ABC):
     """The notebook environment that the session is running in."""
 
     def __dir__(self) -> list[str]:
-        return ["exports", "view", "url"]
+        return ["view", "url"]
 
     def __init__(
         self,
         database_url: str,
-        primary_inferences: Inferences,
-        reference_inferences: Optional[Inferences] = None,
-        corpus_inferences: Optional[Inferences] = None,
         trace_dataset: Optional[TraceDataset] = None,
-        default_umap_parameters: Optional[Mapping[str, Any]] = None,
         host: Optional[str] = None,
         port: Optional[int] = None,
         root_path: Optional[str] = None,
         notebook_env: Optional[NotebookEnvironment] = None,
     ):
         self._database_url = database_url
-        self.primary_inferences = primary_inferences
-        self.reference_inferences = reference_inferences
-        self.corpus_inferences = corpus_inferences
         self.trace_dataset = trace_dataset
-        self.umap_parameters = get_umap_parameters(default_umap_parameters)
         self.host = host or get_env_host()
         self.port = port or get_env_port()
         self.temp_dir = TemporaryDirectory()
-        self.export_path = Path(self.temp_dir.name) / "exports"
-        self.export_path.mkdir(parents=True, exist_ok=True)
-        self.exported_data = ExportedData()
         self.notebook_env = notebook_env or _get_notebook_environment()
         self.root_path = (
             (get_env_host_root_path() or _get_root_path(self.notebook_env, self.port))
@@ -248,19 +210,6 @@ class Session(TraceDataExtractor, ABC):
     def active(self) -> bool:
         """Whether session is active, i.e. whether server still serves"""
 
-    @property
-    def exports(self) -> ExportedData:
-        """Exported data sorted in descending order by modification date.
-
-        Returns
-        -------
-        dataframes: list
-            List of dataframes
-        """
-        files = get_exported_files(self.export_path)
-        self.exported_data.add(files)
-        return self.exported_data
-
     def view(self, *, height: int = 1000, slug: str = "") -> "IFrame":
         """View the session in a notebook embedded iFrame.
 
@@ -271,6 +220,13 @@ class Session(TraceDataExtractor, ABC):
         Returns:
             IFrame: the iFrame will be rendered in the notebook
         """
+        try:
+            from IPython.display import IFrame
+        except ImportError as e:
+            raise ImportError(
+                "IPython is required to use the view() method. "
+                "Please install it with: pip install ipython"
+            ) from e
         url_to_view = urljoin(self.url, slug)
         print(f"📺 Opening a view to the Phoenix app. The app is running at {self.url}")
         return IFrame(src=url_to_view, width="100%", height=height)
@@ -292,11 +248,7 @@ class ProcessSession(Session):
     def __init__(
         self,
         database_url: str,
-        primary_inferences: Inferences,
-        reference_inferences: Optional[Inferences] = None,
-        corpus_inferences: Optional[Inferences] = None,
         trace_dataset: Optional[TraceDataset] = None,
-        default_umap_parameters: Optional[Mapping[str, Any]] = None,
         host: Optional[str] = None,
         port: Optional[int] = None,
         root_path: Optional[str] = None,
@@ -304,46 +256,20 @@ class ProcessSession(Session):
     ) -> None:
         super().__init__(
             database_url=database_url,
-            primary_inferences=primary_inferences,
-            reference_inferences=reference_inferences,
-            corpus_inferences=corpus_inferences,
             trace_dataset=trace_dataset,
-            default_umap_parameters=default_umap_parameters,
             host=host,
             port=port,
             root_path=root_path,
             notebook_env=notebook_env,
         )
-        primary_inferences.to_disc()
-        if isinstance(reference_inferences, Inferences):
-            reference_inferences.to_disc()
-        if isinstance(corpus_inferences, Inferences):
-            corpus_inferences.to_disc()
         if isinstance(trace_dataset, TraceDataset):
             trace_dataset.to_disc()
-        umap_params_str = (
-            f"{self.umap_parameters.min_dist},"
-            f"{self.umap_parameters.n_neighbors},"
-            f"{self.umap_parameters.n_samples}"
-        )
         # Initialize an app service that keeps the server running
         self.app_service = AppService(
             database_url=database_url,
-            export_path=self.export_path,
             host=self.host,
             port=self.port,
             root_path=self.root_path,
-            primary_inferences_name=self.primary_inferences.name,
-            umap_params=umap_params_str,
-            reference_inferences_name=(
-                self.reference_inferences.name if self.reference_inferences is not None else None
-            ),
-            corpus_inferences_name=(
-                self.corpus_inferences.name if self.corpus_inferences is not None else None
-            ),
-            trace_dataset_name=(
-                self.trace_dataset.name if self.trace_dataset is not None else None
-            ),
         )
 
     @property
@@ -359,11 +285,7 @@ class ThreadSession(Session):
     def __init__(
         self,
         database_url: str,
-        primary_inferences: Inferences,
-        reference_inferences: Optional[Inferences] = None,
-        corpus_inferences: Optional[Inferences] = None,
         trace_dataset: Optional[TraceDataset] = None,
-        default_umap_parameters: Optional[Mapping[str, Any]] = None,
         host: Optional[str] = None,
         port: Optional[int] = None,
         root_path: Optional[str] = None,
@@ -371,26 +293,11 @@ class ThreadSession(Session):
     ):
         super().__init__(
             database_url=database_url,
-            primary_inferences=primary_inferences,
-            reference_inferences=reference_inferences,
-            corpus_inferences=corpus_inferences,
             trace_dataset=trace_dataset,
-            default_umap_parameters=default_umap_parameters,
             host=host,
             port=port,
             root_path=root_path,
             notebook_env=notebook_env,
-        )
-        self.model = create_model_from_inferences(
-            primary_inferences,
-            reference_inferences,
-        )
-        self.corpus = (
-            create_model_from_inferences(
-                corpus_inferences,
-            )
-            if corpus_inferences is not None
-            else None
         )
         # Initialize an app service that keeps the server running
         engine = create_engine_and_run_migrations(database_url)
@@ -401,11 +308,7 @@ class ThreadSession(Session):
         factory = DbSessionFactory(db=_db(engine), dialect=engine.dialect.name)
         self.app = create_app(
             db=factory,
-            export_path=self.export_path,
-            model=self.model,
             authentication_enabled=False,
-            corpus=self.corpus,
-            umap_params=self.umap_parameters,
             initial_spans=trace_dataset.to_spans() if trace_dataset else None,
             initial_evaluations=(
                 chain.from_iterable(map(encode_evaluations, initial_evaluations))
@@ -457,11 +360,7 @@ def delete_all(prompt_before_delete: Optional[bool] = True) -> None:
 
 
 def launch_app(
-    primary: Optional[Inferences] = None,
-    reference: Optional[Inferences] = None,
-    corpus: Optional[Inferences] = None,
     trace: Optional[TraceDataset] = None,
-    default_umap_parameters: Optional[Mapping[str, Any]] = None,
     host: Optional[str] = None,
     port: Optional[int] = None,
     root_path: Optional[str] = None,
@@ -474,13 +373,6 @@ def launch_app(
 
     Parameters
     ----------
-    primary : Dataset, optional
-        The primary dataset to analyze
-    reference : Dataset, optional
-        The reference dataset to compare against.
-        If not provided, drift analysis will not be available.
-    corpus : Dataset, optional
-        The dataset containing corpus for LLM context retrieval.
     trace: TraceDataset, optional
         The trace dataset containing the trace data.
     host: str, optional
@@ -495,9 +387,6 @@ def launch_app(
         Can also be set using environment variable `PHOENIX_HOST_ROOT_PATH`.
     run_in_thread: bool, optional, default=True
         Whether the server should run in a Thread or Process.
-    default_umap_parameters: dict[str, Union[int, float]], optional, default=None
-        User specified default UMAP parameters
-        eg: {"n_neighbors": 10, "n_samples": 5, "min_dist": 0.5}
     notebook_environment: str, optional, default=None
         The environment the notebook is running in. This is either 'local', 'colab', or 'sagemaker'.
         If not provided, phoenix will try to infer the environment. This is only needed if
@@ -514,21 +403,13 @@ def launch_app(
     Examples
     --------
     >>> import phoenix as px
-    >>> # construct an inference set to analyze
-    >>> inferences = px.Inferences(...)
-    >>> session = px.launch_app(inferences)
+    >>> session = px.launch_app()
     """
     global _session
 
     # First we must ensure that the working directory is setup
     # NB: this is because the working directory can be deleted by the user
     ensure_working_dir_if_needed()
-
-    # Stopgap solution to allow the app to run without a primary dataset
-    if primary is None:
-        # Dummy inferences
-        # TODO: pass through the lack of a primary inferences to the app
-        primary = EMPTY_INFERENCES
 
     if _session is not None and _session.active:
         logger.warning(
@@ -598,11 +479,7 @@ def launch_app(
     if run_in_thread:
         _session = ThreadSession(
             database_url,
-            primary,
-            reference,
-            corpus,
             trace,
-            default_umap_parameters,
             host=host,
             port=port,
             root_path=root_path,
@@ -612,11 +489,7 @@ def launch_app(
     else:
         _session = ProcessSession(
             database_url,
-            primary,
-            reference,
-            corpus,
             trace,
-            default_umap_parameters,
             host=host,
             port=port,
             root_path=root_path,
@@ -697,10 +570,10 @@ def _is_colab() -> bool:
     except ImportError:
         return False
     try:
-        from IPython.core.getipython import get_ipython  # type: ignore
+        from IPython.core.getipython import get_ipython
     except ImportError:
         return False
-    return get_ipython() is not None
+    return get_ipython() is not None  # type: ignore[no-untyped-call]
 
 
 def _is_sagemaker() -> bool:
@@ -715,16 +588,16 @@ def _is_sagemaker() -> bool:
         from IPython.core.getipython import get_ipython
     except ImportError:
         return False
-    return get_ipython() is not None
+    return get_ipython() is not None  # type: ignore[no-untyped-call]
 
 
 def _is_databricks() -> bool:
     """Determines whether this is in a Databricks notebook"""
     try:
-        import IPython  # type: ignore
+        from IPython.core.getipython import get_ipython
     except ImportError:
         return False
-    if (shell := IPython.get_ipython()) is None:
+    if (shell := get_ipython()) is None:  # type: ignore[no-untyped-call]
         return False
     try:
         dbutils = shell.user_ns["dbutils"]
@@ -759,7 +632,7 @@ def _get_sagemaker_notebook_base_url() -> str:
     log_path = "/opt/ml/metadata/resource-metadata.json"
     with open(log_path, "r") as logs:
         logs = json.load(logs)
-    arn = logs["ResourceArn"]  # type: ignore
+    arn = logs["ResourceArn"]
 
     # Parse the ARN to get the region and notebook instance name
     # E.x. arn:aws:sagemaker:us-east-2:802164118598:notebook-instance/my-notebook-instance
@@ -793,9 +666,9 @@ def _get_databricks_context() -> DatabricksContext:
     Returns the databricks context for constructing the base url
     and the root_path for the app
     """
-    import IPython
+    from IPython.core.getipython import get_ipython
 
-    shell = IPython.get_ipython()
+    shell = get_ipython()  # type: ignore[no-untyped-call]
     dbutils = shell.user_ns["dbutils"]
     notebook_context = json.loads(
         dbutils.entry_point.getDbutils().notebook().getContext().toJson()

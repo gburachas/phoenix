@@ -1,5 +1,5 @@
+import type { Meta, StoryFn } from "@storybook/react";
 import { Panel, PanelGroup } from "react-resizable-panels";
-import { Meta, StoryFn } from "@storybook/react";
 
 import { Card, Text, Token, View } from "@phoenix/components";
 import { TitledPanel } from "@phoenix/components/react-resizable-panels";
@@ -117,7 +117,7 @@ const WithCustomTitleTemplate: StoryFn = (args) => (
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "var(--ac-global-dimension-size-100)",
+                gap: "var(--global-dimension-size-100)",
               }}
             >
               <span>Custom Title</span>
@@ -126,7 +126,7 @@ const WithCustomTitleTemplate: StoryFn = (args) => (
           }
           {...args}
         >
-          <div style={{ padding: "var(--ac-global-dimension-size-200)" }}>
+          <div style={{ padding: "var(--global-dimension-size-200)" }}>
             This panel has a custom title with additional elements
           </div>
         </TitledPanel>

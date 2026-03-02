@@ -1,6 +1,6 @@
+import { css } from "@emotion/react";
 import { Suspense, useState } from "react";
 import { graphql, useLazyLoadQuery } from "react-relay";
-import { css } from "@emotion/react";
 
 import {
   Button,
@@ -18,7 +18,7 @@ import {
   View,
 } from "@phoenix/components";
 
-import { DatasetLabelFilterButtonQuery } from "./__generated__/DatasetLabelFilterButtonQuery.graphql";
+import type { DatasetLabelFilterButtonQuery } from "./__generated__/DatasetLabelFilterButtonQuery.graphql";
 
 type DatasetLabelFilterButtonProps = {
   selectedLabelIds: string[];

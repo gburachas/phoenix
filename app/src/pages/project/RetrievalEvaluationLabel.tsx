@@ -1,5 +1,5 @@
-import { useMemo } from "react";
 import { css } from "@emotion/react";
+import { useMemo } from "react";
 
 import {
   Flex,
@@ -24,7 +24,7 @@ type RetrievalEvaluationLabelProps = RetrievalEvaluation;
 const textCSS = css`
   display: flex;
   align-items: center;
-  .ac-text {
+  .text {
     display: inline-block;
     max-width: 9rem;
     white-space: nowrap;
@@ -47,7 +47,7 @@ export function RetrievalEvaluationLabel(props: RetrievalEvaluationLabelProps) {
       <TriggerWrap>
         <div css={baseAnnotationLabelCSS}>
           <Flex direction="row" gap="size-100" alignItems={"center"}>
-            <ColorSwatch color={"var(--ac-global-color-seafoam-1000)"} />
+            <ColorSwatch color={"var(--global-color-seafoam-1000)"} />
             {name ? (
               <div css={textCSS}>
                 <Text weight="heavy" size="XS" color="inherit">

@@ -1,8 +1,9 @@
+import { openai } from "@ai-sdk/openai";
+import type { Tracer } from "@opentelemetry/api";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { createDocumentRelevanceEvaluator } from "../../src/llm/createDocumentRelevanceEvaluator";
 import * as generateClassificationModule from "../../src/llm/generateClassification";
-
-import { openai } from "@ai-sdk/openai";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("createDocumentRelevanceEvaluator", () => {
   beforeEach(() => {
@@ -206,7 +207,7 @@ describe("createDocumentRelevanceEvaluator", () => {
         explanation: "This is a test explanation",
       });
 
-    const customTracer = {} as import("@opentelemetry/api").Tracer; // Mock tracer object
+    const customTracer = {} as Tracer; // Mock tracer object
 
     const evaluator = createDocumentRelevanceEvaluator({
       model,

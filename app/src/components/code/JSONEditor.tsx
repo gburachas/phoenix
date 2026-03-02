@@ -1,13 +1,12 @@
-import { useMemo } from "react";
 import { defaultKeymap } from "@codemirror/commands";
 import { json, jsonLanguage, jsonParseLinter } from "@codemirror/lang-json";
 import { linter } from "@codemirror/lint";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
+import type { ReactCodeMirrorProps } from "@uiw/react-codemirror";
 import CodeMirror, {
   EditorView,
   hoverTooltip,
   keymap,
-  ReactCodeMirrorProps,
 } from "@uiw/react-codemirror";
 import {
   handleRefresh,
@@ -16,7 +15,8 @@ import {
   jsonSchemaLinter,
   stateExtensions,
 } from "codemirror-json-schema";
-import { JSONSchema7 } from "json-schema";
+import type { JSONSchema7 } from "json-schema";
+import { useMemo } from "react";
 
 import { useTheme } from "@phoenix/contexts";
 

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { graphql, useLazyLoadQuery } from "react-relay";
+import type { TooltipContentProps } from "recharts";
 import {
   Bar,
   BarChart,
@@ -7,7 +8,6 @@ import {
   Legend,
   ResponsiveContainer,
   Tooltip,
-  TooltipContentProps,
   XAxis,
   YAxis,
 } from "recharts";
@@ -20,9 +20,10 @@ import {
   defaultLegendProps,
   defaultXAxisProps,
   defaultYAxisProps,
+  truncateModelName,
   useCategoryChartColors,
 } from "@phoenix/components/chart";
-import { ProjectMetricViewProps } from "@phoenix/pages/project/metrics/types";
+import type { ProjectMetricViewProps } from "@phoenix/pages/project/metrics/types";
 import { intFormatter } from "@phoenix/utils/numberFormatUtils";
 
 import type { TopModelsByTokenQuery } from "./__generated__/TopModelsByTokenQuery.graphql";
@@ -121,7 +122,7 @@ export function TopModelsByToken({
     <ResponsiveContainer width="100%" height="100%">
       <BarChart
         data={chartData}
-        margin={{ top: 0, right: 18, left: 0, bottom: 0 }}
+        margin={{ top: 0, right: 18, left: 8, bottom: 0 }}
         layout="vertical"
         barSize={10}
       >
@@ -142,6 +143,7 @@ export function TopModelsByToken({
           dataKey="model"
           type="category"
           width={120}
+          tickFormatter={truncateModelName}
         />
         <Bar
           dataKey="prompt_tokens"

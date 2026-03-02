@@ -16,16 +16,14 @@ import {
   Modal,
   ModalOverlay,
 } from "@phoenix/components";
-import { AnnotationConfigDialog } from "@phoenix/pages/settings/AnnotationConfigDialog";
+import { AnnotationConfigDialog } from "@phoenix/components/annotation/AnnotationConfigDialog";
 import { AnnotationConfigTable } from "@phoenix/pages/settings/AnnotationConfigTable";
-import {
-  settingsAnnotationsPageLoaderGql,
-  SettingsAnnotationsPageLoaderType,
-} from "@phoenix/pages/settings/settingsAnnotationsPageLoader";
-import { AnnotationConfig } from "@phoenix/pages/settings/types";
+import type { SettingsAnnotationsPageLoaderType } from "@phoenix/pages/settings/settingsAnnotationsPageLoader";
+import { settingsAnnotationsPageLoaderGql } from "@phoenix/pages/settings/settingsAnnotationsPageLoader";
+import type { AnnotationConfig } from "@phoenix/pages/settings/types";
 import { getErrorMessagesFromRelayMutationError } from "@phoenix/utils/errorUtils";
 
-import { SettingsAnnotationsPageFragment$key } from "./__generated__/SettingsAnnotationsPageFragment.graphql";
+import type { SettingsAnnotationsPageFragment$key } from "./__generated__/SettingsAnnotationsPageFragment.graphql";
 
 export const SettingsAnnotationsPage = () => {
   const loaderData = useLoaderData<SettingsAnnotationsPageLoaderType>();

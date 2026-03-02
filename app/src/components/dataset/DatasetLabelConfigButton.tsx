@@ -1,3 +1,4 @@
+import { css } from "@emotion/react";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import {
   ConnectionHandler,
@@ -6,7 +7,6 @@ import {
   useLazyLoadQuery,
   useMutation,
 } from "react-relay";
-import { css } from "@emotion/react";
 
 import {
   Alert,
@@ -29,19 +29,17 @@ import {
   type Selection,
   View,
 } from "@phoenix/components";
-import {
-  useDatasetLabelMutations,
-  UseDatasetLabelMutationsParams,
-} from "@phoenix/components/dataset/useDatasetLabelMutations";
+import type { UseDatasetLabelMutationsParams } from "@phoenix/components/dataset/useDatasetLabelMutations";
+import { useDatasetLabelMutations } from "@phoenix/components/dataset/useDatasetLabelMutations";
 import { NewLabelForm } from "@phoenix/components/label";
 import { useNotifyError } from "@phoenix/contexts";
 import { isStringArray } from "@phoenix/typeUtils";
 import { getErrorMessagesFromRelayMutationError } from "@phoenix/utils/errorUtils";
 
-import { DatasetLabelConfigButton_allLabels$key } from "./__generated__/DatasetLabelConfigButton_allLabels.graphql";
-import { DatasetLabelConfigButton_datasetLabels$key } from "./__generated__/DatasetLabelConfigButton_datasetLabels.graphql";
-import { DatasetLabelConfigButtonQuery } from "./__generated__/DatasetLabelConfigButtonQuery.graphql";
-import { DatasetLabelConfigButtonSetLabelsMutation } from "./__generated__/DatasetLabelConfigButtonSetLabelsMutation.graphql";
+import type { DatasetLabelConfigButton_allLabels$key } from "./__generated__/DatasetLabelConfigButton_allLabels.graphql";
+import type { DatasetLabelConfigButton_datasetLabels$key } from "./__generated__/DatasetLabelConfigButton_datasetLabels.graphql";
+import type { DatasetLabelConfigButtonQuery } from "./__generated__/DatasetLabelConfigButtonQuery.graphql";
+import type { DatasetLabelConfigButtonSetLabelsMutation } from "./__generated__/DatasetLabelConfigButtonSetLabelsMutation.graphql";
 
 type DatasetLabelConfigButtonProps = {
   datasetId: string;

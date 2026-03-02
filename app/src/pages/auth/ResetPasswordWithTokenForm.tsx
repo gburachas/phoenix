@@ -1,7 +1,7 @@
+import { css } from "@emotion/react";
 import { useCallback, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate } from "react-router";
-import { css } from "@emotion/react";
 
 import {
   Alert,
@@ -158,8 +158,8 @@ export function ResetPasswordWithTokenForm({
         />
         <div
           css={css`
-            margin-top: var(--ac-global-dimension-size-200);
-            margin-bottom: var(--ac-global-dimension-size-50);
+            margin-top: var(--global-dimension-size-200);
+            margin-bottom: var(--global-dimension-size-50);
             button {
               width: 100%;
             }

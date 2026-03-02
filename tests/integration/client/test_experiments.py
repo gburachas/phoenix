@@ -9,12 +9,11 @@ from unittest.mock import patch
 import pytest
 from opentelemetry.sdk.trace import ReadableSpan
 from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
-from strawberry.relay import GlobalID
-
 from phoenix.client import AsyncClient
 from phoenix.client import Client as SyncClient
 from phoenix.client.__generated__ import v1
 from phoenix.client.resources.datasets import Dataset
+from strawberry.relay import GlobalID
 
 from .._helpers import (  # pyright: ignore[reportPrivateUsage]
     _AppInfo,
@@ -365,6 +364,30 @@ def _setup_experiment_test(_app: _AppInfo) -> Iterator[_SetupExperimentTest]:
     # Cleanup all helpers created during the test
     for helper in helpers:
         helper.clean_up()
+
+
+@pytest.fixture
+def _create_dataset(_app: _AppInfo) -> Iterator[Callable[..., Any]]:
+    """Fixture returning an async factory for creating a dataset with automatic cleanup."""
+    created_dataset: Optional[Dataset] = None
+    http = _httpx_client(_app, _app.admin_secret)
+
+    async def _factory(
+        client: Union[AsyncClient, SyncClient],
+        **kwargs: Any,
+    ) -> Dataset:
+        nonlocal created_dataset
+        dataset = await _await_or_return(client.datasets.create_dataset(**kwargs))
+        created_dataset = dataset
+        return dataset
+
+    yield _factory
+
+    if created_dataset is not None:
+        try:
+            http.delete(f"v1/datasets/{created_dataset.id}")
+        except Exception:
+            pass
 
 
 class SpanCapture:
@@ -1893,6 +1916,66 @@ class TestExperimentsIntegration:
         assert experiment["example_count"] == 2  # Only 2 examples in the split
         assert experiment["metadata"] == {"model": "test"}
 
+    @pytest.mark.parametrize("is_async", [True, False])
+    async def test_delete_experiment_keeps_project_by_default(
+        self,
+        is_async: bool,
+        _app: _AppInfo,
+        _create_dataset: Callable[..., Any],
+    ) -> None:
+        api_key = _app.admin_secret
+        Client = AsyncClient if is_async else SyncClient
+        client = Client(base_url=_app.base_url, api_key=api_key)
+
+        unique_name = f"test_keep_proj_{token_hex(4)}"
+        dataset = await _create_dataset(
+            client,
+            name=unique_name,
+            inputs=[{"q": "test"}],
+            outputs=[{"a": "test"}],
+        )
+
+        experiment = await _await_or_return(client.experiments.create(dataset_id=dataset.id))
+        project_name = experiment["project_name"]
+        assert project_name is not None
+
+        await _await_or_return(client.experiments.delete(experiment_id=experiment["id"]))
+
+        data, _ = _gql(_app, api_key, query="{ projects { edges { node { name } } } }")
+        project_names = [e["node"]["name"] for e in data["data"]["projects"]["edges"]]
+        assert project_name in project_names
+
+    @pytest.mark.parametrize("is_async", [True, False])
+    async def test_delete_experiment_with_delete_project_flag_also_deletes_project(
+        self,
+        is_async: bool,
+        _app: _AppInfo,
+        _create_dataset: Callable[..., Any],
+    ) -> None:
+        api_key = _app.admin_secret
+        Client = AsyncClient if is_async else SyncClient
+        client = Client(base_url=_app.base_url, api_key=api_key)
+
+        unique_name = f"test_del_proj_{token_hex(4)}"
+        dataset = await _create_dataset(
+            client,
+            name=unique_name,
+            inputs=[{"q": "test"}],
+            outputs=[{"a": "test"}],
+        )
+
+        experiment = await _await_or_return(client.experiments.create(dataset_id=dataset.id))
+        project_name = experiment["project_name"]
+        assert project_name is not None
+
+        await _await_or_return(
+            client.experiments.delete(experiment_id=experiment["id"], delete_project=True)
+        )
+
+        data, _ = _gql(_app, api_key, query="{ projects { edges { node { name } } } }")
+        project_names = [e["node"]["name"] for e in data["data"]["projects"]["edges"]]
+        assert project_name not in project_names
+
 
 class TestResumeOperations:
     """
@@ -2159,7 +2242,7 @@ class TestResumeOperations:
         runs = helper.get_runs(exp["id"])
         assert len([r for r in runs if r.get("error")]) == 3, "All runs should still have errors"
         for run in runs:
-            error_msg = run.get("error", "")
+            error_msg = run.get("error") or ""
             assert "Task still fails on resume" in error_msg, (
                 f"Expected new error message, got: {error_msg}"
             )

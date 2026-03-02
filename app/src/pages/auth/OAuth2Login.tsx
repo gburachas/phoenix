@@ -1,5 +1,6 @@
-import { forwardRef, ReactNode } from "react";
 import { css } from "@emotion/react";
+import type { ReactNode } from "react";
+import { forwardRef } from "react";
 
 import { Button } from "@phoenix/components";
 import { prependBasename } from "@phoenix/utils/routingUtils";
@@ -18,7 +19,7 @@ const loginCSS = css`
     display: block;
     width: 20px;
     height: 20px;
-    padding-right: var(--ac-global-dimension-size-50);
+    padding-right: var(--global-dimension-size-50);
   }
   &[data-provider^="aws"],
   &[data-provider^="google"],

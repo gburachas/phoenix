@@ -1,16 +1,15 @@
 import { Suspense } from "react";
 import { Pressable } from "react-aria";
 
+import type { TextProps } from "@phoenix/components";
 import {
   Loading,
   RichTooltip,
-  TextProps,
   TooltipArrow,
   TooltipTrigger,
 } from "@phoenix/components";
 
 import { TokenCount } from "../trace/TokenCount";
-
 import { ExperimentRunTokenCountDetails } from "./ExperimentRunTokenCountDetails";
 
 type ExperimentRunTokenCountProps = {
@@ -35,7 +34,7 @@ export function ExperimentRunTokenCount(props: ExperimentRunTokenCountProps) {
   return (
     <TooltipTrigger isDisabled={props.tokenCountTotal == null}>
       <Pressable>
-        <TokenCount size={props.size} role="button">
+        <TokenCount size={props.size} role="button" tabIndex={0}>
           {props.tokenCountTotal}
         </TokenCount>
       </Pressable>

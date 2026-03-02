@@ -1,3 +1,4 @@
+import { css } from "@emotion/react";
 import {
   startTransition,
   Suspense,
@@ -5,21 +6,23 @@ import {
   useEffect,
   useMemo,
 } from "react";
+import type { PreloadedQuery } from "react-relay";
 import {
   graphql,
-  PreloadedQuery,
   useFragment,
   usePreloadedQuery,
   useQueryLoader,
 } from "react-relay";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import invariant from "tiny-invariant";
-import { css } from "@emotion/react";
 
 import { Alert, Flex, Loading, View } from "@phoenix/components";
-import { useExperimentColors } from "@phoenix/components/experiment";
 import {
-  ExperimentCompareViewMode,
+  ExperimentNameWithColorSwatch,
+  useExperimentColors,
+} from "@phoenix/components/experiment";
+import type { ExperimentCompareViewMode } from "@phoenix/components/experiment/ExperimentCompareViewModeToggle";
+import {
   ExperimentCompareViewModeToggle,
   isExperimentCompareViewMode,
 } from "@phoenix/components/experiment/ExperimentCompareViewModeToggle";
@@ -35,7 +38,6 @@ import {
   ExperimentComparePageQueriesMultiSelectorQuery,
   ExperimentComparePageQueriesSelectedCompareExperimentsQuery,
 } from "@phoenix/pages/experiment/ExperimentComparePageQueries";
-import { ExperimentNameWithColorSwatch } from "@phoenix/pages/experiment/ExperimentNameWithColorSwatch";
 import { assertUnreachable } from "@phoenix/typeUtils";
 
 import type {

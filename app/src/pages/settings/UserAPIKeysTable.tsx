@@ -1,11 +1,11 @@
-import { startTransition, useCallback, useMemo } from "react";
-import { graphql, useMutation, useRefetchableFragment } from "react-relay";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { startTransition, useCallback, useMemo } from "react";
+import { graphql, useMutation, useRefetchableFragment } from "react-relay";
 
 import { Flex, Icon, Icons } from "@phoenix/components";
 import { DeleteAPIKeyButton } from "@phoenix/components/auth";
@@ -16,8 +16,8 @@ import { TimestampCell } from "@phoenix/components/table/TimestampCell";
 import { useNotifyError, useNotifySuccess } from "@phoenix/contexts";
 import { getErrorMessagesFromRelayMutationError } from "@phoenix/utils/errorUtils";
 
-import { UserAPIKeysTableFragment$key } from "./__generated__/UserAPIKeysTableFragment.graphql";
-import { UserAPIKeysTableQuery } from "./__generated__/UserAPIKeysTableQuery.graphql";
+import type { UserAPIKeysTableFragment$key } from "./__generated__/UserAPIKeysTableFragment.graphql";
+import type { UserAPIKeysTableQuery } from "./__generated__/UserAPIKeysTableQuery.graphql";
 
 const TIMESTAMP_CELL_SIZE = 70;
 
@@ -151,7 +151,6 @@ export function UserAPIKeysTable({
     ];
     return cols;
   }, [handleDelete]);
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<TableRow>({
     columns,
     data: tableData,

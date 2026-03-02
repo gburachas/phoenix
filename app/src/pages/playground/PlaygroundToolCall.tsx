@@ -1,11 +1,9 @@
-import { useMemo } from "react";
 import { css } from "@emotion/react";
+import { useMemo } from "react";
 
 import { Text } from "@phoenix/components";
-import {
-  detectToolCallProvider,
-  LlmProviderToolCall,
-} from "@phoenix/schemas/toolCallSchemas";
+import type { LlmProviderToolCall } from "@phoenix/schemas/toolCallSchemas";
+import { detectToolCallProvider } from "@phoenix/schemas/toolCallSchemas";
 import { assertUnreachable, isStringKeyedObject } from "@phoenix/typeUtils";
 import { safelyParseJSON } from "@phoenix/utils/jsonUtils";
 
@@ -85,7 +83,7 @@ export function PlaygroundToolCall({
     <pre
       css={css`
         text-wrap: wrap;
-        margin: var(--ac-global-dimension-static-size-100) 0;
+        margin: var(--global-dimension-static-size-100) 0;
         margin-block: 0;
       `}
     >

@@ -1,11 +1,8 @@
 import { Button, Flex, Icon, Icons } from "@phoenix/components";
 import { usePlaygroundContext } from "@phoenix/contexts/PlaygroundContext";
 import { safelyConvertToolChoiceToProvider } from "@phoenix/schemas/toolChoiceSchemas";
-import {
-  createOpenAIResponseFormat,
-  generateMessageId,
-  PlaygroundNormalizedInstance,
-} from "@phoenix/store";
+import type { PlaygroundNormalizedInstance } from "@phoenix/store";
+import { createOpenAIResponseFormat, generateMessageId } from "@phoenix/store";
 
 import {
   RESPONSE_FORMAT_PARAM_CANONICAL_NAME,
@@ -13,14 +10,14 @@ import {
   TOOL_CHOICE_PARAM_CANONICAL_NAME,
   TOOL_CHOICE_PARAM_NAME,
 } from "./constants";
-import {
-  areInvocationParamsEqual,
-  createToolForProvider,
-} from "./playgroundUtils";
+import { areInvocationParamsEqual } from "./invocationParameterUtils";
+import { createToolForProvider } from "./playgroundUtils";
 
 type PlaygroundChatTemplateFooterProps = {
   instanceId: number;
   hasResponseFormat: boolean;
+  disableResponseFormat?: boolean;
+  disableNewTool?: boolean;
 };
 
 const FOOTER_MIN_HEIGHT = 32;
@@ -28,6 +25,8 @@ const FOOTER_MIN_HEIGHT = 32;
 export function PlaygroundChatTemplateFooter({
   instanceId,
   hasResponseFormat,
+  disableResponseFormat,
+  disableNewTool,
 }: PlaygroundChatTemplateFooterProps) {
   const instances = usePlaygroundContext((state) => state.instances);
   const updateInstance = usePlaygroundContext((state) => state.updateInstance);
@@ -49,18 +48,22 @@ export function PlaygroundChatTemplateFooter({
   const supportedModelInvocationParameters =
     playgroundInstance.model.supportedInvocationParameters;
 
-  const supportsResponseFormat = supportedModelInvocationParameters?.some((p) =>
-    areInvocationParamsEqual(p, {
-      canonicalName: RESPONSE_FORMAT_PARAM_CANONICAL_NAME,
-      invocationName: RESPONSE_FORMAT_PARAM_NAME,
-    })
-  );
-  const supportsToolChoice = supportedModelInvocationParameters?.some((p) =>
-    areInvocationParamsEqual(p, {
-      canonicalName: TOOL_CHOICE_PARAM_CANONICAL_NAME,
-      invocationName: TOOL_CHOICE_PARAM_NAME,
-    })
-  );
+  const supportsResponseFormat =
+    !disableResponseFormat &&
+    supportedModelInvocationParameters?.some((p) =>
+      areInvocationParamsEqual(p, {
+        canonicalName: RESPONSE_FORMAT_PARAM_CANONICAL_NAME,
+        invocationName: RESPONSE_FORMAT_PARAM_NAME,
+      })
+    );
+  const supportsToolChoice =
+    !disableNewTool &&
+    supportedModelInvocationParameters?.some((p) =>
+      areInvocationParamsEqual(p, {
+        canonicalName: TOOL_CHOICE_PARAM_CANONICAL_NAME,
+        invocationName: TOOL_CHOICE_PARAM_NAME,
+      })
+    );
   return (
     <Flex
       direction="row"

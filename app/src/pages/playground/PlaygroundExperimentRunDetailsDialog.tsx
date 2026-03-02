@@ -1,11 +1,11 @@
+import { css } from "@emotion/react";
 import { useMemo } from "react";
 import { graphql, useLazyLoadQuery } from "react-relay";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { css } from "@emotion/react";
 
+import type { CardProps } from "@phoenix/components";
 import {
   Card,
-  CardProps,
   CopyToClipboardButton,
   Dialog,
   Flex,
@@ -144,7 +144,7 @@ export function PlaygroundExperimentRunDetailsDialog({
                 css={css`
                   overflow-y: auto;
                   height: 100%;
-                  padding: var(--ac-global-dimension-static-size-200);
+                  padding: var(--global-dimension-static-size-200);
                 `}
               >
                 <View
@@ -173,14 +173,12 @@ export function PlaygroundExperimentRunDetailsDialog({
                       )}
                       <ul
                         css={css`
-                          margin-top: var(
-                            --ac-global-dimension-static-size-100
-                          );
+                          margin-top: var(--global-dimension-static-size-100);
                           display: flex;
                           flex-direction: column;
                           justify-content: flex-start;
                           align-items: flex-end;
-                          gap: var(--ac-global-dimension-static-size-100);
+                          gap: var(--global-dimension-static-size-100);
                         `}
                       >
                         {run.annotations?.edges.map((edge) => (

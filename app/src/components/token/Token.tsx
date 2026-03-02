@@ -1,12 +1,15 @@
-import React, { forwardRef, HTMLProps, Ref } from "react";
 import { css } from "@emotion/react";
+import type { HTMLProps, Ref } from "react";
+import React, { forwardRef } from "react";
 
-import { Icon, Icons } from "@phoenix/components";
-import { SizingProps, StylableProps } from "@phoenix/components/types";
 import { useTheme } from "@phoenix/contexts";
 
+import { Icon, Icons } from "../icon";
+import type { SizingProps, StylableProps } from "../types";
+
 interface TokenProps
-  extends Omit<HTMLProps<HTMLDivElement>, "size" | "css" | "onClick">,
+  extends
+    Omit<HTMLProps<HTMLDivElement>, "size" | "css" | "onClick">,
     StylableProps,
     SizingProps {
   children?: React.ReactNode;
@@ -23,7 +26,7 @@ interface TokenProps
    *
    * Can be any valid CSS color value, including CSS variables.
    *
-   * @default "var(--ac-global-color-grey-300)"
+   * @default "var(--global-color-gray-300)"
    */
   color?: string;
   /**
@@ -36,32 +39,47 @@ interface TokenProps
    * If provided, an icon button will be displayed to the right of the token.
    */
   onRemove?: () => void;
+  /**
+   * Maximum width for the token. Text truncates with an ellipsis when exceeded.
+   *
+   * @default "var(--global-dimension-size-2000)" (160px)
+   * @example "200px" | "100%" | "10ch"
+   */
+  maxWidth?: React.CSSProperties["maxWidth"];
 }
 
 const tokenBaseCSS = css`
+  --token-max-width: var(--global-dimension-size-2000);
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  gap: var(--ac-global-dimension-static-size-100);
-  font-size: var(--ac-global-dimension-static-font-size-75);
-  line-height: var(--ac-global-line-height-s);
-  padding: 0 var(--ac-global-dimension-static-size-100);
-  border-radius: var(--ac-global-rounding-large);
+  gap: var(--global-dimension-static-size-100);
+  font-size: var(--global-dimension-static-font-size-75);
+  line-height: var(--global-line-height-s);
+  padding: 0 var(--global-dimension-static-size-100);
+  border-radius: var(--global-rounding-large);
   border: 1px solid
-    lch(from var(--ac-internal-token-color) calc((l) * infinity) c h / 0.3);
-  color: lch(from var(--ac-internal-token-color) calc((50 - l) * infinity) 0 0);
+    lch(from var(--internal-token-color) calc((l) * infinity) c h / 0.3);
+  color: lch(from var(--internal-token-color) calc((50 - l) * infinity) 0 0);
   user-select: none;
-  text-wrap: nowrap;
+  max-width: var(--token-max-width);
+
+  .token__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   &[data-size="S"] {
-    height: var(--ac-global-dimension-static-size-200);
+    height: var(--global-dimension-static-size-200);
   }
 
   &[data-size="M"] {
-    height: var(--ac-global-dimension-static-size-250);
+    height: var(--global-dimension-static-size-250);
   }
 
   &[data-size="L"] {
-    height: var(--ac-global-dimension-static-size-300);
+    height: var(--global-dimension-static-size-300);
   }
 
   &[data-disabled] {
@@ -70,14 +88,15 @@ const tokenBaseCSS = css`
   }
 
   &[data-theme="light"] {
-    background: var(--ac-internal-token-color);
-    border-color: var(--ac-internal-token-color);
+    background: var(--internal-token-color);
+    border-color: var(--internal-token-color);
+    color: lch(from var(--internal-token-color) calc((55 - l) * infinity) 0 0);
   }
 
   &[data-theme="dark"] {
     // generate a new dark token bg color from the input color
     --scoped-token-dark-bg: lch(
-      from var(--ac-internal-token-color) l c h / calc(alpha - 0.8)
+      from var(--internal-token-color) l c h / calc(alpha - 0.8)
     );
     background: var(--scoped-token-dark-bg);
     // generate a new dark token text color from the input color
@@ -89,14 +108,14 @@ const tokenBaseCSS = css`
 
     > button {
       &:focus-visible {
-        outline: 2px solid var(--ac-focus-ring-color);
-        border-radius: var(--ac-global-rounding-small);
+        outline: 2px solid var(--focus-ring-color);
+        border-radius: var(--global-rounding-small);
       }
     }
   }
 
   &[data-removable] {
-    padding-right: var(--ac-global-dimension-static-size-25);
+    padding-right: var(--global-dimension-static-size-25);
   }
 
   > button {
@@ -104,6 +123,8 @@ const tokenBaseCSS = css`
     cursor: pointer;
     display: flex;
     align-items: center;
+    min-width: 0;
+    overflow: hidden;
 
     &[disabled] {
       cursor: not-allowed;
@@ -122,15 +143,15 @@ function TokenLeadingVisual({
         display: flex;
         align-items: center;
         justify-content: center;
-        width: var(--ac-global-dimension-static-size-200);
-        height: var(--ac-global-dimension-static-size-200);
+        width: var(--global-dimension-static-size-200);
+        height: var(--global-dimension-static-size-200);
 
         &[data-size="M"] {
-          margin-right: var(--ac-global-dimension-static-size-50);
+          margin-right: var(--global-dimension-static-size-50);
         }
 
         &[data-size="L"] {
-          margin-right: var(--ac-global-dimension-static-size-100);
+          margin-right: var(--global-dimension-static-size-100);
         }
       `}
     >
@@ -152,12 +173,13 @@ function Token(
     children,
     isDisabled,
     css: cssProp,
-    color = "var(--ac-global-color-grey-300)",
+    color = "var(--global-color-gray-300)",
     onPress,
     onRemove,
     size = "M",
     style,
     leadingVisual,
+    maxWidth,
     ...rest
   }: TokenProps,
   ref: Ref<HTMLDivElement>
@@ -184,6 +206,8 @@ function Token(
     </button>
   ) : null;
 
+  const textContent = <span className="token__text">{children}</span>;
+
   const renderContent = () => {
     if (onPress && onRemove) {
       return (
@@ -195,7 +219,7 @@ function Token(
             disabled={isDisabled}
           >
             {wrappedLeadingVisual}
-            {children}
+            {textContent}
           </button>
           {removeButton}
         </>
@@ -211,7 +235,7 @@ function Token(
           disabled={isDisabled}
         >
           {wrappedLeadingVisual}
-          {children}
+          {textContent}
         </button>
       );
     }
@@ -221,7 +245,7 @@ function Token(
         <>
           <span>
             {wrappedLeadingVisual}
-            {children}
+            {textContent}
           </span>
           {removeButton}
         </>
@@ -231,7 +255,7 @@ function Token(
     return (
       <>
         {wrappedLeadingVisual}
-        {children}
+        {textContent}
       </>
     );
   };
@@ -240,8 +264,12 @@ function Token(
     <div
       ref={ref}
       css={css(tokenBaseCSS, cssProp)}
-      // @ts-expect-error --px-token-color is a custom property
-      style={{ "--ac-internal-token-color": color, ...style }}
+      style={{
+        // @ts-expect-error custom CSS properties
+        "--internal-token-color": color,
+        ...(maxWidth && { "--token-max-width": maxWidth }),
+        ...style,
+      }}
       data-theme={theme}
       data-size={size}
       {...(onPress && { "data-interactive": true })}

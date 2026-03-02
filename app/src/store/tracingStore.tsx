@@ -1,11 +1,16 @@
-import { ColumnSizingState, Updater } from "@tanstack/react-table";
-import { create, StateCreator } from "zustand";
+import type { ColumnSizingState, Updater } from "@tanstack/react-table";
+import type { StateCreator } from "zustand";
+import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
-import { ProjectTab } from "@phoenix/pages/project/constants";
+import type { ProjectTab } from "@phoenix/pages/project/constants";
 
 type VisibilityState = Record<string, boolean>;
 export interface TracingProps {
+  /**
+   * The project ID for this tracing context
+   */
+  projectId: string;
   /**
    * Map of the column id to the visibility state
    */
@@ -57,7 +62,7 @@ export const createTracingStore = (initialProps: CreateTracingStoreProps) => {
     TracingState,
     [["zustand/devtools", unknown]]
   > = (set) => ({
-    ...initialProps,
+    projectId: initialProps.projectId,
     columnVisibility: {
       metadata: false,
     },

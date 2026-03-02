@@ -1,12 +1,14 @@
-import { forwardRef, type JSX, Ref } from "react";
-import { TagList as AriaTagList, TagListProps } from "react-aria-components";
 import { css } from "@emotion/react";
+import type { Ref } from "react";
+import { forwardRef, type JSX } from "react";
+import type { TagListProps } from "react-aria-components";
+import { TagList as AriaTagList } from "react-aria-components";
 
 const tagListCSS = css`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--ac-global-dimension-size-50);
+  gap: var(--global-dimension-size-50);
   height: 28px;
 `;
 function TagList<T extends object>(

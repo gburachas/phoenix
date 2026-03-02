@@ -1,13 +1,13 @@
+import { css } from "@emotion/react";
 import { useCallback, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { graphql, useMutation } from "react-relay";
-import { css } from "@emotion/react";
 
+import type { CardProps } from "@phoenix/components";
 import {
   Alert,
   Button,
   Card,
-  CardProps,
   Dialog,
   DialogCloseButton,
   DialogContent,
@@ -27,7 +27,7 @@ import {
 import { JSONEditor } from "@phoenix/components/code";
 import { isJSONObjectString } from "@phoenix/utils/jsonUtils";
 
-import { EditExampleDialogMutation } from "./__generated__/EditExampleDialogMutation.graphql";
+import type { EditExampleDialogMutation } from "./__generated__/EditExampleDialogMutation.graphql";
 
 type ExamplePatch = {
   input: string;
@@ -147,12 +147,12 @@ export function EditExampleDialog(props: EditExampleDialogProps) {
           <div
             css={css`
               overflow-y: auto;
-              padding: var(--ac-global-dimension-size-400);
+              padding: var(--global-dimension-size-400);
               /* Make widths configurable */
               .dataset-picker {
                 width: 100%;
-                .ac-dropdown--picker,
-                .ac-dropdown-button {
+                .dropdown--picker,
+                .dropdown__button {
                   width: 100%;
                 }
               }

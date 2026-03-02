@@ -1,3 +1,5 @@
+import z from "zod";
+
 import { anthropicMessageSchema } from "./anthropic/messageSchemas";
 import { anthropicToolCallSchema } from "./anthropic/toolCallSchemas";
 import { anthropicToolChoiceSchema } from "./anthropic/toolChoiceSchemas";
@@ -13,8 +15,6 @@ import { phoenixToolDefinitionSchema } from "./phoenixPrompt/toolSchemas";
 import { vercelAIChatPartToolCallSchema } from "./vercel/messagePartSchemas";
 import { vercelAIMessageSchema } from "./vercel/messageSchemas";
 import { vercelAIToolChoiceSchema } from "./vercel/toolChoiceSchemas";
-
-import z from "zod";
 
 /**
  * Union of all message formats
@@ -61,11 +61,11 @@ export type LlmProviderToolCalls = z.infer<typeof llmProviderToolCallsSchema>;
 export const toolCallHeuristicSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional(),
-  arguments: z.record(z.unknown()).optional(),
+  arguments: z.record(z.string(), z.unknown()).optional(),
   function: z
     .object({
       name: z.string().optional(),
-      arguments: z.record(z.unknown()).optional(),
+      arguments: z.record(z.string(), z.unknown()).optional(),
     })
     .optional(),
 });

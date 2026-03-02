@@ -8,13 +8,16 @@ from strawberry.relay import GlobalID
 
 from phoenix.config import DEFAULT_PROJECT_NAME
 from phoenix.db import models
-from phoenix.db.helpers import exclude_experiment_projects
+from phoenix.db.helpers import (
+    exclude_dataset_evaluator_projects,
+    exclude_experiment_projects,
+)
 from phoenix.server.api.routers.v1.models import V1RoutesBaseModel
 from phoenix.server.api.routers.v1.utils import (
     PaginatedResponseBody,
     ResponseBody,
-    _get_project_by_identifier,
     add_errors_to_responses,
+    get_project_by_identifier,
 )
 from phoenix.server.api.types.Project import Project as ProjectNodeType
 from phoenix.server.authorization import is_not_locked, require_admin
@@ -80,6 +83,10 @@ async def get_projects(
         default=False,
         description="Include experiment projects in the response. Experiment projects are created from running experiments.",  # noqa: E501
     ),
+    include_dataset_evaluator_projects: bool = Query(
+        default=False,
+        description="Include dataset evaluator projects in the response. Dataset evaluator projects are created when running experiments with persisted evaluators.",  # noqa: E501
+    ),
 ) -> GetProjectsResponseBody:
     """
     Retrieve a paginated list of all projects in the system.
@@ -90,6 +97,8 @@ async def get_projects(
         limit (int): Maximum number of projects to return per request.
         include_experiment_projects (bool): Flag to include experiment projects in the response.
             Experiment projects are created from running experiments.
+        include_dataset_evaluator_projects (bool): Flag to include dataset evaluator projects in the response.
+            Dataset evaluator projects are created from running dataset evaluators.
 
     Returns:
         GetProjectsResponseBody: Response containing a list of projects and pagination information.
@@ -100,6 +109,8 @@ async def get_projects(
     stmt = select(models.Project).order_by(models.Project.id.desc())
     if not include_experiment_projects:
         stmt = exclude_experiment_projects(stmt)
+    if not include_dataset_evaluator_projects:
+        stmt = exclude_dataset_evaluator_projects(stmt)
     async with request.app.state.db() as session:
         if cursor:
             try:
@@ -161,7 +172,7 @@ async def get_project(
         HTTPException: If the project identifier format is invalid or the project is not found.
     """  # noqa: E501
     async with request.app.state.db() as session:
-        project = await _get_project_by_identifier(session, project_identifier)
+        project = await get_project_by_identifier(session, project_identifier)
     data = _to_project_response(project)
     return GetProjectResponseBody(data=data)
 
@@ -245,7 +256,7 @@ async def update_project(
         HTTPException: If the project identifier format is invalid or the project is not found.
     """  # noqa: E501
     async with request.app.state.db() as session:
-        project = await _get_project_by_identifier(session, project_identifier)
+        project = await get_project_by_identifier(session, project_identifier)
 
         # Update the description if provided
         if request_body.description is not None:
@@ -292,7 +303,7 @@ async def delete_project(
         HTTPException: If the project identifier format is invalid, the project is not found, or it's the default project.
     """  # noqa: E501
     async with request.app.state.db() as session:
-        project = await _get_project_by_identifier(session, project_identifier)
+        project = await get_project_by_identifier(session, project_identifier)
 
         # The default project must not be deleted - it's forbidden
         if project.name == DEFAULT_PROJECT_NAME:

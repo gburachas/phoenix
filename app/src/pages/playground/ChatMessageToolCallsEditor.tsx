@@ -1,5 +1,5 @@
+import type { JSONSchema7 } from "json-schema";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { JSONSchema7 } from "json-schema";
 
 import { JSONEditor } from "@phoenix/components/code";
 import {

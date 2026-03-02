@@ -21,7 +21,7 @@ from phoenix.otel import register
 tracer_provider = register()
 ```
 
-That's it! By default, `register` sends spans to `http://localhost:4317` using gRPC.
+That's it! By default, `register` reads the `PHOENIX_COLLECTOR_ENDPOINT` environment variable, falling back to `http://localhost:4317` using gRPC if the variable is not set.
 
 ## Configuration
 
@@ -76,7 +76,7 @@ When using the `endpoint` argument, you must specify the fully qualified URL. HT
 | `endpoint` | Collector endpoint URL |
 | `protocol` | Transport protocol: `"grpc"` or `"http/protobuf"` |
 | `headers` | Custom headers for requests |
-| `batch` | Process spans in batch (default: `True`) |
+| `batch` | Process spans in batch (default: `False`) |
 | `auto_instrument` | Auto-instrument supported libraries |
 
 ```python
@@ -89,6 +89,12 @@ tracer_provider = register(
     auto_instrument=True,
 )
 ```
+
+---
+
+<Note>
+Spans may not be exported if still queued in the processor when your process exits. With `batch=True`, call `tracer_provider.shutdown()` to explicitly flush before exit. Alternatively, use `batch=False` for immediate export or a context manager (`with register(...) as tracer_provider`).
+</Note>
 
 ---
 
@@ -180,6 +186,6 @@ tracer_provider = register(
 
 ## Reference Documentation
 
-<Card title="Full API Reference" icon="arrow-up-right-from-square" href="https://arize-phoenix.readthedocs.io/projects/otel/en/latest/">
+<Card title="Full API Reference" icon="arrow-up-right-from-square" href="https://arize-phoenix.readthedocs.io/projects/otel/">
   Complete API documentation for tracing setup, decorators, and OpenTelemetry configuration
 </Card>

@@ -1,11 +1,11 @@
-import { startTransition, useCallback, useMemo } from "react";
-import { graphql, useMutation, useRefetchableFragment } from "react-relay";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { startTransition, useCallback, useMemo } from "react";
+import { graphql, useMutation, useRefetchableFragment } from "react-relay";
 
 import { Flex, Icon, Icons } from "@phoenix/components";
 import { DeleteAPIKeyButton } from "@phoenix/components/auth";
@@ -16,8 +16,8 @@ import { TimestampCell } from "@phoenix/components/table/TimestampCell";
 import { useNotifyError, useNotifySuccess } from "@phoenix/contexts";
 import { getErrorMessagesFromRelayMutationError } from "@phoenix/utils/errorUtils";
 
-import { SystemAPIKeysTableFragment$key } from "./__generated__/SystemAPIKeysTableFragment.graphql";
-import { SystemAPIKeysTableQuery } from "./__generated__/SystemAPIKeysTableQuery.graphql";
+import type { SystemAPIKeysTableFragment$key } from "./__generated__/SystemAPIKeysTableFragment.graphql";
+import type { SystemAPIKeysTableQuery } from "./__generated__/SystemAPIKeysTableQuery.graphql";
 
 export function SystemAPIKeysTable({
   query,
@@ -50,9 +50,7 @@ export function SystemAPIKeysTable({
   const notifyError = useNotifyError();
   const notifySuccess = useNotifySuccess();
   const [commit] = useMutation(graphql`
-    mutation SystemAPIKeysTableDeleteAPIKeyMutation(
-      $input: DeleteApiKeyInput!
-    ) {
+    mutation SystemAPIKeysTableDeleteAPIKeyMutation($input: DeleteApiKeyInput!) {
       deleteSystemApiKey(input: $input) {
         __typename
         apiKeyId
@@ -141,7 +139,6 @@ export function SystemAPIKeysTable({
     ];
     return cols;
   }, [handleDelete]);
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<TableRow>({
     columns,
     data: tableData,

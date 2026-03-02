@@ -1,5 +1,4 @@
-import { useMemo } from "react";
-import { graphql, readInlineData, usePaginationFragment } from "react-relay";
+import { css } from "@emotion/react";
 import {
   type ColumnDef,
   flexRender,
@@ -7,7 +6,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { css } from "@emotion/react";
+import { useMemo } from "react";
+import { graphql, readInlineData, usePaginationFragment } from "react-relay";
 
 import { Link } from "@phoenix/components";
 import { tableCSS } from "@phoenix/components/table/styles";
@@ -16,9 +16,9 @@ import { useViewerCanManageRetentionPolicy } from "@phoenix/contexts/ViewerConte
 import { assertUnreachable } from "@phoenix/typeUtils";
 import { createPolicyScheduleSummaryText } from "@phoenix/utils/retentionPolicyUtils";
 
-import { RetentionPoliciesTable_policies$key } from "./__generated__/RetentionPoliciesTable_policies.graphql";
-import { RetentionPoliciesTable_retentionPolicy$key } from "./__generated__/RetentionPoliciesTable_retentionPolicy.graphql";
-import { RetentionPoliciesTablePoliciesQuery } from "./__generated__/RetentionPoliciesTablePoliciesQuery.graphql";
+import type { RetentionPoliciesTable_policies$key } from "./__generated__/RetentionPoliciesTable_policies.graphql";
+import type { RetentionPoliciesTable_retentionPolicy$key } from "./__generated__/RetentionPoliciesTable_retentionPolicy.graphql";
+import type { RetentionPoliciesTablePoliciesQuery } from "./__generated__/RetentionPoliciesTablePoliciesQuery.graphql";
 import { RetentionPolicyActionMenu } from "./RetentionPolicyActionMenu";
 
 const RETENTION_POLICY_FRAGMENT = graphql`
@@ -70,9 +70,7 @@ export const RetentionPoliciesTable = ({
         first: { type: "Int", defaultValue: 1000 }
       ) {
         projectTraceRetentionPolicies(first: $first, after: $after)
-          @connection(
-            key: "RetentionPoliciesTable_projectTraceRetentionPolicies"
-          ) {
+          @connection(key: "RetentionPoliciesTable_projectTraceRetentionPolicies") {
           edges {
             node {
               ...RetentionPoliciesTable_retentionPolicy
@@ -193,7 +191,6 @@ export const RetentionPoliciesTable = ({
     return columns;
   }, [canManageRetentionPolicy, notifySuccess]);
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     columns,
     data: tableData,

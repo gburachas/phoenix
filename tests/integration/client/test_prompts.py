@@ -20,11 +20,15 @@ from typing import (
 
 import pytest
 from anthropic.types import (
+    MessageParam,
+    TextBlockParam,
     ToolChoiceAnyParam,
     ToolChoiceAutoParam,
     ToolChoiceParam,
     ToolChoiceToolParam,
     ToolParam,
+    ToolResultBlockParam,
+    ToolUseBlockParam,
 )
 from anthropic.types.message_create_params import MessageCreateParamsBase
 from deepdiff.diff import DeepDiff
@@ -37,22 +41,12 @@ from openai.types.chat import (
 )
 from openai.types.chat.completion_create_params import CompletionCreateParamsBase
 from openai.types.shared_params import ResponseFormatJSONSchema
+from phoenix.client.types import PromptVersion
+from phoenix.client.utils.template_formatters import NO_OP_FORMATTER
 from pydantic import BaseModel, create_model
 
 import phoenix as px
-from phoenix.client.types import PromptVersion
-from phoenix.client.utils.template_formatters import NO_OP_FORMATTER
 
-from ...__generated__.graphql import (
-    ChatPromptVersionInput,
-    ContentPartInput,
-    CreateChatPromptInput,
-    PromptChatTemplateInput,
-    PromptMessageInput,
-    ResponseFormatInput,
-    TextContentValueInput,
-    ToolDefinitionInput,
-)
 from .._helpers import (
     _MEMBER,
     _SYSTEM_USER_GID,
@@ -63,6 +57,46 @@ from .._helpers import (
     _GetUser,
     _gql,
 )
+
+
+class TextContentValueInput(BaseModel):
+    text: str
+
+
+class ContentPartInput(BaseModel):
+    text: TextContentValueInput | None = None
+
+
+class PromptMessageInput(BaseModel):
+    role: str
+    content: list[ContentPartInput]
+
+
+class PromptChatTemplateInput(BaseModel):
+    messages: list[PromptMessageInput]
+
+
+class ToolDefinitionInput(BaseModel):
+    definition: dict[str, Any]
+
+
+class ResponseFormatInput(BaseModel):
+    definition: dict[str, Any]
+
+
+class ChatPromptVersionInput(BaseModel):
+    templateFormat: str
+    template: PromptChatTemplateInput
+    invocationParameters: dict[str, Any] = {}
+    modelProvider: str
+    modelName: str
+    tools: list[ToolDefinitionInput] = []
+    responseFormat: ResponseFormatInput | None = None
+
+
+class CreateChatPromptInput(BaseModel):
+    name: str
+    promptVersion: ChatPromptVersionInput
 
 
 class TestUserMessage:
@@ -811,7 +845,7 @@ class TestClient:
                         },
                     ],
                     tools=_ANTHROPIC_TOOLS,
-                    tool_choice={"type": "any"},
+                    tool_choice=ToolChoiceAnyParam(type="any"),
                 ),
                 id="anthropic-tools",
             ),
@@ -853,34 +887,34 @@ class TestClient:
                     top_p=random(),
                     stop_sequences=[token_hex(8), token_hex(8)],
                     messages=[
-                        {
-                            "role": "user",
-                            "content": "What's the temperature and population in Los Angeles?",
-                        },
-                        {
-                            "role": "assistant",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": "I'll call these functions",
-                                },
-                                {
-                                    "type": "tool_use",
-                                    "id": token_hex(8),
-                                    "name": "get_weather",
-                                    "input": '{"city": "Los Angeles"}',
-                                },
-                                {
-                                    "type": "tool_use",
-                                    "id": token_hex(8),
-                                    "name": "get_population",
-                                    "input": '{"location": "Los Angeles"}',
-                                },
+                        MessageParam(
+                            role="user",
+                            content="What's the temperature and population in Los Angeles?",
+                        ),
+                        MessageParam(
+                            role="assistant",
+                            content=[
+                                TextBlockParam(
+                                    type="text",
+                                    text="I'll call these functions",
+                                ),
+                                ToolUseBlockParam(
+                                    type="tool_use",
+                                    id=token_hex(8),
+                                    name="get_weather",
+                                    input='{"city": "Los Angeles"}',  # type: ignore[typeddict-item]
+                                ),
+                                ToolUseBlockParam(
+                                    type="tool_use",
+                                    id=token_hex(8),
+                                    name="get_population",
+                                    input='{"location": "Los Angeles"}',  # type: ignore[typeddict-item]
+                                ),
                             ],
-                        },
+                        ),
                     ],
                     tools=_ANTHROPIC_TOOLS,
-                    tool_choice={"type": "any"},
+                    tool_choice=ToolChoiceAnyParam(type="any"),
                 ),
                 id="anthropic-tool-use",
             ),
@@ -894,53 +928,53 @@ class TestClient:
                     top_p=random(),
                     stop_sequences=[token_hex(8), token_hex(8)],
                     messages=[
-                        {
-                            "role": "user",
-                            "content": "What's the temperature and population in Los Angeles?",
-                        },
-                        {
-                            "role": "assistant",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": "I'll call these functions",
-                                },
-                                {
-                                    "type": "tool_use",
-                                    "id": token_hex(8),
-                                    "name": "get_weather",
-                                    "input": '{"city": "Los Angeles"}',
-                                },
-                                {
-                                    "type": "tool_use",
-                                    "id": token_hex(8),
-                                    "name": "get_population",
-                                    "input": '{"location": "Los Angeles"}',
-                                },
+                        MessageParam(
+                            role="user",
+                            content="What's the temperature and population in Los Angeles?",
+                        ),
+                        MessageParam(
+                            role="assistant",
+                            content=[
+                                TextBlockParam(
+                                    type="text",
+                                    text="I'll call these functions",
+                                ),
+                                ToolUseBlockParam(
+                                    type="tool_use",
+                                    id=token_hex(8),
+                                    name="get_weather",
+                                    input='{"city": "Los Angeles"}',  # type: ignore[typeddict-item]
+                                ),
+                                ToolUseBlockParam(
+                                    type="tool_use",
+                                    id=token_hex(8),
+                                    name="get_population",
+                                    input='{"location": "Los Angeles"}',  # type: ignore[typeddict-item]
+                                ),
                             ],
-                        },
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": "These are function results",
-                                },
-                                {
-                                    "type": "tool_result",
-                                    "tool_use_id": token_hex(8),
-                                    "content": "temp is hot",
-                                },
-                                {
-                                    "type": "tool_result",
-                                    "tool_use_id": token_hex(8),
-                                    "content": "pop is large",
-                                },
+                        ),
+                        MessageParam(
+                            role="user",
+                            content=[
+                                TextBlockParam(
+                                    type="text",
+                                    text="These are function results",
+                                ),
+                                ToolResultBlockParam(
+                                    type="tool_result",
+                                    tool_use_id=token_hex(8),
+                                    content="temp is hot",
+                                ),
+                                ToolResultBlockParam(
+                                    type="tool_result",
+                                    tool_use_id=token_hex(8),
+                                    content="pop is large",
+                                ),
                             ],
-                        },
+                        ),
                     ],
                     tools=_ANTHROPIC_TOOLS,
-                    tool_choice={"type": "any"},
+                    tool_choice=ToolChoiceAnyParam(type="any"),
                 ),
                 id="anthropic-tool-result-string",
             ),
@@ -954,61 +988,61 @@ class TestClient:
                     top_p=random(),
                     stop_sequences=[token_hex(8), token_hex(8)],
                     messages=[
-                        {
-                            "role": "user",
-                            "content": "What's the temperature and population in Los Angeles?",
-                        },
-                        {
-                            "role": "assistant",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": "I'll call these functions",
-                                },
-                                {
-                                    "type": "tool_use",
-                                    "id": token_hex(8),
-                                    "name": "get_weather",
-                                    "input": '{"city": "Los Angeles"}',
-                                },
-                                {
-                                    "type": "tool_use",
-                                    "id": token_hex(8),
-                                    "name": "get_population",
-                                    "input": '{"location": "Los Angeles"}',
-                                },
+                        MessageParam(
+                            role="user",
+                            content="What's the temperature and population in Los Angeles?",
+                        ),
+                        MessageParam(
+                            role="assistant",
+                            content=[
+                                TextBlockParam(
+                                    type="text",
+                                    text="I'll call these functions",
+                                ),
+                                ToolUseBlockParam(
+                                    type="tool_use",
+                                    id=token_hex(8),
+                                    name="get_weather",
+                                    input='{"city": "Los Angeles"}',  # type: ignore[typeddict-item]
+                                ),
+                                ToolUseBlockParam(
+                                    type="tool_use",
+                                    id=token_hex(8),
+                                    name="get_population",
+                                    input='{"location": "Los Angeles"}',  # type: ignore[typeddict-item]
+                                ),
                             ],
-                        },
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": "These are function results",
-                                },
-                                {
-                                    "type": "tool_result",
-                                    "tool_use_id": token_hex(8),
-                                    "content": [
-                                        {"type": "text", "text": "temp"},
-                                        {"type": "text", "text": "is"},
-                                        {"type": "text", "text": "hot"},
+                        ),
+                        MessageParam(
+                            role="user",
+                            content=[
+                                TextBlockParam(
+                                    type="text",
+                                    text="These are function results",
+                                ),
+                                ToolResultBlockParam(
+                                    type="tool_result",
+                                    tool_use_id=token_hex(8),
+                                    content=[
+                                        TextBlockParam(type="text", text="temp"),
+                                        TextBlockParam(type="text", text="is"),
+                                        TextBlockParam(type="text", text="hot"),
                                     ],
-                                },
-                                {
-                                    "type": "tool_result",
-                                    "tool_use_id": token_hex(8),
-                                    "content": [
-                                        {"type": "text", "text": "pop"},
-                                        {"type": "text", "text": "is"},
-                                        {"type": "text", "text": "large"},
+                                ),
+                                ToolResultBlockParam(
+                                    type="tool_result",
+                                    tool_use_id=token_hex(8),
+                                    content=[
+                                        TextBlockParam(type="text", text="pop"),
+                                        TextBlockParam(type="text", text="is"),
+                                        TextBlockParam(type="text", text="large"),
                                     ],
-                                },
+                                ),
                             ],
-                        },
+                        ),
                     ],
                     tools=_ANTHROPIC_TOOLS,
-                    tool_choice={"type": "any"},
+                    tool_choice=ToolChoiceAnyParam(type="any"),
                 ),
                 id="anthropic-tool-result-list",
             ),

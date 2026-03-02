@@ -4,18 +4,18 @@ import { fieldPopoverCSS } from "../field/styles";
 
 export const comboBoxCSS = css`
   &[data-size="M"] {
-    --combobox-input-height: var(--ac-global-input-height-s);
+    --combobox-input-height: var(--global-input-height-s);
     --combobox-vertical-padding: 6px;
-    --combobox-start-padding: var(--ac-global-dimension-static-size-100);
-    --combobox-end-padding: var(--ac-global-dimension-static-size-50);
+    --combobox-start-padding: var(--global-dimension-static-size-100);
+    --combobox-end-padding: var(--global-dimension-static-size-50);
   }
   &[data-size="L"] {
-    --combobox-input-height: var(--ac-global-input-height-m);
+    --combobox-input-height: var(--global-input-height-m);
     --combobox-vertical-padding: 10px;
-    --combobox-start-padding: var(--ac-global-dimension-static-size-200);
-    --combobox-end-padding: var(--ac-global-dimension-static-size-100);
+    --combobox-start-padding: var(--global-dimension-static-size-200);
+    --combobox-end-padding: var(--global-dimension-static-size-100);
   }
-  color: var(--ac-global-text-color-900);
+  color: var(--global-text-color-900);
   &[data-required] {
     .react-aria-Label {
       &::after {
@@ -24,7 +24,7 @@ export const comboBoxCSS = css`
     }
   }
 
-  .px-combobox-container {
+  .combobox__container {
     display: flex;
     flex-direction: row;
     min-width: 200px;
@@ -35,8 +35,6 @@ export const comboBoxCSS = css`
       box-sizing: border-box;
       padding: var(--combobox-vertical-padding) var(--combobox-end-padding)
         var(--combobox-vertical-padding) var(--combobox-start-padding);
-      &:hover:not([disabled]) {
-        background-color: var(--ac-global-input-field-border-color-hover);
       }
     }
     .react-aria-Button {
@@ -53,7 +51,7 @@ export const comboBoxCSS = css`
       cursor: pointer;
 
       &[data-disabled] {
-        opacity: var(--ac-global-opacity-disabled);
+        opacity: var(--global-opacity-disabled);
       }
     }
   }
@@ -78,15 +76,15 @@ export const comboBoxItemCSS = css`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--ac-global-text-color-900);
-  padding: var(--ac-global-dimension-static-size-100)
-    var(--ac-global-dimension-static-size-200);
-  font-size: var(--ac-global-dimension-static-font-size-100);
+  color: var(--global-text-color-900);
+  padding: var(--global-dimension-static-size-100)
+    var(--global-dimension-static-size-200);
+  font-size: var(--global-dimension-static-font-size-100);
   cursor: pointer;
   position: relative;
-  & > .ac-icon-wrap.px-menu-item__selected-checkmark {
-    height: var(--ac-global-dimension-static-size-200);
-    width: var(--ac-global-dimension-static-size-200);
+  & > .icon-wrap.menu-item__selected-checkmark {
+    height: var(--global-dimension-static-size-200);
+    width: var(--global-dimension-static-size-200);
   }
   &[href] {
     text-decoration: none;
@@ -94,17 +92,17 @@ export const comboBoxItemCSS = css`
   }
   &[data-selected] {
     i {
-      color: var(--ac-global-color-primary);
+      color: var(--global-color-primary);
     }
   }
   &[data-focused],
   &[data-hovered] {
-    background-color: var(--ac-global-menu-item-background-color-hover);
+    background-color: var(--global-menu-item-background-color-hover);
   }
 
   &[data-disabled] {
     cursor: not-allowed;
-    color: var(--ac-global-color-text-30);
+    color: var(--global-color-text-30);
   }
   &[data-focus-visible] {
     outline: none;

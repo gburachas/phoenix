@@ -1,11 +1,11 @@
+import { css } from "@emotion/react";
 import { Suspense } from "react";
+import type { PreloadedQuery } from "react-relay";
 import {
   graphql,
-  PreloadedQuery,
   usePreloadedQuery,
   useRefetchableFragment,
 } from "react-relay";
-import { css } from "@emotion/react";
 
 import {
   Button,
@@ -26,8 +26,8 @@ import {
 } from "@phoenix/components";
 import { useProjectContext } from "@phoenix/contexts";
 
-import { ProjectConfigPage_projectConfigCard$key } from "./__generated__/ProjectConfigPage_projectConfigCard.graphql";
-import { ProjectPageQueriesProjectConfigQuery as ProjectPageProjectConfigQueryType } from "./__generated__/ProjectPageQueriesProjectConfigQuery.graphql";
+import type { ProjectConfigPage_projectConfigCard$key } from "./__generated__/ProjectConfigPage_projectConfigCard.graphql";
+import type { ProjectPageQueriesProjectConfigQuery as ProjectPageProjectConfigQueryType } from "./__generated__/ProjectPageQueriesProjectConfigQuery.graphql";
 import { isProjectTab } from "./constants";
 import { ProjectAnnotationConfigCard } from "./ProjectAnnotationConfigCard";
 import {
@@ -40,7 +40,7 @@ const projectConfigPageCSS = css`
 `;
 
 const projectConfigPageInnerCSS = css`
-  padding: var(--ac-global-dimension-size-400);
+  padding: var(--global-dimension-size-400);
   max-width: 800px;
   min-width: 500px;
   box-sizing: border-box;
@@ -54,7 +54,7 @@ const gradientPreviewCSS = css`
   height: 75px;
   flex: none;
   border-radius: 50%;
-  margin-top: var(--ac-global-dimension-size-100);
+  margin-top: var(--global-dimension-size-100);
 `;
 
 export const ProjectConfigPage = () => {
@@ -126,8 +126,8 @@ const ProjectConfigCard = ({
           <div
             css={css`
               width: 100%;
-              .ac-dropdown,
-              .ac-dropdown-button {
+              .dropdown,
+              .dropdown__button {
                 width: 100%;
               }
             `}

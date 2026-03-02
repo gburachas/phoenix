@@ -1,3 +1,15 @@
+import { css } from "@emotion/react";
+import type {
+  ColumnDef,
+  OnChangeFn,
+  SortingState,
+} from "@tanstack/react-table";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { formatDistance } from "date-fns";
 import {
   memo,
   startTransition,
@@ -16,22 +28,12 @@ import {
   useRelayEnvironment,
 } from "react-relay";
 import { useNavigate } from "react-router";
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  OnChangeFn,
-  SortingState,
-  useReactTable,
-} from "@tanstack/react-table";
-import { formatDistance } from "date-fns";
-import { Subscription } from "relay-runtime";
-import { css } from "@emotion/react";
+import type { Subscription } from "relay-runtime";
 
+import type { FlexProps } from "@phoenix/components";
 import {
   DebouncedSearch,
   Flex,
-  FlexProps,
   Heading,
   Icon,
   Icons,
@@ -58,23 +60,23 @@ import {
   usePreferencesContext,
   useViewerCanModify,
 } from "@phoenix/contexts";
-import {
+import type {
   ProjectsPageProjectMetricsQuery,
   ProjectsPageProjectMetricsQuery$data,
 } from "@phoenix/pages/projects/__generated__/ProjectsPageProjectMetricsQuery.graphql";
 import { ProjectViewModeToggle } from "@phoenix/pages/projects/ProjectViewModeToggle";
-import { ProjectSortOrder } from "@phoenix/store/preferencesStore";
+import type { ProjectSortOrder } from "@phoenix/store/preferencesStore";
 import { intFormatter } from "@phoenix/utils/numberFormatUtils";
 
-import {
+import type {
   ProjectsPageProjectsFragment$data,
   ProjectsPageProjectsFragment$key,
 } from "./__generated__/ProjectsPageProjectsFragment.graphql";
-import {
+import type {
   ProjectSort,
   ProjectsPageProjectsQuery,
 } from "./__generated__/ProjectsPageProjectsQuery.graphql";
-import { ProjectsPageQuery } from "./__generated__/ProjectsPageQuery.graphql";
+import type { ProjectsPageQuery } from "./__generated__/ProjectsPageQuery.graphql";
 import { NewProjectButton } from "./NewProjectButton";
 import { ProjectActionMenu } from "./ProjectActionMenu";
 
@@ -317,7 +319,7 @@ export function ProjectsPageContent({
       <View
         padding="size-200"
         width="100%"
-        borderBottomColor="grey-200"
+        borderBottomColor="gray-200"
         borderBottomWidth="thin"
         flex="none"
       >
@@ -438,9 +440,9 @@ function ProjectsGrid({
           display: grid;
           grid-template-columns: repeat(
             auto-fill,
-            minmax(var(--ac-global-dimension-size-3600), 1fr)
+            minmax(var(--global-dimension-size-3600), 1fr)
           );
-          gap: var(--ac-global-dimension-size-200);
+          gap: var(--global-dimension-size-200);
         `}
       >
         {projects?.map((project) => (
@@ -518,20 +520,20 @@ function ProjectItem({
   return (
     <div
       css={css`
-        padding: var(--ac-global-dimension-size-200);
-        border: 1px solid var(--ac-global-color-grey-100);
+        padding: var(--global-dimension-size-200);
+        border: 1px solid var(--global-color-gray-100);
         box-shadow:
-          0 0 1px 0px var(--ac-global-color-grey-400) inset,
-          0 0 1px 0px var(--ac-global-color-grey-400);
-        border-radius: var(--ac-global-rounding-medium);
+          0 0 1px 0px var(--global-color-gray-400) inset,
+          0 0 1px 0px var(--global-color-gray-400);
+        border-radius: var(--global-rounding-medium);
         transition: border-color 0.2s;
         &:hover {
-          border-color: var(--ac-global-color-primary);
+          border-color: var(--global-color-primary);
         }
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        gap: var(--ac-global-dimension-size-200);
+        gap: var(--global-dimension-size-200);
         height: 100%;
       `}
     >
@@ -829,7 +831,6 @@ function ProjectsTable({
     },
     [setProjectSortOrder, sortingRowModel, onSort]
   );
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: projects,
     columns,

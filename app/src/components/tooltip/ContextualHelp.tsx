@@ -1,14 +1,11 @@
-import { PropsWithChildren } from "react";
-import { TooltipTrigger } from "react-aria-components";
 import { css } from "@emotion/react";
+import type { PropsWithChildren } from "react";
+import { TooltipTrigger } from "react-aria-components";
 
-import {
-  Button,
-  Icon,
-  Icons,
-  Tooltip,
-  TooltipProps,
-} from "@phoenix/components";
+import { Button } from "../button";
+import { Icon, Icons } from "../icon";
+import { Tooltip } from "./Tooltip";
+import type { TooltipProps } from "./types";
 
 const getIconByVariant = (variant: ContextualHelpProps["variant"]) => {
   switch (variant) {
@@ -40,8 +37,8 @@ export const ContextualHelp = ({
             all: unset;
             height: 14px !important;
             width: 14px !important;
-            padding: var(--ac-global-dimension-size-50) !important;
-            border-radius: var(--ac-global-rounding-small);
+            padding: var(--global-dimension-size-50) !important;
+            border-radius: var(--global-rounding-small);
             svg {
               height: 14px;
               width: 14px;

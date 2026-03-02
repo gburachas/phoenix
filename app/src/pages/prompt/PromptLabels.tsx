@@ -1,14 +1,14 @@
-import { graphql, useFragment } from "react-relay";
 import { css } from "@emotion/react";
+import { graphql, useFragment } from "react-relay";
 
 import { Text, Token } from "@phoenix/components";
-import { PromptLabels$key } from "@phoenix/pages/prompt/__generated__/PromptLabels.graphql";
+import type { PromptLabels$key } from "@phoenix/pages/prompt/__generated__/PromptLabels.graphql";
 
 const ulCSS = css`
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: var(--ac-global-dimension-size-50);
+  gap: var(--global-dimension-size-50);
 `;
 export function PromptLabels({ prompt }: { prompt: PromptLabels$key }) {
   const data = useFragment<PromptLabels$key>(
@@ -30,7 +30,7 @@ export function PromptLabels({ prompt }: { prompt: PromptLabels$key }) {
     <ul css={ulCSS}>
       {data.labels.map((label) => (
         <li key={label.name}>
-          <Token size="M" color={label.color}>
+          <Token size="M" color={label.color ?? undefined}>
             {label.name}
           </Token>
         </li>

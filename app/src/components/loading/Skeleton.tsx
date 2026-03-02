@@ -1,9 +1,10 @@
-import { forwardRef, HTMLAttributes } from "react";
 import { css, keyframes } from "@emotion/react";
+import type { HTMLAttributes } from "react";
+import { forwardRef } from "react";
 
 import { classNames } from "@phoenix/utils";
 
-import { BorderRadiusToken } from "../types/sizing";
+import type { BorderRadiusToken } from "../types/sizing";
 
 // Export the AnimationType so it can be used in stories
 export type AnimationType = "pulse" | "wave" | false;
@@ -62,7 +63,7 @@ const waveKeyframes = keyframes`
 
 const skeletonStyles = css`
   display: block;
-  background-color: var(--ac-global-color-grey-200);
+  background-color: var(--global-color-gray-200);
 `;
 
 const pulseAnimation = css`
@@ -80,7 +81,7 @@ const waveAnimation = css`
     background: linear-gradient(
       90deg,
       transparent,
-      var(--ac-global-color-grey-300),
+      var(--global-color-gray-300),
       transparent
     );
     content: "";
@@ -103,13 +104,13 @@ const getBorderRadius = (radius: SkeletonProps["borderRadius"]) => {
       case "none":
         return "0";
       case "XS":
-        return "var(--ac-global-rounding-xsmall)";
+        return "var(--global-rounding-xsmall)";
       case "S":
-        return "var(--ac-global-rounding-small)";
+        return "var(--global-rounding-small)";
       case "M":
-        return "var(--ac-global-rounding-medium)";
+        return "var(--global-rounding-medium)";
       case "L":
-        return "var(--ac-global-rounding-large)";
+        return "var(--global-rounding-large)";
       case "circle":
         return "50%";
       default:
@@ -117,7 +118,7 @@ const getBorderRadius = (radius: SkeletonProps["borderRadius"]) => {
     }
   }
 
-  return "var(--ac-global-rounding-medium)";
+  return "var(--global-rounding-medium)";
 };
 
 /**
@@ -143,7 +144,7 @@ export const Skeleton = forwardRef<HTMLSpanElement, SkeletonProps>(
     return (
       <span
         ref={ref}
-        className={classNames(className, "ac-skeleton")}
+        className={classNames(className, "skeleton")}
         css={[
           skeletonStyles,
           animation === "pulse" && pulseAnimation,

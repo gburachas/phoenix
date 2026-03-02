@@ -1,3 +1,19 @@
+import { css } from "@emotion/react";
+import type {
+  AccessorFnColumnDef,
+  AccessorKeyColumnDef,
+  HeaderContext,
+  SortingState,
+  Table,
+} from "@tanstack/react-table";
+import {
+  createColumnHelper,
+  flexRender,
+  getCoreRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   memo,
   startTransition,
@@ -7,28 +23,14 @@ import {
   useRef,
   useState,
 } from "react";
+import type { PreloadedQuery } from "react-relay";
 import {
   graphql,
-  PreloadedQuery,
   useFragment,
   usePaginationFragment,
   usePreloadedQuery,
 } from "react-relay";
 import { useSearchParams } from "react-router";
-import {
-  AccessorFnColumnDef,
-  AccessorKeyColumnDef,
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  HeaderContext,
-  SortingState,
-  Table,
-  useReactTable,
-} from "@tanstack/react-table";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { css } from "@emotion/react";
 
 import {
   ColorSwatch,
@@ -42,7 +44,11 @@ import {
   Text,
   View,
 } from "@phoenix/components";
-import { AnnotationColorSwatch } from "@phoenix/components/annotation";
+import {
+  AnnotationColorSwatch,
+  type AnnotationConfig,
+  getPositiveOptimizationFromConfig,
+} from "@phoenix/components/annotation";
 import { JSONText } from "@phoenix/components/code/JSONText";
 import { useExperimentColors } from "@phoenix/components/experiment";
 import { borderedTableCSS, tableCSS } from "@phoenix/components/table/styles";
@@ -54,12 +60,13 @@ import {
   TriggerWrap,
 } from "@phoenix/components/tooltip";
 import { LineClamp } from "@phoenix/components/utility/LineClamp";
-import { ExperimentCompareListPageQuery } from "@phoenix/pages/experiment/__generated__/ExperimentCompareListPageQuery.graphql";
+import type { ExperimentCompareListPageQuery } from "@phoenix/pages/experiment/__generated__/ExperimentCompareListPageQuery.graphql";
 import type { ExperimentComparePageQueriesCompareListQuery as ExperimentComparePageQueriesCompareListQueryType } from "@phoenix/pages/experiment/__generated__/ExperimentComparePageQueriesCompareListQuery.graphql";
 import { ExperimentCompareDetailsDialog } from "@phoenix/pages/experiment/ExperimentCompareDetailsDialog";
 import { ExperimentComparePageQueriesCompareListQuery } from "@phoenix/pages/experiment/ExperimentComparePageQueries";
 import { TraceDetailsDialog } from "@phoenix/pages/experiment/TraceDetailsDialog";
 import { isObject } from "@phoenix/typeUtils";
+import { datasetEvaluatorsToAnnotationConfigs } from "@phoenix/utils/datasetEvaluatorUtils";
 import {
   costFormatter,
   floatFormatter,
@@ -186,6 +193,29 @@ export function ExperimentCompareListPage({
                   }
                 }
               }
+              datasetEvaluators(first: 100) {
+                edges {
+                  node {
+                    name
+                    outputConfigs {
+                      ... on CategoricalAnnotationConfig {
+                        name
+                        optimizationDirection
+                        values {
+                          label
+                          score
+                        }
+                      }
+                      ... on ContinuousAnnotationConfig {
+                        name
+                        optimizationDirection
+                        lowerBound
+                        upperBound
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -307,6 +337,24 @@ export function ExperimentCompareListPage({
         )
     );
   }, [aggregateData?.dataset]);
+
+  const annotationConfigs = useMemo(() => {
+    const evaluators =
+      aggregateData?.dataset.datasetEvaluators?.edges.map(
+        (edge) => edge.node
+      ) ?? [];
+    return datasetEvaluatorsToAnnotationConfigs(evaluators);
+  }, [aggregateData?.dataset.datasetEvaluators?.edges]);
+
+  const annotationConfigsByName = useMemo(() => {
+    return annotationConfigs.reduce(
+      (acc, config) => {
+        acc[config.name] = config;
+        return acc;
+      },
+      {} as Record<string, AnnotationConfig>
+    );
+  }, [annotationConfigs]);
 
   const datasetId = aggregateData?.dataset.id;
   const baseExperiment = experiments[0];
@@ -544,7 +592,7 @@ export function ExperimentCompareListPage({
             css={css`
               display: flex;
               flex-direction: column;
-              gap: var(--ac-global-dimension-size-50);
+              gap: var(--global-dimension-size-50);
             `}
           >
             <li>
@@ -591,7 +639,7 @@ export function ExperimentCompareListPage({
                       </TextOverflow>
                     </ContentPreviewTooltip>
                   ) : (
-                    <Text size="S" fontFamily="mono" color="grey-500">
+                    <Text size="S" fontFamily="mono" color="gray-500">
                       not run
                     </Text>
                   )}
@@ -612,7 +660,7 @@ export function ExperimentCompareListPage({
             css={css`
               display: flex;
               flex-direction: column;
-              gap: var(--ac-global-dimension-size-50);
+              gap: var(--global-dimension-size-50);
             `}
           >
             {experiments.map((experiment) => {
@@ -623,7 +671,7 @@ export function ExperimentCompareListPage({
               return (
                 <li key={experiment.id}>
                   <Flex direction="row" gap="size-100" alignItems="center">
-                    <Text size="S" fontFamily="mono" color="grey-500">
+                    <Text size="S" fontFamily="mono" color="gray-500">
                       AVG
                     </Text>
                     <Text size="S" fontFamily="mono">
@@ -646,7 +694,7 @@ export function ExperimentCompareListPage({
             css={css`
               display: flex;
               flex-direction: column;
-              gap: var(--ac-global-dimension-size-50);
+              gap: var(--global-dimension-size-50);
             `}
           >
             <li>
@@ -711,13 +759,13 @@ export function ExperimentCompareListPage({
             css={css`
               display: flex;
               flex-direction: column;
-              gap: var(--ac-global-dimension-size-50);
+              gap: var(--global-dimension-size-50);
             `}
           >
             {experiments.map((experiment) => (
               <li key={experiment.id}>
                 <Flex direction="row" gap="size-100" alignItems="center">
-                  <Text size="S" fontFamily="mono" color="grey-500">
+                  <Text size="S" fontFamily="mono" color="gray-500">
                     AVG
                   </Text>
                   <Text size="S" fontFamily="mono">
@@ -739,7 +787,7 @@ export function ExperimentCompareListPage({
             css={css`
               display: flex;
               flex-direction: column;
-              gap: var(--ac-global-dimension-size-50);
+              gap: var(--global-dimension-size-50);
             `}
           >
             <li>
@@ -777,7 +825,7 @@ export function ExperimentCompareListPage({
             css={css`
               display: flex;
               flex-direction: column;
-              gap: var(--ac-global-dimension-size-50);
+              gap: var(--global-dimension-size-50);
             `}
           >
             {experiments.map((experiment) => {
@@ -788,7 +836,7 @@ export function ExperimentCompareListPage({
               return (
                 <li key={experiment.id}>
                   <Flex direction="row" gap="size-100" alignItems="center">
-                    <Text size="S" fontFamily="mono" color="grey-500">
+                    <Text size="S" fontFamily="mono" color="gray-500">
                       AVG
                     </Text>
                     <Text size="S" fontFamily="mono">
@@ -811,7 +859,7 @@ export function ExperimentCompareListPage({
             css={css`
               display: flex;
               flex-direction: column;
-              gap: var(--ac-global-dimension-size-50);
+              gap: var(--global-dimension-size-50);
             `}
           >
             <li>
@@ -916,7 +964,7 @@ export function ExperimentCompareListPage({
                     css={css`
                       display: flex;
                       flex-direction: column;
-                      gap: var(--ac-global-dimension-size-25);
+                      gap: var(--global-dimension-size-25);
                     `}
                   >
                     {experiments.map((experiment, index) => {
@@ -942,7 +990,7 @@ export function ExperimentCompareListPage({
                             gap="size-100"
                             alignItems="center"
                           >
-                            <Text size="S" fontFamily="mono" color="grey-500">
+                            <Text size="S" fontFamily="mono" color="gray-500">
                               AVG
                             </Text>
                             <Text size="S" fontFamily="mono">
@@ -955,7 +1003,7 @@ export function ExperimentCompareListPage({
                           "number" ? (
                             <ProgressBar
                               width="100%"
-                              height="var(--ac-global-dimension-size-25)"
+                              height="var(--global-dimension-size-25)"
                               value={calculateAnnotationScorePercentile(
                                 experimentAnnotationSummary.meanScore,
                                 annotationSummary.minScore,
@@ -980,6 +1028,8 @@ export function ExperimentCompareListPage({
                 baseExperimentRunAnnotation,
                 compareExperimentRunAnnotations,
               } = getValue();
+              const annotationConfig =
+                annotationConfigsByName[annotationSummary.annotationName];
               const baseExperimentRunAnnotationValue = getAnnotationValue(
                 baseExperimentRunAnnotation
               );
@@ -987,40 +1037,29 @@ export function ExperimentCompareListPage({
                 typeof baseExperimentRunAnnotationValue === "number"
                   ? numberFormatter(baseExperimentRunAnnotationValue)
                   : baseExperimentRunAnnotationValue;
+              const basePositiveOptimization =
+                getPositiveOptimizationFromConfig({
+                  config: annotationConfig,
+                  score: baseExperimentRunAnnotation?.score,
+                });
 
               return (
                 <ul
                   css={css`
                     display: flex;
                     flex-direction: column;
-                    gap: var(--ac-global-dimension-size-25);
+                    gap: var(--global-dimension-size-25);
                   `}
                 >
-                  <li
-                    css={css`
-                      --mod-barloader-fill-color: ${baseExperimentColor};
-                    `}
-                  >
-                    <Flex direction="row" gap="size-100" alignItems="center">
-                      <Text size="S" fontFamily="mono">
-                        {baseExperimentRunAnnotationValueFormatted}
-                      </Text>
-                    </Flex>
-                    {typeof baseExperimentRunAnnotationValue === "number" ? (
-                      <ProgressBar
-                        width="100%"
-                        height="var(--ac-global-dimension-size-25)"
-                        value={calculateAnnotationScorePercentile(
-                          baseExperimentRunAnnotationValue,
-                          annotationSummary.minScore,
-                          annotationSummary.maxScore
-                        )}
-                        aria-label={`${annotationSummary.annotationName} score`}
-                      />
-                    ) : (
-                      <ProgressBarPlaceholder />
-                    )}
-                  </li>
+                  <AnnotationValueItem
+                    value={baseExperimentRunAnnotationValueFormatted}
+                    numericValue={baseExperimentRunAnnotationValue}
+                    positiveOptimization={basePositiveOptimization}
+                    barColor={baseExperimentColor}
+                    minScore={annotationSummary.minScore}
+                    maxScore={annotationSummary.maxScore}
+                    annotationName={annotationSummary.annotationName}
+                  />
                   {compareExperimentRunAnnotations.map(
                     (
                       annotation: CompareExperimentRunAnnotation | undefined,
@@ -1033,37 +1072,22 @@ export function ExperimentCompareListPage({
                           ? numberFormatter(compareAnnotationValue)
                           : compareAnnotationValue;
                       const color = getExperimentColor(index);
+                      const positiveOptimization =
+                        getPositiveOptimizationFromConfig({
+                          config: annotationConfig,
+                          score: annotation?.score,
+                        });
                       return (
-                        <li
+                        <AnnotationValueItem
                           key={index}
-                          css={css`
-                            --mod-barloader-fill-color: ${color};
-                          `}
-                        >
-                          <Flex
-                            direction="row"
-                            gap="size-100"
-                            alignItems="center"
-                          >
-                            <Text size="S" fontFamily="mono">
-                              {compareAnnotationValueFormatted}
-                            </Text>
-                          </Flex>
-                          {typeof compareAnnotationValue === "number" ? (
-                            <ProgressBar
-                              width="100%"
-                              height="var(--ac-global-dimension-size-25)"
-                              value={calculateAnnotationScorePercentile(
-                                compareAnnotationValue,
-                                annotationSummary.minScore,
-                                annotationSummary.maxScore
-                              )}
-                              aria-label={`${annotationSummary.annotationName} score`}
-                            />
-                          ) : (
-                            <ProgressBarPlaceholder />
-                          )}
-                        </li>
+                          value={compareAnnotationValueFormatted}
+                          numericValue={compareAnnotationValue}
+                          positiveOptimization={positiveOptimization}
+                          barColor={color}
+                          minScore={annotationSummary.minScore}
+                          maxScore={annotationSummary.maxScore}
+                          annotationName={annotationSummary.annotationName}
+                        />
                       );
                     }
                   )}
@@ -1086,6 +1110,7 @@ export function ExperimentCompareListPage({
     ];
     return columns;
   }, [
+    annotationConfigsByName,
     annotationSummaries,
     baseExperimentColor,
     columnHelper,
@@ -1215,7 +1240,7 @@ export function ExperimentCompareListPage({
                       style={{
                         width: `calc(var(--header-${makeSafeColumnId(header?.id)}-size) * 1px)`,
                         padding:
-                          "var(--ac-global-dimension-size-175) var(--ac-global-dimension-size-200)",
+                          "var(--global-dimension-size-175) var(--global-dimension-size-200)",
                       }}
                     >
                       {header.isPlaceholder ? null : (
@@ -1332,6 +1357,80 @@ export function ExperimentCompareListPage({
   );
 }
 
+/**
+ * A single annotation value item with optimization direction coloring
+ */
+function AnnotationValueItem({
+  value,
+  numericValue,
+  positiveOptimization,
+  barColor,
+  minScore,
+  maxScore,
+  annotationName,
+}: {
+  value: string | number;
+  numericValue: string | number;
+  positiveOptimization: boolean | null;
+  barColor: string;
+  minScore: number | null;
+  maxScore: number | null;
+  annotationName: string;
+}) {
+  const bgColor =
+    positiveOptimization === true
+      ? "var(--global-color-success-100)"
+      : positiveOptimization === false
+        ? "var(--global-color-danger-100)"
+        : undefined;
+  const textColor =
+    positiveOptimization === true
+      ? "success"
+      : positiveOptimization === false
+        ? "danger"
+        : undefined;
+  const optimizedBarColor =
+    positiveOptimization === true
+      ? "var(--global-color-success-500)"
+      : positiveOptimization === false
+        ? "var(--global-color-danger-500)"
+        : barColor;
+
+  return (
+    <li
+      css={css`
+        --mod-barloader-fill-color: ${optimizedBarColor};
+        ${bgColor ? `background-color: ${bgColor};` : ""}
+        padding: var(--global-dimension-size-25)
+          var(--global-dimension-size-50);
+        border-radius: var(--global-rounding-small);
+        margin: calc(-1 * var(--global-dimension-size-25))
+          calc(-1 * var(--global-dimension-size-50));
+      `}
+    >
+      <Flex direction="row" gap="size-100" alignItems="center">
+        <Text size="S" fontFamily="mono" color={textColor}>
+          {value}
+        </Text>
+      </Flex>
+      {typeof numericValue === "number" ? (
+        <ProgressBar
+          width="100%"
+          height="var(--global-dimension-size-25)"
+          value={calculateAnnotationScorePercentile(
+            numericValue,
+            minScore,
+            maxScore
+          )}
+          aria-label={`${annotationName} score`}
+        />
+      ) : (
+        <ProgressBarPlaceholder />
+      )}
+    </li>
+  );
+}
+
 //un-memoized normal table body component - see memoized version below
 function TableBody<T>({
   table,
@@ -1340,6 +1439,7 @@ function TableBody<T>({
   table: Table<T>;
   virtualizer: ReturnType<typeof useVirtualizer<HTMLDivElement, Element>>;
 }) {
+  "use no memo";
   const rows = table.getRowModel().rows;
   const virtualRows = virtualizer.getVirtualItems();
   const totalHeight = virtualizer.getTotalSize();
@@ -1368,7 +1468,7 @@ function TableBody<T>({
                   width: `calc(var(--col-${makeSafeColumnId(cell.column.id)}-size) * 1px)`,
                   maxWidth: `calc(var(--col-${makeSafeColumnId(cell.column.id)}-size) * 1px)`,
                   padding:
-                    "var(--ac-global-dimension-size-175) var(--ac-global-dimension-size-200)",
+                    "var(--global-dimension-size-175) var(--global-dimension-size-200)",
                   verticalAlign: "middle",
                 }}
               >
@@ -1462,7 +1562,7 @@ function TextOverflow({ children }: { children: React.ReactNode }) {
 
 const progressBarPlaceholderCSS = css`
   width: 100%;
-  height: var(--ac-global-dimension-size-25);
+  height: var(--global-dimension-size-25);
 `;
 
 function ProgressBarPlaceholder() {

@@ -1,12 +1,11 @@
+import { css } from "@emotion/react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { css } from "@emotion/react";
 
 import { PrettyText } from "../utility";
-
 import { useMarkdownMode } from "./MarkdownDisplayContext";
 import { markdownCSS } from "./styles";
-import { MarkdownDisplayMode } from "./types";
+import type { MarkdownDisplayMode } from "./types";
 
 export function MarkdownBlock({
   children,
@@ -23,7 +22,7 @@ export function MarkdownBlock({
           margin: 0;
         `
       : css`
-          margin: var(--ac-global-dimension-static-size-200);
+          margin: var(--global-dimension-static-size-200);
         `;
 
   return mode === "markdown" ? (

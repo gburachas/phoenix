@@ -16,8 +16,10 @@ from sqlalchemy import (
     Dialect,
     Float,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
+    LargeBinary,
     MetaData,
     Null,
     PrimaryKeyConstraint,
@@ -25,6 +27,7 @@ from sqlalchemy import (
     TypeDecorator,
     UniqueConstraint,
     case,
+    event,
     func,
     insert,
     select,
@@ -44,8 +47,9 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql import Values, column, compiler, expression, literal, roles, union_all
 from sqlalchemy.sql.compiler import SQLCompiler
+from sqlalchemy.sql.elements import Case
 from sqlalchemy.sql.functions import coalesce
-from typing_extensions import TypeAlias
+from typing_extensions import Self, TypeAlias
 
 from phoenix.config import get_env_database_schema
 from phoenix.datetime_utils import normalize_datetime
@@ -55,6 +59,7 @@ from phoenix.db.types.annotation_configs import (
 from phoenix.db.types.annotation_configs import (
     AnnotationConfigType,
 )
+from phoenix.db.types.evaluators import InputMapping
 from phoenix.db.types.identifier import Identifier
 from phoenix.db.types.model_provider import ModelProvider
 from phoenix.db.types.token_price_customization import (
@@ -75,6 +80,7 @@ from phoenix.server.api.helpers.prompts.models import (
     is_prompt_invocation_parameters,
     is_prompt_template,
 )
+from phoenix.server.encryption import is_encrypted
 from phoenix.trace.attributes import get_attribute_value
 
 INPUT_MIME_TYPE = SpanAttributes.INPUT_MIME_TYPE.split(".")
@@ -156,7 +162,15 @@ def render_values_w_union(
 
 
 UserRoleName: TypeAlias = Literal["SYSTEM", "ADMIN", "MEMBER", "VIEWER"]
-AuthMethod: TypeAlias = Literal["LOCAL", "OAUTH2"]
+AuthMethod: TypeAlias = Literal["LOCAL", "OAUTH2", "LDAP"]
+EvaluatorKind: TypeAlias = Literal["LLM", "CODE", "BUILTIN"]
+GenerativeModelSDK: TypeAlias = Literal[
+    "openai",
+    "azure_openai",
+    "anthropic",
+    "google_genai",
+    "aws_bedrock",
+]
 
 
 class JSONB(JSON):
@@ -180,6 +194,11 @@ JSON_ = (
         JSONB(),
         "sqlite",
     )
+)
+
+_Integer = Integer().with_variant(
+    sa.BigInteger(),
+    "postgresql",
 )
 
 
@@ -406,6 +425,26 @@ class _AnnotationConfig(TypeDecorator[AnnotationConfigType]):
         return AnnotationConfigModel.model_validate(value).root if value is not None else None
 
 
+class _AnnotationConfigList(TypeDecorator[list[AnnotationConfigType]]):
+    # See https://docs.sqlalchemy.org/en/20/core/custom_types.html
+    cache_ok = True
+    impl = JSON_
+
+    def process_bind_param(
+        self, value: Optional[list[AnnotationConfigType]], _: Dialect
+    ) -> Optional[list[dict[str, Any]]]:
+        if value is None:
+            return None
+        return [AnnotationConfigModel(root=config).model_dump() for config in value]
+
+    def process_result_value(
+        self, value: Optional[list[dict[str, Any]]], _: Dialect
+    ) -> Optional[list[AnnotationConfigType]]:
+        if value is None:
+            return None
+        return [AnnotationConfigModel.model_validate(config).root for config in value]
+
+
 class _TokenCustomization(TypeDecorator[TokenPriceCustomization]):
     # See # See https://docs.sqlalchemy.org/en/20/core/custom_types.html
     cache_ok = True
@@ -462,6 +501,26 @@ class _HexColor(TypeDecorator[str]):
         if value is None:
             return None
         return value
+
+
+class _InputMapping(TypeDecorator[InputMapping]):
+    # See https://docs.sqlalchemy.org/en/20/core/custom_types.html
+    cache_ok = True
+    impl = JSON_
+
+    def process_bind_param(
+        self, value: Optional[InputMapping], _: Dialect
+    ) -> Optional[dict[str, Any]]:
+        if value is None:
+            raise ValueError("Input mapping cannot be None")
+        return value.model_dump()
+
+    def process_result_value(
+        self, value: Optional[dict[str, Any]], _: Dialect
+    ) -> Optional[InputMapping]:
+        if value is None:
+            raise ValueError("Input mapping cannot be None")
+        return InputMapping.model_validate(value)
 
 
 class ExperimentRunOutput(TypedDict, total=False):
@@ -779,6 +838,14 @@ class Span(HasId):
             "ix_cumulative_llm_token_count_total",
             text("(cumulative_llm_token_count_prompt + cumulative_llm_token_count_completion)"),
         ),
+        Index(
+            "ix_spans_session_id",
+            column("attributes", JSON_)[["session", "id"]].as_string(),
+            postgresql_where=column("attributes", JSON_)[["session", "id"]]
+            .as_string()
+            .is_not(None),
+            sqlite_where=column("attributes", JSON_)[["session", "id"]].as_string().is_not(None),
+        ),
     )
 
 
@@ -829,14 +896,27 @@ class NumDocuments(expression.FunctionElement[int]):
 @compiles(NumDocuments)
 def _(element: Any, compiler: SQLCompiler, **kw: Any) -> Any:
     # See https://docs.sqlalchemy.org/en/20/core/compiler.html
-    array_length = (
-        func.json_array_length if isinstance(compiler, SQLiteCompiler) else func.jsonb_array_length
-    )
     attributes, span_kind = list(element.clauses)
     retrieval_docs = attributes[RETRIEVAL_DOCUMENTS]
-    num_retrieval_docs = coalesce(array_length(retrieval_docs), 0)
+    num_retrieval_docs: Case[Any] | coalesce[Any]
     reranker_docs = attributes[RERANKER_OUTPUT_DOCUMENTS]
-    num_reranker_docs = coalesce(array_length(reranker_docs), 0)
+    num_reranker_docs: Case[Any] | coalesce[Any]
+    if isinstance(compiler, SQLiteCompiler):
+        # SQLite's json_array_length returns 0 for non-array values
+        num_retrieval_docs = coalesce(func.json_array_length(retrieval_docs), 0)
+        num_reranker_docs = coalesce(func.json_array_length(reranker_docs), 0)
+    else:
+        # PostgreSQL's jsonb_array_length throws "cannot get array length of a scalar"
+        # for non-array values, so check the type first
+        num_retrieval_docs = sql.case(
+            (func.jsonb_typeof(retrieval_docs) == "array", func.jsonb_array_length(retrieval_docs)),
+            else_=0,
+        )
+        num_reranker_docs = sql.case(
+            (func.jsonb_typeof(reranker_docs) == "array", func.jsonb_array_length(reranker_docs)),
+            else_=0,
+        )
+
     return compiler.process(
         sql.case(
             (func.upper(span_kind) == "RERANKER", num_reranker_docs),
@@ -1034,6 +1114,7 @@ class DocumentAnnotation(HasId):
             "span_rowid",
             "document_position",
             "identifier",
+            name="uq_document_annotations_name_span_rowid_document_pos_identifier",
         ),
     )
 
@@ -1091,6 +1172,9 @@ class Dataset(HasId):
     )
     datasets_dataset_labels: Mapped[list["DatasetsDatasetLabel"]] = relationship(
         "DatasetsDatasetLabel", back_populates="dataset"
+    )
+    dataset_evaluators: Mapped[list["DatasetEvaluators"]] = relationship(
+        "DatasetEvaluators", back_populates="dataset", cascade="all, delete-orphan", uselist=True
     )
 
     @hybrid_property
@@ -1496,15 +1580,18 @@ class User(HasId):
     )
     role: Mapped["UserRole"] = relationship("UserRole", back_populates="users")
     username: Mapped[str] = mapped_column(nullable=False, unique=True, index=True)
-    email: Mapped[str] = mapped_column(nullable=False, unique=True, index=True)
+    email: Mapped[Optional[str]] = mapped_column(nullable=True, unique=True, index=True)
     profile_picture_url: Mapped[Optional[str]]
     password_hash: Mapped[Optional[bytes]]
     password_salt: Mapped[Optional[bytes]]
     reset_password: Mapped[bool]
+    # OAuth2-specific fields (only used by OAuth2 users)
     oauth2_client_id: Mapped[Optional[str]]
     oauth2_user_id: Mapped[Optional[str]]
+    # LDAP-specific field (only used by LDAP users)
+    ldap_unique_id: Mapped[Optional[str]]
     auth_method: Mapped[AuthMethod] = mapped_column(
-        CheckConstraint("auth_method IN ('LOCAL', 'OAUTH2')", name="valid_auth_method")
+        CheckConstraint("auth_method IN ('LOCAL', 'OAUTH2', 'LDAP')", name="valid_auth_method")
     )
     created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -1526,20 +1613,64 @@ class User(HasId):
         "polymorphic_identity": None,  # Base class is abstract
     }
 
+    # Constraint summary (R = Required, N = Must be NULL, O = Optional):
+    #
+    # | Field            | LOCAL | OAUTH2 | LDAP |
+    # |------------------|-------|--------|------|
+    # | password         |   R   |   N    |  N   |
+    # | email            |   R   |   R    |  *   |
+    # | ldap_unique_id   |   N   |   N    |  *   |
+    # | oauth2_client_id |   N   |   O    |  N   |
+    # | oauth2_user_id   |   N   |   O    |  N   |
+    #
+    # *: LDAP users must have email OR ldap_unique_id (or both).
     __table_args__ = (
+        # LOCAL users: must have password, must NOT have oauth2/ldap fields
         CheckConstraint(
             "auth_method != 'LOCAL' "
             "OR (password_hash IS NOT NULL AND password_salt IS NOT NULL "
-            "AND oauth2_client_id IS NULL AND oauth2_user_id IS NULL)",
+            "AND oauth2_client_id IS NULL AND oauth2_user_id IS NULL "
+            "AND ldap_unique_id IS NULL)",
             name="local_auth_has_password_no_oauth",
         ),
+        # OAUTH2/LDAP users: must NOT have password
         CheckConstraint(
             "auth_method = 'LOCAL' OR (password_hash IS NULL AND password_salt IS NULL)",
             name="non_local_auth_has_no_password",
         ),
-        UniqueConstraint(
+        # LDAP users: must NOT have oauth2 fields, must have at least one identifier
+        # (email or ldap_unique_id) to prevent orphan accounts that can't be found on login
+        CheckConstraint(
+            "auth_method != 'LDAP' OR ("
+            "oauth2_client_id IS NULL AND oauth2_user_id IS NULL AND "
+            "(email IS NOT NULL OR ldap_unique_id IS NOT NULL))",
+            name="ldap_auth_valid",
+        ),
+        # OAUTH2 users: must NOT have ldap_unique_id
+        CheckConstraint(
+            "auth_method != 'OAUTH2' OR ldap_unique_id IS NULL",
+            name="oauth2_auth_no_ldap_fields",
+        ),
+        # LOCAL and OAUTH2 users: must have email (only LDAP supports null email mode)
+        CheckConstraint(
+            "auth_method = 'LDAP' OR email IS NOT NULL",
+            name="non_ldap_auth_has_email",
+        ),
+        # Partial unique indexes for external auth providers
+        Index(
+            "ix_users_oauth2_unique",
             "oauth2_client_id",
             "oauth2_user_id",
+            unique=True,
+            postgresql_where=text("auth_method = 'OAUTH2'"),
+            sqlite_where=text("auth_method = 'OAUTH2'"),
+        ),
+        Index(
+            "ix_users_ldap_unique_id",
+            "ldap_unique_id",
+            unique=True,
+            postgresql_where=text("auth_method = 'LDAP' AND ldap_unique_id IS NOT NULL"),
+            sqlite_where=text("auth_method = 'LDAP' AND ldap_unique_id IS NOT NULL"),
         ),
         dict(sqlite_autoincrement=True),
     )
@@ -1598,38 +1729,42 @@ class OAuth2User(User):
         )
 
 
-def LDAPUser(
-    *,
-    email: str,
-    username: str,
-    unique_id: str | None = None,
-    user_role_id: int | None = None,
-) -> OAuth2User:
-    """Factory function to create an LDAP user stored as OAuth2User.
+class LDAPUser(User):
+    """User authenticated via LDAP.
 
-    This is a zero-migration approach: LDAP users are stored in the existing
-    OAuth2User table with a special Unicode marker in oauth2_client_id to
-    distinguish them from actual OAuth2 users. This avoids schema changes
-    while allowing LDAP authentication to coexist with OAuth2.
-
-    Args:
-        email: User's email address
-        username: User's display name
-        unique_id: User's LDAP unique ID (stored in oauth2_user_id)
-        user_role_id: Phoenix role ID (ADMIN, MEMBER, VIEWER)
-
-    Returns:
-        OAuth2User instance configured as an LDAP user
+    LDAP users are identified by auth_method='LDAP'. They use the dedicated
+    ldap_unique_id field (not oauth2_* fields) to store their LDAP unique
+    identifier (objectGUID, entryUUID, etc.).
     """
-    from phoenix.server.ldap import LDAP_CLIENT_ID_MARKER
 
-    return OAuth2User(
-        email=email,
-        username=username,
-        oauth2_client_id=LDAP_CLIENT_ID_MARKER,
-        oauth2_user_id=unique_id,
-        user_role_id=user_role_id,
-    )
+    __mapper_args__ = {
+        "polymorphic_identity": "LDAP",
+    }
+
+    def __init__(
+        self,
+        *,
+        email: Optional[str],
+        username: str,
+        ldap_unique_id: Optional[str] = None,
+        user_role_id: Optional[int] = None,
+    ) -> None:
+        """Create an LDAP user.
+
+        Args:
+            email: User's email address (can be None if LDAP directory has no email)
+            username: User's display name
+            ldap_unique_id: User's LDAP unique ID (objectGUID, entryUUID, etc.)
+            user_role_id: Phoenix role ID (ADMIN, MEMBER, VIEWER)
+        """
+        super().__init__(
+            email=email.strip() if email else None,
+            username=username.strip(),
+            user_role_id=user_role_id,
+            reset_password=False,
+            auth_method="LDAP",
+            ldap_unique_id=ldap_unique_id,
+        )
 
 
 class PasswordResetToken(HasId):
@@ -1770,7 +1905,7 @@ class PromptLabel(HasId):
     __tablename__ = "prompt_labels"
     name: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     description: Mapped[Optional[str]]
-    color: Mapped[str] = mapped_column(String, nullable=True)
+    color: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     prompts_prompt_labels: Mapped[list["PromptPromptLabel"]] = relationship(
         "PromptPromptLabel",
@@ -1816,6 +1951,12 @@ class Prompt(HasId):
         uselist=True,
     )
 
+    llm_evaluators: Mapped[list["LLMEvaluator"]] = relationship(
+        "LLMEvaluator",
+        back_populates="prompt",
+        uselist=True,
+    )
+
 
 class PromptPromptLabel(HasId):
     __tablename__ = "prompts_prompt_labels"
@@ -1849,6 +1990,13 @@ class PromptVersion(HasId):
     description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     user_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
+    # NULL = use built-in provider (secrets/env vars)
+    # SET = use custom provider config for evaluator execution
+    custom_provider_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("generative_model_custom_providers.id", ondelete="SET NULL"),
         index=True,
         nullable=True,
     )
@@ -1886,6 +2034,29 @@ class PromptVersion(HasId):
         uselist=True,
     )
 
+    custom_provider: Mapped[Optional["GenerativeModelCustomProvider"]] = relationship(
+        "GenerativeModelCustomProvider"
+    )
+
+    def has_identical_content(self, other: Self) -> bool:
+        """
+        Checks if the content of this prompt version is identical to the content of another prompt
+        version, excluding fields such as id, created_at, and user_id that do not include the actual
+        content of the prompt version.
+        """
+        return (
+            self.description == other.description
+            and self.template_type == other.template_type
+            and self.template_format == other.template_format
+            and self.template == other.template
+            and self.invocation_parameters == other.invocation_parameters
+            and self.tools == other.tools
+            and self.response_format == other.response_format
+            and self.model_provider == other.model_provider
+            and self.model_name == other.model_name
+            and self.metadata_ == other.metadata_
+        )
+
 
 class PromptVersionTag(HasId):
     __tablename__ = "prompt_version_tags"
@@ -1911,6 +2082,12 @@ class PromptVersionTag(HasId):
     prompt: Mapped["Prompt"] = relationship("Prompt", back_populates="prompt_version_tags")
     prompt_version: Mapped["PromptVersion"] = relationship(
         "PromptVersion", back_populates="prompt_version_tags"
+    )
+
+    llm_evaluators: Mapped[list["LLMEvaluator"]] = relationship(
+        "LLMEvaluator",
+        back_populates="prompt_version_tag",
+        uselist=True,
     )
 
     __table_args__ = (UniqueConstraint("name", "prompt_id"),)
@@ -2070,3 +2247,413 @@ class SpanCostDetail(HasId):
             "is_prompt",
         ),
     )
+
+
+class Evaluator(HasId):
+    __tablename__ = "evaluators"
+    kind: Mapped[EvaluatorKind] = mapped_column(
+        CheckConstraint("kind IN ('LLM', 'CODE', 'BUILTIN')", name="valid_evaluator_kind"),
+        nullable=False,
+    )
+    name: Mapped[Identifier] = mapped_column(_Identifier, nullable=False, unique=True)
+    description: Mapped[Optional[str]]
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata")
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+
+    user: Mapped[Optional["User"]] = relationship("User")
+    dataset_evaluators: Mapped[list["DatasetEvaluators"]] = relationship(
+        "DatasetEvaluators",
+        back_populates="evaluator",
+        cascade="all, delete-orphan",
+        uselist=True,
+    )
+
+    __mapper_args__ = {
+        "polymorphic_on": "kind",
+        "polymorphic_identity": None,  # Base class is abstract
+    }
+
+    __table_args__ = (UniqueConstraint("kind", "id"),)
+
+
+class LLMEvaluator(Evaluator):
+    __tablename__ = "llm_evaluators"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[Literal["LLM"]] = mapped_column(
+        CheckConstraint("kind = 'LLM'", name="valid_evaluator_kind"),
+        server_default="LLM",
+        nullable=False,
+    )
+    prompt_id: Mapped[int] = mapped_column(
+        ForeignKey("prompts.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    prompt_version_tag_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("prompt_version_tags.id", ondelete="SET NULL"),
+        index=True,
+    )
+    output_configs: Mapped[list[AnnotationConfigType]] = mapped_column(
+        _AnnotationConfigList, nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp, server_default=func.now(), onupdate=func.now()
+    )
+
+    prompt: Mapped["Prompt"] = relationship("Prompt", back_populates="llm_evaluators")
+    prompt_version_tag: Mapped[Optional["PromptVersionTag"]] = relationship(
+        "PromptVersionTag", back_populates="llm_evaluators"
+    )
+    __mapper_args__ = {
+        "polymorphic_identity": "LLM",
+    }
+    __table_args__ = (  # type: ignore[assignment]
+        ForeignKeyConstraint(
+            ["kind", "id"],
+            ["evaluators.kind", "evaluators.id"],
+            ondelete="CASCADE",
+        ),
+    )
+
+
+class CodeEvaluator(Evaluator):
+    __tablename__ = "code_evaluators"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[Literal["CODE"]] = mapped_column(
+        CheckConstraint("kind = 'CODE'", name="valid_evaluator_kind"),
+        server_default="CODE",
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp, server_default=func.now(), onupdate=func.now()
+    )
+    __mapper_args__ = {
+        "polymorphic_identity": "CODE",
+    }
+    __table_args__ = (  # type: ignore[assignment]
+        ForeignKeyConstraint(
+            ["kind", "id"],
+            ["evaluators.kind", "evaluators.id"],
+            ondelete="CASCADE",
+        ),
+    )
+
+
+class BuiltinEvaluator(Evaluator):
+    """
+    Database reflection of the in-memory builtin evaluator registry.
+
+    This table is synchronized on application startup to stay in sync
+    with the Python code definitions. IDs are auto-generated positive
+    integers by the database.
+
+    Builtin evaluators are part of the polymorphic evaluator hierarchy,
+    allowing unified queries and FK references from dataset_evaluators.
+    """
+
+    __tablename__ = "builtin_evaluators"
+
+    id: Mapped[int] = mapped_column(_Integer, primary_key=True)
+    kind: Mapped[Literal["BUILTIN"]] = mapped_column(
+        CheckConstraint("kind = 'BUILTIN'", name="valid_evaluator_kind"),
+        server_default="BUILTIN",
+        nullable=False,
+    )
+
+    key: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    input_schema: Mapped[dict[str, Any]] = mapped_column(JSON_, nullable=False)
+    output_configs: Mapped[list[AnnotationConfigType]] = mapped_column(
+        _AnnotationConfigList, nullable=False
+    )
+
+    # Track when this was last synced from the registry
+    synced_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": "BUILTIN",
+    }
+    __table_args__ = (  # type: ignore[assignment]
+        ForeignKeyConstraint(
+            ["kind", "id"],
+            ["evaluators.kind", "evaluators.id"],
+            ondelete="CASCADE",
+        ),
+    )
+
+
+class DatasetEvaluators(HasId):
+    __tablename__ = "dataset_evaluators"
+    dataset_id: Mapped[int] = mapped_column(
+        ForeignKey("datasets.id", ondelete="CASCADE"),
+        index=True,
+    )
+    # Unified evaluator_id FK - works for all evaluator types (LLM, CODE, BUILTIN)
+    evaluator_id: Mapped[int] = mapped_column(
+        ForeignKey("evaluators.id", ondelete="CASCADE"),
+        index=True,
+    )
+    name: Mapped[Identifier] = mapped_column(_Identifier, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    output_configs: Mapped[Optional[list[AnnotationConfigType]]] = mapped_column(
+        _AnnotationConfigList, nullable=True
+    )
+    input_mapping: Mapped[InputMapping] = mapped_column(_InputMapping, nullable=False)
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp, server_default=func.now(), onupdate=func.now()
+    )
+    dataset: Mapped["Dataset"] = relationship("Dataset", back_populates="dataset_evaluators")
+    evaluator: Mapped["Evaluator"] = relationship("Evaluator", back_populates="dataset_evaluators")
+    user: Mapped[Optional["User"]] = relationship("User")
+    project: Mapped["Project"] = relationship("Project")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "dataset_id",
+            "name",
+        ),
+    )
+
+
+class Secret(Base):
+    __tablename__ = "secrets"
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp, server_default=func.now(), onupdate=func.now()
+    )
+
+
+@event.listens_for(Secret, "before_insert")
+@event.listens_for(Secret, "before_update")
+def validate_secret_config(_: Any, __: Any, target: "Secret") -> None:
+    """Validate that secret value is encrypted before database write.
+
+    Note: This uses a heuristic check (is_encrypted), not cryptographic verification.
+    The check validates structural properties of Fernet tokens (base64 encoding,
+    version byte, minimum length) to catch accidental storage of plaintext data.
+
+    This is a defense-in-depth measure - the application layer should ensure
+    encryption happens correctly, and this check catches programming errors.
+    """
+    if not is_encrypted(target.value):
+        raise ValueError("Value is not encrypted")
+
+
+class GenerativeModelCustomProvider(HasId):
+    __tablename__ = "generative_model_custom_providers"
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    description: Mapped[Optional[str]]
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    sdk: Mapped[GenerativeModelSDK] = mapped_column(String, nullable=False)
+    config: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp, server_default=func.now(), onupdate=func.now()
+    )
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+
+@event.listens_for(GenerativeModelCustomProvider, "before_insert")
+@event.listens_for(GenerativeModelCustomProvider, "before_update")
+def validate_provider_config(_: Any, __: Any, target: "GenerativeModelCustomProvider") -> None:
+    """Validate that provider config is encrypted before database write.
+
+    Note: This uses a heuristic check (is_encrypted), not cryptographic verification.
+    The check validates structural properties of Fernet tokens (base64 encoding,
+    version byte, minimum length) to catch accidental storage of plaintext data.
+
+    This is a defense-in-depth measure - the application layer should ensure
+    encryption happens correctly, and this check catches programming errors.
+    """
+    if not is_encrypted(target.config):
+        raise ValueError("Config is not encrypted")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# MetroStar Phoenix — Data Generation & LLM Adapter Models
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class LLMAdapter(HasId):
+    """A registered LLM endpoint for generation, embedding, judging, or reranking.
+
+    Decouples pipeline definitions from hard-coded model configs, allowing users
+    to plug in Ollama, Azure OpenAI, vLLM, or any OpenAI-compatible endpoint.
+    """
+
+    __tablename__ = "llm_adapters"
+
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    provider: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # ollama | azure_openai | openai | vllm | custom
+    model_name: Mapped[str] = mapped_column(String, nullable=False)
+    endpoint: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    api_key_env_var: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    # Capability flags
+    can_embed: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+    can_generate: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+    can_judge: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+    can_multimodal: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+    can_rerank: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+
+    # Cost metadata (optional, for experiment budgeting)
+    cost_per_1k_input_tokens: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    cost_per_1k_output_tokens: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    max_context_tokens: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSON_)
+
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp, server_default=func.now(), onupdate=func.now()
+    )
+
+    def __repr__(self) -> str:
+        return f"<LLMAdapter {self.name!r} ({self.provider}/{self.model_name})>"
+
+
+class DataGenerationJob(HasId):
+    """A request to generate a synthetic test dataset.
+
+    Pipeline: corpus → sample → LLM transform → output dataset.
+    Tracks status through pending → running → completed/failed/cancelled.
+    """
+
+    __tablename__ = "data_generation_jobs"
+
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    status: Mapped[str] = mapped_column(
+        CheckConstraint(
+            "status IN ('pending', 'running', 'completed', 'failed', 'cancelled')",
+            name="valid_data_gen_status",
+        ),
+        nullable=False,
+        server_default=text("'pending'"),
+    )
+
+    # Corpus configuration
+    corpus_source: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # dataset | qdrant | directory | url
+    corpus_config: Mapped[dict[str, Any]] = mapped_column(JSON_)
+
+    # Sampling
+    sampling_strategy: Mapped[str] = mapped_column(
+        String, nullable=False, server_default=text("'random'")
+    )  # random | stratified | similarity | window
+    sample_size: Mapped[int] = mapped_column(Integer, server_default=text("50"))
+
+    # LLM pipeline — which adapters to use
+    testset_llm_adapter_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("llm_adapters.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    transform_llm_adapter_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("llm_adapters.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    llm_config: Mapped[dict[str, Any]] = mapped_column(JSON_)  # temperature, top_p, etc.
+    is_multimodal: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+
+    # Output
+    output_dataset_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    artifacts: Mapped[dict[str, Any]] = mapped_column(JSON_)
+
+    # Error tracking
+    error_message: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    # Reproducibility
+    seed: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+    started_at: Mapped[Optional[datetime]] = mapped_column(UtcTimeStamp, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(UtcTimeStamp, nullable=True)
+
+    # Relationships
+    testset_llm_adapter: Mapped[Optional["LLMAdapter"]] = relationship(
+        "LLMAdapter", foreign_keys=[testset_llm_adapter_id]
+    )
+    transform_llm_adapter: Mapped[Optional["LLMAdapter"]] = relationship(
+        "LLMAdapter", foreign_keys=[transform_llm_adapter_id]
+    )
+
+    def __repr__(self) -> str:
+        return f"<DataGenerationJob {self.name!r} status={self.status}>"
+
+
+class EvaluationCriterion(HasId):
+    """A reusable evaluation/judge criterion (e.g., faithfulness, correctness).
+
+    Stores the prompt template, scoring rubric, and metadata so users can
+    define custom criteria in the UI and attach them to experiments.
+    """
+
+    __tablename__ = "evaluation_criteria"
+
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    category: Mapped[str] = mapped_column(
+        String, nullable=False, server_default=text("'custom'")
+    )  # faithfulness | correctness | relevance | toxicity | custom
+
+    # The judge prompt template
+    prompt_template: Mapped[str] = mapped_column(String, nullable=False)
+
+    # Scoring config
+    score_type: Mapped[str] = mapped_column(
+        String, nullable=False, server_default=text("'binary'")
+    )  # binary | likert_5 | numeric | label
+    score_labels: Mapped[dict[str, Any]] = mapped_column(JSON_)
+
+    # Which adapter to use for judging
+    default_judge_adapter_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("llm_adapters.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    is_builtin: Mapped[bool] = mapped_column(Boolean, server_default=text("0"), nullable=False)
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSON_)
+
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp, server_default=func.now(), onupdate=func.now()
+    )
+
+    default_judge_adapter: Mapped[Optional["LLMAdapter"]] = relationship(
+        "LLMAdapter", foreign_keys=[default_judge_adapter_id]
+    )
+
+    def __repr__(self) -> str:
+        return f"<EvaluationCriterion {self.name!r} ({self.category})>"

@@ -1,9 +1,9 @@
-import { components } from "../__generated__/api/v1";
-import { createClient } from "../client";
-import { ClientFn } from "../types/core";
-import { ExperimentRun } from "../types/experiments";
-
 import invariant from "tiny-invariant";
+
+import type { components } from "../__generated__/api/v1";
+import { createClient } from "../client";
+import type { ClientFn } from "../types/core";
+import type { ExperimentRun } from "../types/experiments";
 
 export type GetExperimentRunsParams = ClientFn & {
   /**

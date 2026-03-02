@@ -46,7 +46,6 @@ from phoenix.client.resources.experiments.types import (
     ExampleProxy,
     Experiment,
     ExperimentEvaluationRun,
-    ExperimentEvaluator,
     ExperimentEvaluators,
     ExperimentRun,
     ExperimentTask,
@@ -241,18 +240,15 @@ def _evaluators_by_name(obj: Optional[ExperimentEvaluators]) -> Mapping[Evaluato
         return evaluators_by_name
 
     elif isinstance(obj, Mapping):
-        mapping_obj = cast(Mapping[EvaluatorName, ExperimentEvaluator], obj)  # pyright: ignore[reportUnnecessaryCast]
-        for name, value in mapping_obj.items():
+        for name, value in obj.items():
             evaluator = create_evaluator(name=name)(value)
             evaluators_by_name[evaluator.name] = evaluator
     elif isinstance(obj, Sequence):
-        seq_obj = cast(Sequence[ExperimentEvaluator], obj)  # pyright: ignore[reportUnnecessaryCast]
-        for value in seq_obj:
+        for value in obj:
             evaluator = create_evaluator()(value)
             evaluators_by_name[evaluator.name] = evaluator
     else:
-        single_obj = cast(ExperimentEvaluator, obj)  # pyright: ignore[reportUnnecessaryCast]
-        evaluator = create_evaluator()(single_obj)
+        evaluator = create_evaluator()(obj)
         evaluators_by_name[evaluator.name] = evaluator
 
     return evaluators_by_name
@@ -2057,11 +2053,14 @@ class Experiments:
         self,
         *,
         experiment_id: str,
+        delete_project: bool = False,
     ) -> None:
         """Delete an experiment by ID.
 
         Args:
             experiment_id (str): The ID of the experiment to delete.
+            delete_project (bool): If True, also delete the project associated with the experiment.
+                Defaults to False.
 
         Raises:
             httpx.HTTPError: If the request fails.
@@ -2075,7 +2074,10 @@ class Experiments:
             client.experiments.delete(experiment_id="exp_123")
         """
         try:
-            response = self._client.delete(f"v1/experiments/{experiment_id}")
+            response = self._client.delete(
+                f"v1/experiments/{experiment_id}",
+                params={"delete_project": delete_project},
+            )
             response.raise_for_status()
         except HTTPStatusError as e:
             if e.response.status_code == 404:
@@ -3799,11 +3801,14 @@ class AsyncExperiments:
         self,
         *,
         experiment_id: str,
+        delete_project: bool = False,
     ) -> None:
         """Delete an experiment by ID.
 
         Args:
             experiment_id (str): The ID of the experiment to delete.
+            delete_project (bool): If True, also delete the project associated with the experiment.
+                Defaults to False.
 
         Raises:
             httpx.HTTPError: If the request fails.
@@ -3817,7 +3822,10 @@ class AsyncExperiments:
             await async_client.experiments.delete(experiment_id="exp_123")
         """
         try:
-            response = await self._client.delete(f"v1/experiments/{experiment_id}")
+            response = await self._client.delete(
+                f"v1/experiments/{experiment_id}",
+                params={"delete_project": delete_project},
+            )
             response.raise_for_status()
         except HTTPStatusError as e:
             if e.response.status_code == 404:

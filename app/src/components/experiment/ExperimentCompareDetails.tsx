@@ -1,14 +1,10 @@
+import { css } from "@emotion/react";
+import { range } from "lodash";
 import { useMemo, useRef, useState } from "react";
 import { Button as AriaButton } from "react-aria-components";
 import { graphql, useLazyLoadQuery } from "react-relay";
-import {
-  ImperativePanelHandle,
-  Panel,
-  PanelGroup,
-  PanelResizeHandle,
-} from "react-resizable-panels";
-import { range } from "lodash";
-import { css } from "@emotion/react";
+import type { ImperativePanelHandle } from "react-resizable-panels";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
 import {
   Button,
@@ -37,10 +33,16 @@ import {
   TooltipTrigger,
   View,
 } from "@phoenix/components";
-import { AnnotationColorSwatch } from "@phoenix/components/annotation";
+import {
+  AnnotationColorSwatch,
+  type AnnotationConfig,
+  AnnotationScoreText,
+  getPositiveOptimizationFromConfig,
+} from "@phoenix/components/annotation";
 import { AnnotationDetailsContent } from "@phoenix/components/annotation/AnnotationDetailsContent";
 import { JSONBlock } from "@phoenix/components/code";
 import { useExperimentColors } from "@phoenix/components/experiment";
+import { ExperimentOutputContent } from "@phoenix/components/experiment/ExperimentOutputContent";
 import { ExperimentRunMetadataEmpty } from "@phoenix/components/experiment/ExperimentRunMetadataEmpty";
 import {
   compactResizeHandleCSS,
@@ -61,9 +63,10 @@ import {
 } from "@phoenix/contexts/ExperimentCompareContext";
 import { useWordColor } from "@phoenix/hooks";
 import { calculateAnnotationScorePercentile } from "@phoenix/pages/experiment/utils";
+import { datasetEvaluatorsToAnnotationConfigs } from "@phoenix/utils/datasetEvaluatorUtils";
 import { floatFormatter, formatFloat } from "@phoenix/utils/numberFormatUtils";
 
-import { ExperimentCompareDetailsQuery } from "./__generated__/ExperimentCompareDetailsQuery.graphql";
+import type { ExperimentCompareDetailsQuery } from "./__generated__/ExperimentCompareDetailsQuery.graphql";
 import { ExperimentRunMetadata } from "./ExperimentRunMetadata";
 
 export type ExperimentCompareDetailsProps = {
@@ -163,6 +166,29 @@ export function ExperimentCompareDetails({
               minScore
               maxScore
             }
+            datasetEvaluators(first: 100) {
+              edges {
+                node {
+                  name
+                  outputConfigs {
+                    ... on CategoricalAnnotationConfig {
+                      name
+                      optimizationDirection
+                      values {
+                        label
+                        score
+                      }
+                    }
+                    ... on ContinuousAnnotationConfig {
+                      name
+                      optimizationDirection
+                      lowerBound
+                      upperBound
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -190,7 +216,13 @@ export function ExperimentCompareDetails({
         )
       ) ?? []
     );
-  }, [data.dataset.experimentAnnotationSummaries, experimentRuns]);
+  }, [data, experimentRuns]);
+
+  const annotationConfigs = useMemo(() => {
+    const evaluators =
+      data.dataset.datasetEvaluators?.edges.map((edge) => edge.node) ?? [];
+    return datasetEvaluatorsToAnnotationConfigs(evaluators);
+  }, [data]);
 
   const experimentsById = useMemo(() => {
     const experimentsById: Record<string, Experiment> = {};
@@ -291,6 +323,7 @@ export function ExperimentCompareDetails({
               experimentRepetitionsByExperimentId
             }
             annotationSummaries={annotationSummaries}
+            annotationConfigs={annotationConfigs}
             referenceOutput={referenceOutput}
             includeRepetitions={Object.values(experimentsById).some(
               (experiment) => experiment.repetitions > 1
@@ -382,8 +415,8 @@ export function ExperimentRunOutputs() {
               flex: 1;
               overflow: auto;
               display: flex;
-              gap: var(--ac-global-dimension-static-size-200);
-              padding: var(--ac-global-dimension-static-size-200);
+              gap: var(--global-dimension-static-size-200);
+              padding: var(--global-dimension-static-size-200);
               > li {
                 flex: 1 1 0;
                 min-width: 500px;
@@ -499,9 +532,9 @@ function ExperimentRunOutputsSidebar() {
     <div
       css={css`
         flex: none;
-        font-size: var(--ac-global-dimension-static-font-size-100);
-        color: var(--ac-global-color-grey-700);
-        padding: var(--ac-global-dimension-static-size-200);
+        font-size: var(--global-dimension-static-font-size-100);
+        color: var(--global-color-gray-700);
+        padding: var(--global-dimension-static-size-200);
         overflow: auto;
         height: 100%;
         box-sizing: border-box;
@@ -532,7 +565,7 @@ function ExperimentRunOutputsSidebar() {
               alignItems="center"
               css={css`
                 overflow: hidden;
-                padding: var(--ac-global-dimension-size-25);
+                padding: var(--global-dimension-size-25);
               `}
             >
               <MenuTrigger>
@@ -571,7 +604,7 @@ function ExperimentRunOutputsSidebar() {
                       );
                     }}
                     css={css`
-                      font-size: var(--ac-global-font-size-s);
+                      font-size: var(--global-font-size-s);
                     `}
                   >
                     {(annotation) => (
@@ -669,7 +702,7 @@ function ExperimentSidebarItem({
             onPress={() => setIsCollapsed(!isCollapsed)}
             css={css`
               flex: none;
-              .ac-icon-wrap {
+              .icon-wrap {
                 transform: ${isCollapsed ? "rotate(0deg)" : "rotate(90deg)"};
                 transition: all 0.1s ease-in-out;
               }
@@ -703,7 +736,7 @@ function ExperimentSidebarItem({
               <span
                 css={css`
                   flex: none;
-                  padding-left: var(--ac-global-dimension-size-50);
+                  padding-left: var(--global-dimension-size-50);
                 `}
               >
                 <ColorSwatch
@@ -802,9 +835,11 @@ function ExperimentRepetitionsSidebarItems({
                 minHeight={30}
                 css={css`
                   overflow: hidden;
-                  color: ${repetitionDidNotRun
-                    ? "var(--ac-global-color-grey-500)"
-                    : "inherit"};
+                  color: ${
+                    repetitionDidNotRun
+                      ? "var(--global-color-gray-500)"
+                      : "inherit"
+                  };
                 `}
               >
                 <Text>repetition&nbsp;{repetition.repetitionNumber}</Text>
@@ -812,7 +847,7 @@ function ExperimentRepetitionsSidebarItems({
                   <Text
                     fontFamily="mono"
                     minWidth={0}
-                    color={repetitionDidNotRun ? "grey-500" : "inherit"}
+                    color={repetitionDidNotRun ? "gray-500" : "inherit"}
                   >
                     {repetitionDidNotRun ? (
                       "Not run"
@@ -835,8 +870,8 @@ function ExperimentRepetitionsSidebarItems({
 }
 
 const experimentItemCSS = css`
-  border: 1px solid var(--ac-global-border-color-dark);
-  border-radius: var(--ac-global-rounding-medium);
+  border: 1px solid var(--global-border-color-dark);
+  border-radius: var(--global-rounding-medium);
   box-shadow: 0px 8px 8px rgba(0 0 0 / 0.05);
   overflow: hidden;
   height: 100%;
@@ -858,7 +893,7 @@ function ExperimentItemHeader({
         <div
           css={css`
             margin-left: auto;
-            padding-left: var(--ac-global-dimension-size-100);
+            padding-left: var(--global-dimension-size-100);
           `}
         >
           <Flex direction="row" gap="size-100">
@@ -918,7 +953,7 @@ function ExperimentItemAnnotations({
     <View
       paddingX="size-100"
       paddingBottom="size-100"
-      borderBottomColor="grey-300"
+      borderBottomColor="gray-300"
       borderBottomWidth="thin"
     >
       <ExperimentRunAnnotations experimentRun={experimentRun} />
@@ -1015,7 +1050,9 @@ export function ExperimentItem({
                   {experimentRepetition.experimentRun.error}
                 </View>
               ) : (
-                <FullSizeJSONBlock value={experimentRunOutputStr ?? ""} />
+                <FullSizeExperimentOutputContent
+                  value={experimentRepetition.experimentRun.output}
+                />
               )}
             </View>
           </>
@@ -1044,7 +1081,7 @@ function ReferenceOutputItem() {
         <ExperimentItemMetadata />
         <ExperimentItemAnnotations />
         <View flex={1}>
-          <FullSizeJSONBlock value={referenceOutputStr} />
+          <FullSizeExperimentOutputContent value={referenceOutput} />
         </View>
       </Flex>
     </div>
@@ -1072,12 +1109,48 @@ function FullSizeJSONBlock({ value }: { value: string }) {
   );
 }
 
+/**
+ * Wrapper to make ExperimentOutputContent fill available vertical and horizontal space
+ */
+function FullSizeExperimentOutputContent({ value }: { value: unknown }) {
+  return (
+    <div
+      css={css`
+        height: 100%;
+        width: 100%;
+        overflow: auto;
+        padding: var(--global-dimension-size-200);
+        box-sizing: border-box;
+        & .cm-theme, // CodeMirror wrapper component
+        & .cm-editor {
+          height: 100%;
+          width: 100%;
+        }
+      `}
+    >
+      <ExperimentOutputContent value={value} />
+    </div>
+  );
+}
+
 export function ExperimentRunAnnotations({
   experimentRun,
 }: {
   experimentRun?: ExperimentRun;
 }) {
-  const { annotationSummaries } = useExperimentCompareDetailsContext();
+  const { annotationSummaries, annotationConfigs } =
+    useExperimentCompareDetailsContext();
+
+  const annotationConfigsByName = useMemo(() => {
+    return annotationConfigs.reduce(
+      (acc, config) => {
+        acc[config.name] = config;
+        return acc;
+      },
+      {} as Record<string, AnnotationConfig>
+    );
+  }, [annotationConfigs]);
+
   return (
     <ul
       css={css`
@@ -1085,18 +1158,20 @@ export function ExperimentRunAnnotations({
         grid-template-columns:
           minmax(100px, max-content) minmax(32px, max-content)
           minmax(150px, 1fr) min-content;
-        column-gap: var(--ac-global-dimension-size-100);
+        column-gap: var(--global-dimension-size-100);
       `}
     >
       {annotationSummaries.map((annotationSummary) => {
         const annotation = experimentRun?.annotations?.edges.find(
           (edge) => edge.annotation.name === annotationSummary.annotationName
         )?.annotation;
+        const annotationConfig =
+          annotationConfigsByName[annotationSummary.annotationName];
         return (
           <li
             key={annotationSummary.annotationName}
             css={css`
-              height: var(--ac-global-dimension-size-350);
+              height: var(--global-dimension-size-350);
               display: grid;
               grid-template-columns: subgrid;
               grid-column: 1 / -1;
@@ -1105,6 +1180,7 @@ export function ExperimentRunAnnotations({
             <ExperimentRunAnnotation
               annotation={annotation ?? null}
               annotationSummary={annotationSummary}
+              annotationConfig={annotationConfig}
             />
           </li>
         );
@@ -1116,15 +1192,22 @@ export function ExperimentRunAnnotations({
 function ExperimentRunAnnotationButton({
   annotation,
   annotationSummary,
+  annotationConfig,
 }: {
   annotation: Annotation | null;
   annotationSummary: AnnotationSummaries[number];
+  annotationConfig?: AnnotationConfig;
 }) {
   const annotationColor = useWordColor(annotationSummary.annotationName);
   const labelValue =
     annotation?.score != null
       ? formatFloat(annotation?.score)
       : annotation?.label || "--";
+
+  const positiveOptimization = getPositiveOptimizationFromConfig({
+    config: annotationConfig,
+    score: annotation?.score,
+  });
 
   const WrapperElement = annotation
     ? AriaButton // using AriaButton to ensure the popover works
@@ -1141,15 +1224,14 @@ function ExperimentRunAnnotationButton({
       css={[
         css`
           cursor: pointer;
-          padding: var(--ac-global-dimension-size-50)
-            var(--ac-global-dimension-size-100);
-          border-radius: var(--ac-global-rounding-small);
+          padding: var(--global-dimension-size-50) var(--global-dimension-size-100);
+          border-radius: var(--global-rounding-small);
           width: 100%;
           display: grid;
           grid-template-columns: subgrid;
           grid-column: 1 / -2;
           &:hover {
-            background-color: var(--ac-global-color-grey-200);
+            background-color: var(--global-color-gray-200);
           }
         `,
         !annotation && ghostAnnotationCss,
@@ -1180,9 +1262,14 @@ function ExperimentRunAnnotationButton({
         </Text>
       </Flex>
 
-      <Text fontFamily="mono" justifySelf="start" maxWidth="100%">
+      <AnnotationScoreText
+        fontFamily="mono"
+        justifySelf="start"
+        maxWidth="100%"
+        positiveOptimization={positiveOptimization}
+      >
         <Truncate maxWidth="100%">{labelValue}</Truncate>
-      </Text>
+      </AnnotationScoreText>
 
       <ProgressBar
         css={css`
@@ -1194,7 +1281,7 @@ function ExperimentRunAnnotationButton({
           annotationSummary.minScore,
           annotationSummary.maxScore
         )}
-        height="var(--ac-global-dimension-size-50)"
+        height="var(--global-dimension-size-50)"
         width="100%"
         aria-label={`${annotationSummary.annotationName} score`}
       />
@@ -1205,9 +1292,11 @@ function ExperimentRunAnnotationButton({
 function ExperimentRunAnnotation({
   annotation,
   annotationSummary,
+  annotationConfig,
 }: {
   annotation: Annotation | null;
   annotationSummary: AnnotationSummaries[number];
+  annotationConfig?: AnnotationConfig;
 }) {
   const { openTraceDialog } = useExperimentCompareDetailsContext();
   const traceId = annotation?.trace?.traceId;
@@ -1220,6 +1309,7 @@ function ExperimentRunAnnotation({
           <ExperimentRunAnnotationButton
             annotation={annotation}
             annotationSummary={annotationSummary}
+            annotationConfig={annotationConfig}
           />
           <Popover placement="top">
             <PopoverArrow />
@@ -1234,6 +1324,7 @@ function ExperimentRunAnnotation({
         <ExperimentRunAnnotationButton
           annotation={annotation}
           annotationSummary={annotationSummary}
+          annotationConfig={annotationConfig}
         />
       )}
       <TooltipTrigger>

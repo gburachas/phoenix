@@ -1,3 +1,10 @@
+import { css } from "@emotion/react";
+import type { CellContext, ColumnDef } from "@tanstack/react-table";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 import {
   startTransition,
   Suspense,
@@ -11,14 +18,6 @@ import {
   useMutation,
   useRefetchableFragment,
 } from "react-relay";
-import {
-  CellContext,
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import { css } from "@emotion/react";
 
 import {
   Alert,
@@ -34,11 +33,11 @@ import { IndeterminateCheckboxCell } from "@phoenix/components/table/Indetermina
 import { tableCSS } from "@phoenix/components/table/styles";
 import { useNotifyError, useNotifySuccess } from "@phoenix/contexts";
 
-import { ProjectAnnotationConfigCardContent_project_annotations$key } from "./__generated__/ProjectAnnotationConfigCardContent_project_annotations.graphql";
-import { ProjectAnnotationConfigCardContentAddAnnotationConfigToProjectMutation } from "./__generated__/ProjectAnnotationConfigCardContentAddAnnotationConfigToProjectMutation.graphql";
-import { ProjectAnnotationConfigCardContentProjectAnnotationsQuery } from "./__generated__/ProjectAnnotationConfigCardContentProjectAnnotationsQuery.graphql";
-import { ProjectAnnotationConfigCardContentQuery } from "./__generated__/ProjectAnnotationConfigCardContentQuery.graphql";
-import { ProjectAnnotationConfigCardContentRemoveAnnotationConfigFromProjectMutation } from "./__generated__/ProjectAnnotationConfigCardContentRemoveAnnotationConfigFromProjectMutation.graphql";
+import type { ProjectAnnotationConfigCardContent_project_annotations$key } from "./__generated__/ProjectAnnotationConfigCardContent_project_annotations.graphql";
+import type { ProjectAnnotationConfigCardContentAddAnnotationConfigToProjectMutation } from "./__generated__/ProjectAnnotationConfigCardContentAddAnnotationConfigToProjectMutation.graphql";
+import type { ProjectAnnotationConfigCardContentProjectAnnotationsQuery } from "./__generated__/ProjectAnnotationConfigCardContentProjectAnnotationsQuery.graphql";
+import type { ProjectAnnotationConfigCardContentQuery } from "./__generated__/ProjectAnnotationConfigCardContentQuery.graphql";
+import type { ProjectAnnotationConfigCardContentRemoveAnnotationConfigFromProjectMutation } from "./__generated__/ProjectAnnotationConfigCardContentRemoveAnnotationConfigFromProjectMutation.graphql";
 
 interface ProjectAnnotationConfigCardProps {
   projectId: string;
@@ -213,10 +212,7 @@ const ProjectAnnotationConfigCardContent = (
           $annotationConfigId: ID!
         ) {
           addAnnotationConfigToProject(
-            input: {
-              projectId: $projectId
-              annotationConfigId: $annotationConfigId
-            }
+            input: { projectId: $projectId, annotationConfigId: $annotationConfigId }
           ) {
             project {
               ...ProjectAnnotationConfigCardContent_project_annotations
@@ -234,10 +230,7 @@ const ProjectAnnotationConfigCardContent = (
           $annotationConfigId: ID!
         ) {
           removeAnnotationConfigFromProject(
-            input: {
-              projectId: $projectId
-              annotationConfigId: $annotationConfigId
-            }
+            input: { projectId: $projectId, annotationConfigId: $annotationConfigId }
           ) {
             project {
               ...ProjectAnnotationConfigCardContent_project_annotations
@@ -350,7 +343,6 @@ const ProjectAnnotationConfigCardContent = (
     removeAnnotationConfigFromProject,
   ]);
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: tableData,
     columns,

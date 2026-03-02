@@ -1,5 +1,5 @@
+import type { Meta, StoryFn } from "@storybook/react";
 import { useState } from "react";
-import { Meta, StoryFn } from "@storybook/react";
 
 import { Icon, Icons, ToggleButton } from "@phoenix/components";
 

@@ -95,18 +95,10 @@
     <script>(function() {
       Object.defineProperty(window, "Config", {
           // Place any server-side injected config here
-          // E.g. default UMAP parameters etc. that needs to be
           // injected into the client before React runs
           value: Object.freeze({
               basename: "{{basename}}",
               platformVersion: "{{platform_version}}",
-              hasInferences: Boolean("{{has_inferences}}" == "True"),
-              hasCorpus: Boolean("{{has_corpus}}" == "True"),
-              UMAP: {
-                minDist: parseFloat("{{min_dist}}"),
-                nNeighbors: parseInt("{{n_neighbors}}"),
-                nSamples: parseInt("{{n_samples}}"),
-              },
               authenticationEnabled: Boolean("{{authentication_enabled}}" == "True"),
               oAuth2Idps: {{ oauth2_idps | tojson }},
               basicAuthDisabled: Boolean("{{basic_auth_disabled}}" == "True"),
@@ -126,14 +118,14 @@
     {%- endif %}
     {% if is_development -%}
       <script type="module">
-        import RefreshRuntime from 'http://localhost:5173/@react-refresh'
+        import RefreshRuntime from 'http://localhost:{{ vite_port }}/@react-refresh'
         RefreshRuntime.injectIntoGlobalHook(window)
         window.$RefreshReg$ = () => {}
         window.$RefreshSig$ = () => (type) => type
         window.__vite_plugin_react_preamble_installed__ = true
       </script>
-      <script type="module" src="http://localhost:5173/@vite/client"></script>
-      <script type="module" src="http://localhost:5173/index.tsx"></script>
+      <script type="module" src="http://localhost:{{ vite_port }}/@vite/client"></script>
+      <script type="module" src="http://localhost:{{ vite_port }}/index.tsx"></script>
     {%- else -%}
       {{- render_js() -}}
     {%- endif -%}

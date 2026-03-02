@@ -1,5 +1,5 @@
-import { useMemo } from "react";
 import { getLocalTimeZone } from "@internationalized/date";
+import { useMemo } from "react";
 
 import {
   Card,
@@ -16,7 +16,7 @@ import {
   usePreferencesContext,
   useTheme,
 } from "@phoenix/contexts";
-import { DisplayTimezone } from "@phoenix/store/preferencesStore";
+import type { DisplayTimezone } from "@phoenix/store/preferencesStore";
 import {
   isProgrammingLanguage,
   programmingLanguages,

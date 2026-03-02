@@ -1,7 +1,7 @@
+import z from "zod";
+
 import type { PromptChatMessagePart } from "../../../types/prompts";
 import { schemaMatches } from "../../../utils/schemaMatches";
-
-import z from "zod";
 
 export const textPartSchema = schemaMatches<
   Extract<PromptChatMessagePart, { type: "text" }>
@@ -41,7 +41,7 @@ export const toolResultPartSchema = schemaMatches<
       z.number(),
       z.boolean(),
       z.null(),
-      z.record(z.unknown()),
+      z.record(z.string(), z.unknown()),
       z.array(z.unknown()),
     ]),
   })

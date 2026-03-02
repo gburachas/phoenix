@@ -1,4 +1,4 @@
-import { Meta, StoryFn } from "@storybook/react";
+import type { Meta, StoryFn } from "@storybook/react";
 
 import { Button, Card, Text, Token } from "@phoenix/components";
 
@@ -97,7 +97,7 @@ export const WithTitleExtra = Template.bind({});
 WithTitleExtra.args = {
   title: "Experiment Results",
   titleExtra: (
-    <Token color="var(--ac-global-color-yellow-500)" size="S">
+    <Token color="var(--global-color-yellow-500)" size="S">
       #42
     </Token>
   ),

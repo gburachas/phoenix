@@ -1,15 +1,16 @@
-import { forwardRef, Ref } from "react";
-import { Tag as AriaTag, TagProps } from "react-aria-components";
 import { css } from "@emotion/react";
+import type { Ref } from "react";
+import { forwardRef } from "react";
+import type { TagProps } from "react-aria-components";
+import { Tag as AriaTag } from "react-aria-components";
 
 const tagCSS = css`
-  border: 1px solid var(--ac-global-border-color-light);
+  border: 1px solid var(--global-border-color-light);
   forced-color-adjust: none;
-  border-radius: var(--ac-global-rounding-small);
-  padding: var(--ac-global-dimension-size-50)
-    var(--ac-global-dimension-size-100);
-  font-size: var(--ac-global-font-size-s);
-  color: var(--ac-global-text-color-900);
+  border-radius: var(--global-rounding-small);
+  padding: var(--global-dimension-size-50) var(--global-dimension-size-100);
+  font-size: var(--global-font-size-s);
+  color: var(--global-text-color-900);
   outline: none;
   cursor: default;
   display: flex;
@@ -17,17 +18,17 @@ const tagCSS = css`
   transition: all 200ms;
 
   &[data-hovered] {
-    border-color: var(--ac-global-border-color-dark);
+    border-color: var(--global-border-color-dark);
   }
 
   &[data-focus-visible] {
-    outline: 1px solid var(--ac-global-color-primary);
+    outline: 1px solid var(--global-color-primary);
     outline-offset: 1px;
   }
 
   &[data-selected] {
-    border-color: var(--ac-global-color-primary);
-    background: var(--ac-global-color-primary-700);
+    border-color: var(--global-color-primary);
+    background: var(--global-color-primary-700);
   }
 `;
 function Tag(props: TagProps, ref: Ref<HTMLDivElement>) {

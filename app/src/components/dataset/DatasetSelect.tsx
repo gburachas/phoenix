@@ -1,6 +1,6 @@
+import { css } from "@emotion/react";
 import { useMemo } from "react";
 import { graphql, readInlineData, useLazyLoadQuery } from "react-relay";
-import { css } from "@emotion/react";
 
 import {
   Button,
@@ -18,8 +18,8 @@ import {
 } from "@phoenix/components";
 import { Truncate } from "@phoenix/components/utility/Truncate";
 
-import { DatasetSelect_dataset$key } from "./__generated__/DatasetSelect_dataset.graphql";
-import { DatasetSelectQuery } from "./__generated__/DatasetSelectQuery.graphql";
+import type { DatasetSelect_dataset$key } from "./__generated__/DatasetSelect_dataset.graphql";
+import type { DatasetSelectQuery } from "./__generated__/DatasetSelectQuery.graphql";
 
 type DatasetSelectProps = {
   onChange?: (key: string) => void;
@@ -126,7 +126,7 @@ export function DatasetSelect(props: DatasetSelectProps) {
                       css={css`
                         display: flex;
                         flex-direction: row;
-                        gap: var(--ac-global-dimension-size-50);
+                        gap: var(--global-dimension-size-50);
                         min-width: 0;
                         flex-wrap: wrap;
                       `}

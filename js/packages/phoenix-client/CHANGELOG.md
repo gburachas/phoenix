@@ -1,5 +1,80 @@
 # @arizeai/phoenix-client
 
+## 6.0.0
+
+### Major Changes
+
+- 03b10a8: feat: upgrade zod from v3 to v4
+
+  BREAKING CHANGE: Upgraded zod from v3 to v4. This changes inferred TypeScript types
+  for schemas using `z.looseObject()` (previously `.passthrough()`) which now include
+  `[x: string]: unknown` in their output types. Consumers using these types may need
+  to update their code. Additionally, `ZodError.errors` has been replaced with
+  `ZodError.issues`, `z.record()` now requires explicit key schemas, and
+  `zod-to-json-schema` has been replaced with native `z.toJSONSchema()`.
+
+### Patch Changes
+
+- Updated dependencies [03b10a8]
+  - @arizeai/phoenix-otel@0.4.2
+
+## 5.9.0
+
+### Minor Changes
+
+- b18325b: feat: upgrade AI SDK to v6
+
+### Patch Changes
+
+- db24319: fix: polish experiment run output formatting and clarity
+- Updated dependencies [db24319]
+  - @arizeai/phoenix-config@0.1.1
+
+## 5.8.2
+
+### Patch Changes
+
+- 8be1940: Update `@arizeai/openinference-vercel` dependency to `^2.7.0`.
+- Updated dependencies [7456462]
+  - @arizeai/phoenix-otel@0.4.1
+
+## 5.8.1
+
+### Patch Changes
+
+- Updated dependencies [a8896db]
+  - @arizeai/phoenix-otel@0.4.0
+
+## 5.8.0
+
+### Minor Changes
+
+- af4dc46: Add prompt introspection commands to Phoenix CLI
+  - `px prompts`: List all available prompts with names and descriptions
+  - `px prompt <identifier>`: Show a specific prompt with support for `--tag` and `--version` options
+  - `--format text`: Output prompt content with XML-style role tags for piping to AI assistants like Claude Code
+  - Pretty print now includes full tool definitions with parameters, types, and descriptions
+  - Added `listPrompts` function to phoenix-client
+
+## 5.7.0
+
+### Minor Changes
+
+- 01eb1fb: feat: Add spanId support for linking dataset examples to traces
+  - Added `spanId` field to the `Example` interface for linking dataset examples back to their source spans
+  - Updated `createDataset` to accept examples with `spanId` and pass them to the API
+  - Updated `appendDatasetExamples` to accept examples with `spanId` and pass them to the API
+  - Added comprehensive unit tests for span ID functionality
+  - Added example script demonstrating how to create datasets from spans with trace associations
+
+  This feature enables traceability from datasets back to the original traces in Phoenix, making it easier to understand the provenance of dataset examples.
+
+## 5.6.1
+
+### Patch Changes
+
+- ed59696: feat: Bump generated api schema
+
 ## 5.6.0
 
 ### Minor Changes
@@ -185,13 +260,13 @@
 
 ### Patch Changes
 
-- 1b71c66: make sure repetion numbers are greater than 0
+- 1b71c66: make sure repetition numbers are greater than 0
 
 ## 4.0.1
 
 ### Patch Changes
 
-- e72a9ad: don't swallow errors, allow for incomplete datasets (e.g. just imputs)
+- e72a9ad: don't swallow errors, allow for incomplete datasets (e.g. just inputs)
 
 ## 4.0.0
 
@@ -289,7 +364,7 @@
 
 ### Patch Changes
 
-- da7800a: feat(phoenix-client): Log the experiement/dataset link when calling runExperiment
+- da7800a: feat(phoenix-client): Log the experiment/dataset link when calling runExperiment
 
 ## 2.0.0
 

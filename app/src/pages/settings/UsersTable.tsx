@@ -1,13 +1,14 @@
-import { ReactNode, useCallback, useMemo, useRef, useState } from "react";
-import { ConnectionHandler, graphql, usePaginationFragment } from "react-relay";
+import { css } from "@emotion/react";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { css } from "@emotion/react";
+import type { ReactNode } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { ConnectionHandler, graphql, usePaginationFragment } from "react-relay";
 
 import { Flex, Icon, Icons, Modal, ModalOverlay } from "@phoenix/components";
 import { RoleSelect } from "@phoenix/components/settings/RoleSelect";
@@ -16,11 +17,12 @@ import { tableCSS } from "@phoenix/components/table/styles";
 import { TableEmpty } from "@phoenix/components/table/TableEmpty";
 import { TimestampCell } from "@phoenix/components/table/TimestampCell";
 import { UserPicture } from "@phoenix/components/user/UserPicture";
-import { isUserRole, normalizeUserRole, UserRole } from "@phoenix/constants";
+import type { UserRole } from "@phoenix/constants";
+import { isUserRole, normalizeUserRole } from "@phoenix/constants";
 import { useViewer } from "@phoenix/contexts/ViewerContext";
 
-import { UsersTable_users$key } from "./__generated__/UsersTable_users.graphql";
-import { UsersTableQuery } from "./__generated__/UsersTableQuery.graphql";
+import type { UsersTable_users$key } from "./__generated__/UsersTable_users.graphql";
+import type { UsersTableQuery } from "./__generated__/UsersTableQuery.graphql";
 import { UserActionMenu } from "./UserActionMenu";
 import { UserRoleChangeDialog } from "./UserRoleChangeDialog";
 
@@ -29,7 +31,7 @@ const PAGE_SIZE = 50;
 
 const emailLinkCSS = css`
   text-decoration: none;
-  color: var(--ac-global-color-grey-600);
+  color: var(--global-color-gray-600);
   font-size: 12px;
   &:hover {
     text-decoration: underline;
@@ -56,7 +58,7 @@ const userTableRowCSS = css`
  */
 const usersTableContainerCSS = css`
   overflow: auto;
-  max-height: var(--ac-global-dimension-size-6000);
+  max-height: var(--global-dimension-size-6000);
 `;
 
 const isDefaultAdminUser = (user: { email: string | null; username: string }) =>
@@ -77,8 +79,7 @@ export function UsersTable({ query }: { query: UsersTable_users$key }) {
         after: { type: "String", defaultValue: null }
         first: { type: "Int", defaultValue: 50 }
       ) {
-        users(first: $first, after: $after)
-          @connection(key: "UsersTable_users") {
+        users(first: $first, after: $after) @connection(key: "UsersTable_users") {
           edges {
             user: node {
               id
@@ -227,7 +228,6 @@ export function UsersTable({ query }: { query: UsersTable_users$key }) {
     ];
   }, [viewer]);
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<TableRow>({
     columns,
     data: tableData,

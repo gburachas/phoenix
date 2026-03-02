@@ -1,5 +1,5 @@
-import { Controller, useForm } from "react-hook-form";
 import { css } from "@emotion/react";
+import { Controller, useForm } from "react-hook-form";
 
 import {
   Button,
@@ -68,8 +68,8 @@ export function OAuthUserForm({
       css={css`
         .role-select {
           width: 100%;
-          .ac-dropdown--picker,
-          .ac-dropdown-button {
+          .dropdown--picker,
+          .dropdown__button {
             width: 100%;
           }
         }

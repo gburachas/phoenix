@@ -1,5 +1,6 @@
-import { ReactNode, useState } from "react";
 import { css } from "@emotion/react";
+import type { ReactNode } from "react";
+import { useId, useState } from "react";
 
 import { Label, Text } from "@phoenix/components";
 import { fieldBaseCSS } from "@phoenix/components/field/styles";
@@ -7,20 +8,20 @@ import { classNames } from "@phoenix/utils";
 
 const codeEditorFormWrapperCSS = css`
   &.is-hovered {
-    border: 1px solid var(--ac-global-input-field-border-color-active);
+    border: 1px solid var(--global-input-field-border-color-active);
   }
   &.is-focused {
-    border: 1px solid var(--ac-global-input-field-border-color-active);
+    border: 1px solid var(--global-input-field-border-color-active);
   }
   &.is-invalid {
-    border: 1px solid var(--ac-global-color-danger);
+    border: 1px solid var(--global-color-danger);
   }
-  border-radius: var(--ac-global-rounding-small);
-  border: 1px solid var(--ac-global-input-field-border-color);
+  border-radius: var(--global-rounding-small);
+  border: 1px solid var(--global-input-field-border-color);
   width: 100%;
   .cm-content,
   .cm-editor {
-    border-radius: var(--ac-global-rounding-small);
+    border-radius: var(--global-rounding-small);
   }
   box-sizing: border-box;
   .cm-focused {
@@ -30,7 +31,8 @@ const codeEditorFormWrapperCSS = css`
 `;
 
 /**
- * Wrapper for code editor components (e.g. JSONEditor) that provides hover, focus, and validation state styles
+ * Wrapper for code editor components (e.g. JSONEditor) that provides hover, focus, and validation state styles.
+ * Includes proper ARIA attributes for accessibility.
  */
 export function CodeEditorFieldWrapper({
   children,
@@ -46,6 +48,19 @@ export function CodeEditorFieldWrapper({
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const isInvalid = !!errorMessage;
+
+  // Generate unique IDs for ARIA associations
+  const baseId = useId();
+  const errorId = `${baseId}-error`;
+  const descriptionId = `${baseId}-description`;
+
+  // Build aria-describedby based on what's displayed
+  const ariaDescribedBy = errorMessage
+    ? errorId
+    : description
+      ? descriptionId
+      : undefined;
+
   return (
     <div css={fieldBaseCSS}>
       <Label>{label}</Label>
@@ -60,16 +75,21 @@ export function CodeEditorFieldWrapper({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         css={codeEditorFormWrapperCSS}
+        role="textbox"
+        aria-invalid={isInvalid}
+        aria-describedby={ariaDescribedBy}
       >
         {children}
       </div>
       {errorMessage ? (
-        <Text slot="errorMessage" color="danger">
+        <Text id={errorId} slot="errorMessage" color="danger" role="alert">
           {errorMessage}
         </Text>
       ) : null}
       {description && !errorMessage ? (
-        <Text slot="description">{description}</Text>
+        <Text id={descriptionId} slot="description">
+          {description}
+        </Text>
       ) : null}
     </div>
   );

@@ -1,42 +1,48 @@
-import { PropsWithChildren, ReactNode } from "react";
+import { css } from "@emotion/react";
+import type { PropsWithChildren, ReactNode } from "react";
+import type { PopoverProps } from "react-aria-components";
 import {
+  Header,
   Menu as AriaMenu,
   MenuItem as AriaMenuItem,
   type MenuItemProps as AriaMenuItemProps,
   type MenuProps as AriaMenuProps,
   MenuTrigger as AriaMenuTrigger,
-  PopoverProps,
 } from "react-aria-components";
-import { css } from "@emotion/react";
 
-import {
-  Flex,
-  Heading,
-  Icon,
-  Icons,
-  Popover,
-  PopoverArrow,
-  Text,
-} from "@phoenix/components";
 import { classNames } from "@phoenix/utils";
+
+import { Heading, Text } from "../content";
+import { Icon, Icons } from "../icon";
+import { Flex } from "../layout";
+import { Popover } from "../overlay";
 
 const menuCSS = css`
   --menu-min-width: 250px;
   min-width: var(--menu-min-width);
+  display: flex;
+  flex-direction: column;
+  gap: var(--global-menu-item-gap);
   flex: 1 1 auto;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--ac-global-dimension-static-size-50);
+  padding: var(--global-menu-item-gap);
   &:focus-visible {
-    border-radius: var(--ac-global-rounding-small);
-    outline: 2px solid var(--ac-global-color-primary);
+    border-radius: var(--global-rounding-small);
+    outline: 2px solid var(--global-color-primary);
     outline-offset: 0px;
   }
   &[data-empty] {
     align-items: center;
     justify-content: center;
     display: flex;
-    padding: var(--ac-global-dimension-static-size-100);
+    padding: var(--global-dimension-static-size-100);
+  }
+
+  .react-aria-MenuSection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--global-menu-item-gap);
   }
 `;
 
@@ -77,46 +83,39 @@ export const Menu = <T extends object>({
 };
 
 const menuItemCss = css`
-  padding: var(--ac-global-dimension-static-size-100) var(--ac-global-dimension-static-size-200);
-  border-radius: var(--ac-global-rounding-small);
+  padding: var(--global-dimension-static-size-50);
+  border-radius: var(--global-rounding-small);
   outline: none;
   cursor: default;
-  color: var(--ac-global-text-color-900);
+  color: var(--global-text-color-900);
   position: relative;
   display: flex;
-  gap: var(--ac-global-dimension-static-size-100);
+
   align-items: center;
   justify-content: space-between;
-
-  &[data-selected] {
-    background-color: var(--ac-highlight-background);
-    color: var(--ac-highlight-foreground);
-    i {
-      color: var(--ac-global-color-primary);
-    }
-  }
 
   &[data-open],
   &[data-focused],
   &[data-hovered] {
-    background-color: var(--ac-global-menu-item-background-color-hover);
+    background-color: var(--global-menu-item-background-color-hover);
   }
 
   &[data-disabled] {
     cursor: not-allowed;
-    color: var(--ac-global-color-text-300);
+    color: var(--global-color-text-300);
+    opacity: var(--global-opacity-disabled);
   }
 
   &[data-focus-visible] {
     outline: none;
   }
-}
 
-@media (forced-colors: active) {
-  &[data-focused] {
-    forced-color-adjust: none;
-    background: Highlight;
-    color: HighlightText;
+  @media (forced-colors: active) {
+    &[data-focused] {
+      forced-color-adjust: none;
+      background: Highlight;
+      color: HighlightText;
+    }
   }
 `;
 
@@ -138,8 +137,13 @@ const menuItemCss = css`
  */
 export const MenuItem = <T extends object>({
   className,
+  trailingContent,
+  leadingContent,
   ...props
-}: AriaMenuItemProps<T>) => {
+}: AriaMenuItemProps<T> & {
+  trailingContent?: ReactNode;
+  leadingContent?: ReactNode;
+}) => {
   const textValue =
     props.textValue ||
     (typeof props.children === "string" ? props.children : undefined);
@@ -150,11 +154,29 @@ export const MenuItem = <T extends object>({
       className={classNames("react-aria-MenuItem", className)}
       textValue={textValue}
     >
-      {({ hasSubmenu, isSelected }) => {
+      {(renderProps) => {
+        const { hasSubmenu, isSelected, selectionMode } = renderProps;
         return (
           <>
-            {props.children}
             {isSelected && <Icon svg={<Icons.Checkmark />} />}
+            {selectionMode !== "none" && !isSelected && (
+              <Icon
+                svg={<Icons.CheckmarkOutline />}
+                css={css`
+                  visibility: hidden;
+                `}
+              />
+            )}
+            <MenuItemContent
+              trailingContent={trailingContent}
+              leadingContent={leadingContent}
+            >
+              {typeof props.children === "function"
+                ? props.children(renderProps)
+                : props.children}
+            </MenuItemContent>
+            {/* TODO: this doesn't have a good way to reserve space for the chevron
+            in menus where only some items are nestable */}
             {hasSubmenu && <Icon svg={<Icons.ChevronRight />} />}
           </>
         );
@@ -163,8 +185,43 @@ export const MenuItem = <T extends object>({
   );
 };
 
+const MenuItemContent = ({
+  children,
+  trailingContent,
+  leadingContent,
+}: {
+  children: ReactNode;
+  trailingContent?: ReactNode;
+  leadingContent?: ReactNode;
+}) => {
+  return (
+    <Flex
+      direction="row"
+      alignItems="center"
+      justifyContent="space-between"
+      gap="var(--global-menu-split-item-content-gap)"
+      minWidth={0}
+      flex={1}
+      css={css`
+        padding: var(--global-menu-item-gap);
+      `}
+    >
+      {leadingContent ? (
+        <Flex alignItems="center" gap="var(--global-menu-item-gap)">
+          {leadingContent} {children}
+        </Flex>
+      ) : (
+        children
+      )}
+      {trailingContent}
+    </Flex>
+  );
+};
+
 const menuContainerCss = css`
   overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
 `;
 
 /**
@@ -187,8 +244,16 @@ const menuContainerCss = css`
 export const MenuContainer = ({
   children,
   placement = "bottom end",
+  minHeight = 300,
+  maxHeight = 650,
+  maxWidth = 450,
   ...popoverProps
-}: PropsWithChildren & Omit<PopoverProps, "maxHeight" | "maxWidth">) => {
+}: PropsWithChildren &
+  Omit<PopoverProps, "maxHeight" | "maxWidth"> & {
+    minHeight?: React.CSSProperties["minHeight"];
+    maxHeight?: React.CSSProperties["maxHeight"];
+    maxWidth?: React.CSSProperties["maxWidth"];
+  }) => {
   return (
     <Popover
       shouldFlip={false}
@@ -196,15 +261,13 @@ export const MenuContainer = ({
       css={menuContainerCss}
       {...popoverProps}
     >
-      <PopoverArrow />
       <div
+        style={{ minHeight, maxHeight, maxWidth }}
         css={css`
-          min-height: 300px;
           display: flex;
           flex-direction: column;
           height: 100%;
           min-width: 300px;
-          max-height: inherit;
         `}
       >
         {children}
@@ -213,10 +276,31 @@ export const MenuContainer = ({
   );
 };
 
+const menuSectionTitleCss = css`
+  padding: var(--global-dimension-static-size-50)
+    var(--global-dimension-static-size-100) 0;
+`;
+
+export const MenuSectionTitle = ({
+  title,
+  trailingContent,
+}: {
+  title: string;
+  trailingContent?: ReactNode;
+}) => {
+  return (
+    <Header css={menuSectionTitleCss}>
+      <Flex justifyContent="space-between" alignItems="center">
+        <Text weight="heavy">{title}</Text>
+        {trailingContent}
+      </Flex>
+    </Header>
+  );
+};
 /**
  * A menu header is a header for a menu.
  * This is the header for the menu, and should be used in conjunction with MenuTrigger and MenuContainer.
- * It includes a padding, border, and flexbox layout.
+ * It includes a border and flexbox layout. Children are responsible for their own padding.
  * It is typically placed above a sibling Menu component.
  * @see https://react-spectrum.adobe.com/react-aria/MenuHeader.html
  * @example
@@ -238,12 +322,22 @@ export const MenuHeader = ({ children }: PropsWithChildren) => {
   return (
     <div
       css={css`
-        padding: var(--ac-global-dimension-static-size-100);
-        border-bottom: 1px solid var(--ac-global-menu-border-color);
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
-        gap: var(--ac-global-dimension-static-size-100);
+
+        /* Add vertical padding to quiet SearchFields in header */
+        .search-field[data-variant="quiet"] .react-aria-Input,
+        .search-field[data-variant="quiet"]
+          .react-aria-Input[data-hovered]:not([data-disabled]):not([data-invalid]) {
+          border-bottom-color: var(--global-menu-border-color);
+        }
+        * + .search-field[data-variant="quiet"] .react-aria-Input,
+        *
+          + .search-field[data-variant="quiet"]
+          .react-aria-Input[data-hovered]:not([data-disabled]):not([data-invalid]) {
+          border-top-color: var(--global-menu-border-color);
+        }
       `}
     >
       {children}
@@ -281,6 +375,9 @@ export const MenuHeaderTitle = ({
       alignItems="center"
       wrap="nowrap"
       minHeight={30}
+      css={css`
+        padding: var(--global-dimension-static-size-100);
+      `}
     >
       {leadingContent}
       <Heading
@@ -289,6 +386,7 @@ export const MenuHeaderTitle = ({
         css={css`
           flex: 1 1 auto;
           width: 100%;
+          padding-left: var(--global-dimension-static-size-50);
         `}
       >
         {children}
@@ -322,12 +420,12 @@ export const MenuFooter = ({ children }: PropsWithChildren) => {
   return (
     <div
       css={css`
-        padding: var(--ac-global-dimension-static-size-100);
-        border-top: 1px solid var(--ac-global-menu-border-color);
+        padding: var(--global-dimension-static-size-100);
+        border-top: 1px solid var(--global-menu-border-color);
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
-        gap: var(--ac-global-dimension-static-size-50);
+        gap: var(--global-dimension-static-size-50);
       `}
     >
       {children}
@@ -355,7 +453,7 @@ export const MenuTriggerPlaceholder = ({
 }) => {
   return (
     <Text
-      color="grey-400"
+      color="gray-400"
       fontStyle="italic"
       css={css`
         overflow: hidden;

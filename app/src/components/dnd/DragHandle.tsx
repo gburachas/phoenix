@@ -1,6 +1,6 @@
-import React from "react";
-import { DraggableAttributes } from "@dnd-kit/core";
+import type { DraggableAttributes } from "@dnd-kit/core";
 import { css } from "@emotion/react";
+import React from "react";
 
 // This is the type of the listeners object from useSortable
 // However it is not exported from @dnd-kit/core so we have to redefine it here
@@ -25,18 +25,17 @@ function DragHandle(
       aria-roledescription="draggable"
       aria-pressed="false"
       aria-disabled="false"
-      className="button--reset"
+      className="button--reset drag-handle"
       css={css`
         cursor: grab;
-        background-color: var(--ac-global-color-grey-200);
-        border: 1px solid var(--ac-global-color-grey-400);
-        color: var(--ac-global-text-color-900);
+        background-color: var(--global-input-field-background-color);
+        border: 1px solid var(--global-color-gray-400);
+        color: var(--global-text-color-900);
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: var(--ac-global-dimension-size-100)
-          var(--ac-global-dimension-size-50);
-        border-radius: var(--ac-global-rounding-small);
+        padding: var(--global-dimension-size-100) var(--global-dimension-size-50);
+        border-radius: var(--global-rounding-small);
         overflow: hidden;
       `}
     >

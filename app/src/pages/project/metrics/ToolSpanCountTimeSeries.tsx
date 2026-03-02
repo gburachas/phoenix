@@ -1,4 +1,5 @@
 import { graphql, useLazyLoadQuery } from "react-relay";
+import type { TooltipContentProps } from "recharts";
 import {
   Bar,
   BarChart,
@@ -6,7 +7,6 @@ import {
   Legend,
   ResponsiveContainer,
   Tooltip,
-  TooltipContentProps,
   XAxis,
   YAxis,
 } from "recharts";
@@ -27,7 +27,7 @@ import {
 import { useTimeBinScale } from "@phoenix/hooks/useTimeBin";
 import { useTimeFormatters } from "@phoenix/hooks/useTimeFormatters";
 import { useUTCOffsetMinutes } from "@phoenix/hooks/useUTCOffsetMinutes";
-import { ProjectMetricViewProps } from "@phoenix/pages/project/metrics/types";
+import type { ProjectMetricViewProps } from "@phoenix/pages/project/metrics/types";
 import {
   intFormatter,
   intShortFormatter,
@@ -147,7 +147,7 @@ export function ToolSpanCountTimeSeries({
     <ResponsiveContainer width="100%" height="100%">
       <BarChart
         data={chartData}
-        margin={{ top: 0, right: 18, left: 0, bottom: 0 }}
+        margin={{ top: 0, right: 18, left: 8, bottom: 0 }}
         barSize={10}
         syncId={"projectMetrics"}
       >
@@ -164,7 +164,7 @@ export function ToolSpanCountTimeSeries({
           label={{
             value: "Count",
             angle: -90,
-            dx: -20,
+            dx: -28,
             style: {
               textAnchor: "middle",
               fill: "var(--chart-axis-label-color)",
@@ -178,11 +178,11 @@ export function ToolSpanCountTimeSeries({
           cursor={{ fill: "var(--chart-tooltip-cursor-fill-color)" }}
         />
         <Bar dataKey="error" stackId="a" fill={SemanticChartColors.danger} />
-        <Bar dataKey="unset" stackId="a" fill={colors.grey500} />
+        <Bar dataKey="unset" stackId="a" fill={colors.gray500} />
         <Bar
           dataKey="ok"
           stackId="a"
-          fill={colors.grey300}
+          fill={colors.gray300}
           radius={[2, 2, 0, 0]}
         />
         <Legend {...defaultLegendProps} iconType="circle" iconSize={8} />

@@ -1,20 +1,14 @@
+import { schemePaired } from "d3-scale-chromatic";
 import { useMemo } from "react";
 import { graphql, useFragment } from "react-relay";
-import { schemePaired } from "d3-scale-chromatic";
-import {
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  TooltipContentProps,
-} from "recharts";
+import type { TooltipContentProps } from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import { ChartTooltip, ChartTooltipItem } from "@phoenix/components/chart";
 import { percentFormatter } from "@phoenix/utils/numberFormatUtils";
 import { storageSizeFormatter } from "@phoenix/utils/storageSizeFormatUtils";
 
-import { DBUsagePieChart_data$key } from "./__generated__/DBUsagePieChart_data.graphql";
+import type { DBUsagePieChart_data$key } from "./__generated__/DBUsagePieChart_data.graphql";
 
 const REMAINING_TEXT = "remaining";
 function TooltipContent({
@@ -93,7 +87,7 @@ export function DBUsagePieChart({
               key={`cell-${index}`}
               fill={
                 x.tableName === REMAINING_TEXT
-                  ? "var(--ac-global-color-grey-200)"
+                  ? "var(--global-color-gray-200)"
                   : `${schemePaired[index % schemePaired.length]}`
               }
             />
@@ -104,8 +98,8 @@ export function DBUsagePieChart({
           x="50%"
           y="50%"
           textAnchor="middle"
-          fill="var(--ac-global-text-color-900"
-          fontSize="var(--ac-global-font-size-xl)"
+          fill="var(--global-text-color-900"
+          fontSize="var(--global-font-size-xl)"
         >
           {`${typeof data.dbStorageCapacityBytes === "number" ? percentFormatter((totalUsedBytes / data.dbStorageCapacityBytes) * 100) : storageSizeFormatter(totalUsedBytes)}`}
         </text>
@@ -114,8 +108,8 @@ export function DBUsagePieChart({
           y="50%"
           dy={25}
           textAnchor="middle"
-          fill="var(--ac-global-text-color-900"
-          fontSize="var(--ac-global-font-size-s)"
+          fill="var(--global-text-color-900"
+          fontSize="var(--global-font-size-s)"
         >
           {`Used`}
         </text>
@@ -128,8 +122,8 @@ export function DBUsagePieChart({
                 dx={10}
                 dy={15}
                 textAnchor="start"
-                fill="var(--ac-global-text-color-500)"
-                fontSize="var(--ac-global-font-size-xs)"
+                fill="var(--global-text-color-500)"
+                fontSize="var(--global-font-size-xs)"
               >
                 {"Capacity:"}
               </text>
@@ -139,8 +133,8 @@ export function DBUsagePieChart({
                 dx={10}
                 dy={28}
                 textAnchor="start"
-                fill="var(--ac-global-text-color-500)"
-                fontSize="var(--ac-global-font-size-xs)"
+                fill="var(--global-text-color-500)"
+                fontSize="var(--global-font-size-xs)"
               >
                 {storageSizeFormatter(data.dbStorageCapacityBytes)}
               </text>
@@ -152,8 +146,8 @@ export function DBUsagePieChart({
             dx={-80}
             dy={-2}
             textAnchor="end"
-            fill="var(--ac-global-text-color-500)"
-            fontSize="var(--ac-global-font-size-xs)"
+            fill="var(--global-text-color-500)"
+            fontSize="var(--global-font-size-xs)"
           >
             {"* approximate"}
           </text>

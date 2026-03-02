@@ -1,6 +1,8 @@
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import { Flex, Heading, Text, View } from "@phoenix/components";
+import { Heading, Text } from "./content";
+import { Flex } from "./layout";
+import { View } from "./view";
 
 export type PageHeaderProps = {
   /**
@@ -46,8 +48,9 @@ export function PageHeader({ title, subTitle, extra }: PageHeaderProps) {
         justifyContent="space-between"
         alignItems="center"
         data-testid="page-header-content"
+        gap="size-100"
       >
-        <Flex direction="column" gap="size-50">
+        <Flex direction="column" gap="size-50" minWidth={0}>
           <Title>{title}</Title>
           <SubTitle>{subTitle}</SubTitle>
         </Flex>

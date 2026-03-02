@@ -10,15 +10,17 @@ import {
   SelectValue,
   Token,
 } from "@phoenix/components";
-import {
+import type {
   AnthropicToolChoice,
-  findToolChoiceName,
   GoogleToolChoice,
+  OpenaiToolChoice,
+} from "@phoenix/schemas/toolChoiceSchemas";
+import {
+  findToolChoiceName,
   makeAnthropicToolChoice,
   makeAwsToolChoice,
   makeGoogleToolChoice,
   makeOpenAIToolChoice,
-  OpenaiToolChoice,
 } from "@phoenix/schemas/toolChoiceSchemas";
 import { assertUnreachable, isObject } from "@phoenix/typeUtils";
 
@@ -188,7 +190,7 @@ export const ChoiceLabel = ({ choiceType }: { choiceType: string }) => {
           width="100%"
         >
           <span>Use at least one tool</span>
-          <Token color="var(--ac-global-color-grey-900)" size="S">
+          <Token color="var(--global-color-gray-900)" size="S">
             {choiceType}
           </Token>
         </Flex>
@@ -202,7 +204,7 @@ export const ChoiceLabel = ({ choiceType }: { choiceType: string }) => {
           width="100%"
         >
           <span>Don&apos;t use any tools</span>
-          <Token color="var(--ac-global-color-grey-900)" size="S">
+          <Token color="var(--global-color-gray-900)" size="S">
             {choiceType}
           </Token>
         </Flex>
@@ -217,7 +219,7 @@ export const ChoiceLabel = ({ choiceType }: { choiceType: string }) => {
           width="100%"
         >
           <span>Tools auto-selected by LLM</span>
-          <Token color="var(--ac-global-color-grey-900)" size="S">
+          <Token color="var(--global-color-gray-900)" size="S">
             {choiceType}
           </Token>
         </Flex>

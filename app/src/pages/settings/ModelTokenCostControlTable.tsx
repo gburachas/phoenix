@@ -1,5 +1,6 @@
-import { Control, Controller } from "react-hook-form";
 import { css } from "@emotion/react";
+import type { Control } from "react-hook-form";
+import { Controller } from "react-hook-form";
 
 import {
   Button,
@@ -11,11 +12,9 @@ import {
   Input,
   NumberField,
 } from "@phoenix/components";
-import { ModelFormParams } from "@phoenix/pages/settings/ModelForm";
-import {
-  ModelTokenKind,
-  ModelTokenTypeComboBox,
-} from "@phoenix/pages/settings/ModelTokenTypeComboBox";
+import type { ModelFormParams } from "@phoenix/pages/settings/ModelForm";
+import type { ModelTokenKind } from "@phoenix/pages/settings/ModelTokenTypeComboBox";
+import { ModelTokenTypeComboBox } from "@phoenix/pages/settings/ModelTokenTypeComboBox";
 
 export function ModelTokenCostControlTable({
   title,
@@ -49,17 +48,17 @@ export function ModelTokenCostControlTable({
       <table
         css={css`
           border-collapse: separate;
-          border-spacing: 0 var(--ac-global-dimension-size-100);
+          border-spacing: 0 var(--global-dimension-size-100);
           width: 100%;
 
           & th {
             text-align: left;
             font-weight: normal;
-            color: var(--ac-global-color-grey-500);
+            color: var(--global-color-gray-500);
           }
 
           & th:not(:last-child) {
-            padding-right: var(--ac-global-dimension-size-100);
+            padding-right: var(--global-dimension-size-100);
           }
 
           & td {
@@ -67,7 +66,7 @@ export function ModelTokenCostControlTable({
           }
 
           & tbody td:not(:last-child) {
-            padding-right: var(--ac-global-dimension-size-100);
+            padding-right: var(--global-dimension-size-100);
           }
         `}
       >

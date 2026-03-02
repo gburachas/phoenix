@@ -1,5 +1,5 @@
-import { Controller, useForm } from "react-hook-form";
 import { CronExpressionParser } from "cron-parser";
+import { Controller, useForm } from "react-hook-form";
 
 import {
   Button,
@@ -45,7 +45,6 @@ export function RetentionPolicyForm(props: RetentionPolicyFormProps) {
     mode: "onChange",
   });
 
-  // eslint-disable-next-line react-hooks/incompatible-library
   const [numberOfDays, numberOfTraces, schedule] = watch([
     "numberOfDays",
     "numberOfTraces",
@@ -177,12 +176,7 @@ export function RetentionPolicyForm(props: RetentionPolicyFormProps) {
                 },
               }}
               render={({ field, fieldState }) => (
-                <TextField
-                  {...field}
-                  size="S"
-                  {...field}
-                  isInvalid={!!fieldState.error}
-                >
+                <TextField size="S" {...field} isInvalid={!!fieldState.error}>
                   <Label>Schedule</Label>
                   <Input />
                   {fieldState.error ? (

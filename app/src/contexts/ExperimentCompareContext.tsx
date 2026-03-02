@@ -1,14 +1,15 @@
+import { orderBy, range } from "lodash";
+import type { ReactNode } from "react";
 import {
   createContext,
-  ReactNode,
   useCallback,
   useContext,
   useMemo,
   useState,
 } from "react";
-import { orderBy, range } from "lodash";
 
-import { ExperimentCompareDetailsQuery$data } from "@phoenix/components/experiment/__generated__/ExperimentCompareDetailsQuery.graphql";
+import type { AnnotationConfig } from "@phoenix/components/annotation";
+import type { ExperimentCompareDetailsQuery$data } from "@phoenix/components/experiment/__generated__/ExperimentCompareDetailsQuery.graphql";
 
 type Experiment = NonNullable<
   ExperimentCompareDetailsQuery$data["dataset"]["experiments"]
@@ -45,6 +46,7 @@ interface ExperimentCompareContextType {
   experimentsById: Record<string, Experiment>;
   experimentRepetitionsByExperimentId: Record<string, ExperimentRepetition[]>;
   annotationSummaries: AnnotationSummaries;
+  annotationConfigs: readonly AnnotationConfig[];
   referenceOutput: ReferenceOutput;
   includeRepetitions: boolean;
   openTraceDialog: (traceId: string, projectId: string, title: string) => void;
@@ -82,6 +84,7 @@ export function ExperimentCompareDetailsProvider({
   experimentsById,
   experimentRepetitionsByExperimentId,
   annotationSummaries,
+  annotationConfigs,
   referenceOutput,
   includeRepetitions,
   openTraceDialog,
@@ -93,6 +96,7 @@ export function ExperimentCompareDetailsProvider({
   experimentsById: Record<string, Experiment>;
   experimentRepetitionsByExperimentId: Record<string, ExperimentRepetition[]>;
   annotationSummaries: AnnotationSummaries;
+  annotationConfigs: readonly AnnotationConfig[];
   referenceOutput: ReferenceOutput;
   includeRepetitions: boolean;
   openTraceDialog: (traceId: string, projectId: string, title: string) => void;
@@ -222,6 +226,7 @@ export function ExperimentCompareDetailsProvider({
     experimentsById,
     experimentRepetitionsByExperimentId,
     annotationSummaries,
+    annotationConfigs,
     referenceOutput,
     includeRepetitions,
     openTraceDialog,

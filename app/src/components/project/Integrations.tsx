@@ -1,5 +1,5 @@
-import { ReactNode } from "react";
 import { css } from "@emotion/react";
+import type { ReactNode } from "react";
 
 import {
   AgnoSVG,
@@ -13,14 +13,15 @@ import {
   GroqSVG,
   HaystackSVG,
   HuggingFaceSVG,
-  IntegrationSVG,
   LangChainSVG,
+  LiteLLMSVG,
   LlamaIndexSVG,
   MastraSVG,
   McpSVG,
   MistralAISVG,
   NodeJSSVG,
   OpenAISVG,
+  PortkeySVG,
   PydanticAISVG,
   VercelSVG,
   VertexAISVG,
@@ -34,39 +35,38 @@ export type IntegrationLinkProps = {
 };
 
 const integrationLinkCSS = css`
-  border-radius: var(--ac-global-rounding-medium);
-  border: 1px solid var(--ac-global-color-grey-400);
-  padding: var(--ac-global-dimension-size-100)
-    var(--ac-global-dimension-size-150);
+  border-radius: var(--global-rounding-medium);
+  border: 1px solid var(--global-color-gray-400);
+  padding: var(--global-dimension-size-100) var(--global-dimension-size-150);
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  gap: var(--ac-global-dimension-size-100);
+  gap: var(--global-dimension-size-100);
   transition:
     background-color 0.2s ease-in-out,
     border-color 0.2s ease-in-out;
   &:hover {
-    background-color: var(--ac-global-color-grey-100);
-    border-color: var(--ac-global-color-primary);
+    background-color: var(--global-color-gray-100);
+    border-color: var(--global-color-primary);
   }
   min-width: 230px;
   .integration__main-link {
     flex: 1 1 auto;
-    color: var(--ac-global-text-color-900);
+    color: var(--global-text-color-900);
     text-decoration: none;
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: var(--ac-global-dimension-size-150);
+    gap: var(--global-dimension-size-150);
   }
   .integration__github-link {
-    color: var(--ac-global-color-grey-500);
+    color: var(--global-color-gray-500);
     transition: color 0.2s ease-in-out;
     display: flex;
     align-items: center;
     &:hover {
-      color: var(--ac-global-color-grey-700);
+      color: var(--global-color-gray-700);
     }
   }
 `;
@@ -245,14 +245,14 @@ const PYTHON_INTEGRATIONS: IntegrationLinkProps[] = [
       "https://arize.com/docs/phoenix/integrations/llm-providers/litellm",
     githubHref:
       "https://github.com/Arize-ai/openinference/tree/main/python/instrumentation/openinference-instrumentation-litellm",
-    icon: <IntegrationSVG />,
+    icon: <LiteLLMSVG />,
   },
   {
     name: "PortKey",
     docsHref: "https://arize.com/docs/phoenix/integrations/python/portkey",
     githubHref:
       "https://github.com/Arize-ai/openinference/tree/main/python/instrumentation/openinference-instrumentation-portkey",
-    icon: <IntegrationSVG />,
+    icon: <PortkeySVG />,
   },
   {
     name: "MCP",
@@ -266,7 +266,7 @@ const integrationsListCSS = css`
   width: 100%;
   display: flex;
   flex-direction: row;
-  gap: var(--ac-global-dimension-size-100);
+  gap: var(--global-dimension-size-100);
   flex-wrap: wrap;
 `;
 
@@ -320,7 +320,7 @@ const TYPESCRIPT_INTEGRATIONS: IntegrationLinkProps[] = [
   {
     name: "OpenAI NodeJS SDK",
     docsHref:
-      "https://arize.com/docs/phoenix/tracing/integrations-tracing/openai-node-sdk",
+      "https://arize.com/docs/phoenix/integrations/llm-providers/openai/openai-node-js-sdk",
     githubHref:
       "https://github.com/Arize-ai/openinference/tree/main/js/packages/openinference-vercel",
     icon: <OpenAISVG />,
@@ -328,7 +328,7 @@ const TYPESCRIPT_INTEGRATIONS: IntegrationLinkProps[] = [
   {
     name: "LangChain.js",
     docsHref:
-      "https://arize.com/docs/phoenix/tracing/integrations-tracing/langchain.js",
+      "https://arize.com/docs/phoenix/integrations/typescript/langchain",
     githubHref:
       "https://github.com/Arize-ai/openinference/tree/main/js/packages/openinference-instrumentation-langchain",
     icon: <LangChainSVG />,
@@ -350,16 +350,14 @@ const TYPESCRIPT_INTEGRATIONS: IntegrationLinkProps[] = [
   },
   {
     name: "BeeAI",
-    docsHref:
-      "https://arize.com/docs/phoenix/tracing/integrations-tracing/beeai",
+    docsHref: "https://arize.com/docs/phoenix/integrations/typescript/beeai",
     githubHref:
       "https://github.com/Arize-ai/openinference/tree/main/js/packages/openinference-instrumentation-beeai",
     icon: <BeeAISVG />,
   },
   {
     name: "MCP",
-    docsHref:
-      "https://arize.com/docs/phoenix/tracing/integrations-tracing/model-context-protocol-mcp",
+    docsHref: "https://arize.com/docs/phoenix/integrations/typescript/mcp",
     githubHref:
       "https://github.com/Arize-ai/openinference/tree/main/js/packages/openinference-instrumentation-mcp",
     icon: <McpSVG />,

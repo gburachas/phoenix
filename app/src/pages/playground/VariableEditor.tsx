@@ -1,11 +1,8 @@
-import { useEffect, useRef, useState } from "react";
 import { defaultKeymap } from "@codemirror/commands";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
-import ReactCodeMirror, {
-  BasicSetupOptions,
-  EditorView,
-  keymap,
-} from "@uiw/react-codemirror";
+import type { BasicSetupOptions } from "@uiw/react-codemirror";
+import ReactCodeMirror, { EditorView, keymap } from "@uiw/react-codemirror";
+import { useEffect, useRef, useState } from "react";
 
 import { Label } from "@phoenix/components";
 import { CodeWrap } from "@phoenix/components/code";

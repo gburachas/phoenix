@@ -1,15 +1,12 @@
-import { RefObject, useCallback, useState } from "react";
-import copy from "copy-to-clipboard";
 import { css } from "@emotion/react";
+import copy from "copy-to-clipboard";
+import type { RefObject } from "react";
+import { useCallback, useState } from "react";
 
-import {
-  Button,
-  ButtonProps,
-  Icon,
-  Icons,
-  Tooltip,
-  TooltipTrigger,
-} from "@phoenix/components";
+import type { ButtonProps } from "./button";
+import { Button } from "./button";
+import { Icon, Icons } from "./icon";
+import { Tooltip, TooltipTrigger } from "./tooltip";
 
 const SHOW_COPIED_TIMEOUT_MS = 2000;
 

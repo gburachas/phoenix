@@ -5,7 +5,7 @@ Compiles YAML prompts into Python code.
 import argparse
 import inspect
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 import yaml
 from jinja2 import Template
@@ -22,15 +22,17 @@ class PromptMessage(BaseModel):
 class ClassificationEvaluatorConfig(BaseModel):
     name: str
     description: str
-    optimization_direction: Literal["minimize", "maximize"]
+    optimization_direction: Literal["minimize", "maximize", "neutral"]
     messages: list[PromptMessage]
     choices: dict[str, float]
+    substitutions: Optional[dict[str, str]] = None  # placeholder -> substitution_name
+    labels: list[str] = []
 
 
 MODELS_TEMPLATE = """\
 # This file is generated. Do not edit by hand.
 
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 

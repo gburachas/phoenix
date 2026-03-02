@@ -1,6 +1,7 @@
 import { css } from "@emotion/react";
 
-import { Button, ButtonProps } from "@phoenix/components/button";
+import type { ButtonProps } from "@phoenix/components/button";
+import { Button } from "@phoenix/components/button";
 import { Icon, Icons } from "@phoenix/components/icon";
 
 export type LoadMoreButtonProps = {
@@ -11,8 +12,7 @@ export type LoadMoreButtonProps = {
 
 const buttonCSS = css`
   border-radius: 16px;
-  padding: var(--ac-global-dimension-size-50)
-    var(--ac-global-dimension-size-200) !important;
+  padding: var(--global-dimension-size-50) var(--global-dimension-size-200) !important;
 `;
 
 export const LoadMoreButton = ({

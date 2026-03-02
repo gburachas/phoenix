@@ -1,6 +1,6 @@
+import { css } from "@emotion/react";
 import { useMemo } from "react";
 import { graphql, useFragment } from "react-relay";
-import { css } from "@emotion/react";
 
 import { Flex, Text } from "@phoenix/components";
 import { LatencyText } from "@phoenix/components/trace/LatencyText";
@@ -10,7 +10,7 @@ import { SpanTokenCosts } from "@phoenix/components/trace/SpanTokenCosts";
 import { SpanTokenCount } from "@phoenix/components/trace/SpanTokenCount";
 import { useTimeFormatters } from "@phoenix/hooks";
 
-import { SpanHeader_span$key } from "./__generated__/SpanHeader_span.graphql";
+import type { SpanHeader_span$key } from "./__generated__/SpanHeader_span.graphql";
 
 type SpanHeaderProps = {
   span: SpanHeader_span$key;
@@ -56,7 +56,7 @@ export function SpanHeader(props: SpanHeaderProps) {
           <SpanStatusCodeIcon
             statusCode={span.code}
             css={css`
-              font-size: var(--ac-global-font-size-m);
+              font-size: var(--global-font-size-m);
             `}
           />
         </Flex>

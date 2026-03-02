@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<4c46c7255e92cc0aae04791f84cdb578>>
+ * @generated SignedSource<<a7f6caa3cb9514d665861a80c5de7bc1>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -14,9 +14,10 @@ export type PromptTemplateFormat = "F_STRING" | "MUSTACHE" | "NONE";
 export type CreateChatPromptVersionInput = {
   promptId: string;
   promptVersion: ChatPromptVersionInput;
-  tags?: ReadonlyArray<SetPromptVersionTagInput> | null;
+  tags?: ReadonlyArray<CreatePromptVersionTagInput> | null;
 };
 export type ChatPromptVersionInput = {
+  customProviderId?: string | null;
   description?: string | null;
   invocationParameters?: any;
   modelName: string;
@@ -60,10 +61,9 @@ export type ToolDefinitionInput = {
 export type ResponseFormatInput = {
   definition: any;
 };
-export type SetPromptVersionTagInput = {
+export type CreatePromptVersionTagInput = {
   description?: string | null;
   name: string;
-  promptVersionId: string;
 };
 export type UpsertPromptFromTemplateDialogUpdateMutation$variables = {
   input: CreateChatPromptVersionInput;

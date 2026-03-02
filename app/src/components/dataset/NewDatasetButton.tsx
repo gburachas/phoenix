@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { css } from "@emotion/react";
+import { useState } from "react";
 
 import {
   Alert,
@@ -33,7 +33,8 @@ export function NewDatasetButton({
       }}
     >
       <Button
-        variant="default"
+        variant="primary"
+        size="M"
         leadingVisual={<Icon svg={<Icons.PlusCircleOutline />} />}
         aria-label="Create a new dataset"
         onPress={() => {

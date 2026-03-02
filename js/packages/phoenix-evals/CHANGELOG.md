@@ -1,5 +1,44 @@
 # @arizeai/phoenix-evals
 
+## 1.0.0
+
+### Major Changes
+
+- 03b10a8: feat: upgrade zod from v3 to v4
+
+  BREAKING CHANGE: Upgraded zod from v3 to v4. This changes inferred TypeScript types
+  for schemas using `z.looseObject()` (previously `.passthrough()`) which now include
+  `[x: string]: unknown` in their output types. Consumers using these types may need
+  to update their code. Additionally, `ZodError.errors` has been replaced with
+  `ZodError.issues`, `z.record()` now requires explicit key schemas, and
+  `zod-to-json-schema` has been replaced with native `z.toJSONSchema()`.
+
+## 0.10.0
+
+### Minor Changes
+
+- b18325b: feat: upgrade AI SDK to v6
+- d43c4ee: feat: add conciseness evaluator
+
+## 0.9.0
+
+### Minor Changes
+
+- 0738cb9: Add tool response handling llm evaluator.
+- d6d1953: Add createToolSelectionEvaluator for evaluating LLM tool selection decisions. This evaluator determines whether the correct tool was selected for a given context, checking if the LLM chose the best available tool for the user query.
+
+## 0.8.0
+
+### Minor Changes
+
+- d1c89bf: Add createToolInvocationEvaluator for evaluating LLM tool invocations
+
+## 0.7.0
+
+### Minor Changes
+
+- da13ad5: add generic correctness evaluator
+
 ## 0.6.5
 
 ### Patch Changes

@@ -1,11 +1,11 @@
-import { startTransition, useCallback, useMemo } from "react";
-import { graphql, useMutation, useRefetchableFragment } from "react-relay";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { startTransition, useCallback, useMemo } from "react";
+import { graphql, useMutation, useRefetchableFragment } from "react-relay";
 
 import { Flex, Icon, Icons } from "@phoenix/components";
 import { DeleteAPIKeyButton } from "@phoenix/components/auth";
@@ -15,8 +15,8 @@ import { TableEmpty } from "@phoenix/components/table/TableEmpty";
 import { TimestampCell } from "@phoenix/components/table/TimestampCell";
 import { useNotifySuccess } from "@phoenix/contexts";
 
-import { APIKeysTableFragment$key } from "./__generated__/APIKeysTableFragment.graphql";
-import { APIKeysTableQuery } from "./__generated__/APIKeysTableQuery.graphql";
+import type { APIKeysTableFragment$key } from "./__generated__/APIKeysTableFragment.graphql";
+import type { APIKeysTableQuery } from "./__generated__/APIKeysTableQuery.graphql";
 
 const TIMESTAMP_CELL_SIZE = 70;
 
@@ -134,7 +134,6 @@ export function APIKeysTable({ query }: { query: APIKeysTableFragment$key }) {
     ];
     return cols;
   }, [handleDelete]);
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable<TableRow>({
     columns,
     data: tableData,

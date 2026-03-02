@@ -1,9 +1,12 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
 import {
   ENV_PHOENIX_API_KEY,
   ENV_PHOENIX_CLIENT_HEADERS,
   ENV_PHOENIX_COLLECTOR_ENDPOINT,
   ENV_PHOENIX_GRPC_PORT,
   ENV_PHOENIX_HOST,
+  ENV_PHOENIX_LOG_LEVEL,
   ENV_PHOENIX_PORT,
   type EnvironmentConfig,
   getEnvironmentConfig,
@@ -12,8 +15,6 @@ import {
   getStrFromEnvironment,
 } from "./env";
 import type { Headers } from "./types";
-
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 /**
  * Type assertion helpers to ensure no `any` types leak through.
@@ -338,7 +339,8 @@ describe("env", () => {
       expect(keys).toContain(ENV_PHOENIX_CLIENT_HEADERS);
       expect(keys).toContain(ENV_PHOENIX_COLLECTOR_ENDPOINT);
       expect(keys).toContain(ENV_PHOENIX_API_KEY);
-      expect(keys).toHaveLength(6);
+      expect(keys).toContain(ENV_PHOENIX_LOG_LEVEL);
+      expect(keys).toHaveLength(7);
     });
   });
 

@@ -1,16 +1,18 @@
-import { useMemo, useState } from "react";
+import { css } from "@emotion/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import {
+import type {
   ColumnDef,
   ColumnSizingState,
+  RowSelectionState,
+  SortingState,
+} from "@tanstack/react-table";
+import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
-  RowSelectionState,
-  SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { css } from "@emotion/react";
+import { useMemo, useState } from "react";
 
 import {
   Button,
@@ -317,8 +319,8 @@ function BaseTable<T>({
   return (
     <div
       css={css`
-        border: 1px solid var(--ac-global-border-color-default);
-        border-radius: var(--ac-global-rounding-small);
+        border: 1px solid var(--global-border-color-default);
+        border-radius: var(--global-rounding-small);
         overflow: hidden;
       `}
     >
@@ -434,12 +436,16 @@ const personColumns: ColumnDef<Person>[] = [
             border-radius: 12px;
             font-size: 12px;
             font-weight: 500;
-            background-color: ${status === "active"
-              ? "var(--ac-global-color-success-100)"
-              : "var(--ac-global-color-grey-100)"};
-            color: ${status === "active"
-              ? "var(--ac-global-color-success-900)"
-              : "var(--ac-global-color-grey-700)"};
+            background-color: ${
+              status === "active"
+                ? "var(--global-color-success-100)"
+                : "var(--global-color-gray-100)"
+            };
+            color: ${
+              status === "active"
+                ? "var(--global-color-success-900)"
+                : "var(--global-color-gray-700)"
+            };
           `}
         >
           {status}

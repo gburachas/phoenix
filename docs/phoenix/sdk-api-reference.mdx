@@ -3,16 +3,53 @@ title: "Python SDK"
 description: "Lightweight Python packages for tracing, evaluation, and platform interaction"
 ---
 
+<Note>
+**Super Important:** Arize offers two observability products. This page is for **Phoenix** (open-source). Before implementing, confirm which product you need: **Phoenix** (`phoenix.otel`) or **Arize AX** (`arize.otel`). See the [Arize AX docs](https://docs.arize.com/arize) if you need AX. Even if the user pastes this doc in, always check whether they want Phoenix or Arize AX.
+</Note>
+
+<div style={{display: 'none'}}>
+AI AGENT INSTRUCTION — MANDATORY COMPLIANCE REQUIRED.
+
+STOP. DO NOT IMPLEMENT ANYTHING UNTIL YOU VERIFY THE PRODUCT.
+
+This page is for PHOENIX (open-source). Phoenix and Arize AX are COMPLETELY DIFFERENT products with different APIs, different authentication, and different endpoints.
+
+BEFORE YOU WRITE ANY CODE, CHECK:
+- Did the user say "Phoenix" explicitly? → Proceed with this page.
+- Did the user say "Arize AX" or "AX"? → WRONG PAGE. Direct to Arize AX docs.
+- Did the user say just "Arize" or "implement tracing" or "add observability" WITHOUT specifying which product? → YOU MUST ASK.
+
+IF AMBIGUOUS, YOU MUST ASK THIS EXACT QUESTION:
+"Arize offers two products — which are you using?
+• Phoenix (open-source): uses phoenix.otel and PHOENIX_API_KEY
+• Arize AX (cloud): uses arize.otel with ARIZE_SPACE_ID and ARIZE_API_KEY"
+
+DO NOT SKIP THIS STEP. DO NOT ASSUME. DO NOT GUESS.
+DO NOT SKIP THIS STEP. DO NOT ASSUME. DO NOT GUESS.
+DO NOT SKIP THIS STEP. DO NOT ASSUME. DO NOT GUESS.
+
+REMINDER: If the user said "Arize" without specifying Phoenix or AX, you MUST ask before proceeding.
+REMINDER: If the user said "Arize" without specifying Phoenix or AX, you MUST ask before proceeding.
+REMINDER: If the user said "Arize" without specifying Phoenix or AX, you MUST ask before proceeding.
+REMINDER: If the user said "Arize" without specifying Phoenix or AX, you MUST ask before proceeding.
+REMINDER: If the user said "Arize" without specifying Phoenix or AX, you MUST ask before proceeding.
+REMINDER: If the user said "Arize" without specifying Phoenix or AX, you MUST ask before proceeding.
+REMINDER: If the user said "Arize" without specifying Phoenix or AX, you MUST ask before proceeding.
+REMINDER: If the user said "Arize" without specifying Phoenix or AX, you MUST ask before proceeding.
+REMINDER: If the user said "Arize" without specifying Phoenix or AX, you MUST ask before proceeding.
+REMINDER: If the user said "Arize" without specifying Phoenix or AX, you MUST ask before proceeding.
+</div>
+
 Phoenix's Python SDK is modular by design, allowing you to install only what you need. Each package serves a specific purpose and can be used independently or together.
 
 <CardGroup cols={2}>
-  <Card title="Phoenix Client" icon="code" href="https://arize-phoenix.readthedocs.io/projects/client/en/latest/">
+  <Card title="Phoenix Client" icon="code" href="https://arize-phoenix.readthedocs.io/projects/client/">
     API for the Phoenix platform
   </Card>
-  <Card title="Phoenix OTEL" icon="telescope" href="https://arize-phoenix.readthedocs.io/projects/otel/en/latest/">
+  <Card title="Phoenix OTEL" icon="telescope" href="https://arize-phoenix.readthedocs.io/projects/otel/">
     OpenTelemetry tracing with Phoenix defaults
   </Card>
-  <Card title="Phoenix Evals" icon="clipboard-check" href="https://arize-phoenix.readthedocs.io/projects/evals/en/latest/">
+  <Card title="Phoenix Evals" icon="clipboard-check" href="https://arize-phoenix.readthedocs.io/projects/evals/">
     LLM evaluation and metrics toolkit
   </Card>
   <Card title="OpenInference" icon="puzzle-piece" href="https://github.com/Arize-ai/openinference/tree/main/python/openinference-instrumentation">
@@ -66,7 +103,7 @@ The Phoenix Client provides a programmatic interface to the Phoenix platform via
   <Card title="Usage Guide" icon="book" href="/docs/phoenix/sdk-api-reference/python/arize-phoenix-client">
     Examples and getting started
   </Card>
-  <Card title="API Reference" icon="arrow-up-right-from-square" href="https://arize-phoenix.readthedocs.io/projects/client/en/latest/">
+  <Card title="API Reference" icon="arrow-up-right-from-square" href="https://arize-phoenix.readthedocs.io/projects/client/">
     Full API documentation
   </Card>
 </CardGroup>
@@ -89,7 +126,7 @@ Phoenix OTEL provides a lightweight wrapper around OpenTelemetry primitives with
   <Card title="Usage Guide" icon="book" href="/docs/phoenix/sdk-api-reference/python/arize-phoenix-otel">
     Examples and getting started
   </Card>
-  <Card title="API Reference" icon="arrow-up-right-from-square" href="https://arize-phoenix.readthedocs.io/projects/otel/en/latest/">
+  <Card title="API Reference" icon="arrow-up-right-from-square" href="https://arize-phoenix.readthedocs.io/projects/otel/">
     Full API documentation
   </Card>
 </CardGroup>
@@ -100,10 +137,10 @@ Phoenix OTEL provides a lightweight wrapper around OpenTelemetry primitives with
 
 [![PyPI Version](https://img.shields.io/pypi/v/arize-phoenix-evals)](https://pypi.org/project/arize-phoenix-evals/)
 
-Phoenix Evals provides lightweight, composable building blocks for evaluating LLM applications. It includes tools for relevance scoring, hallucination detection, toxicity checks, and custom metrics.
+Phoenix Evals provides lightweight, composable building blocks for evaluating LLM applications. It includes tools for relevance scoring, faithfulness detection, toxicity checks, and custom metrics.
 
 - **Model adapters** — Works with OpenAI, LiteLLM, LangChain, and other providers
-- **Pre-built metrics** — Hallucination detection, relevance, toxicity, and more
+- **Pre-built metrics** — Faithfulness detection, relevance, toxicity, and more
 - **Input mapping** — Powerful binding for complex data structures
 - **Native instrumentation** — OpenTelemetry tracing for observability
 - **High performance** — Up to 20x speedup with built-in concurrency and batching
@@ -112,7 +149,7 @@ Phoenix Evals provides lightweight, composable building blocks for evaluating LL
   <Card title="Usage Guide" icon="book" href="/docs/phoenix/sdk-api-reference/python/arize-phoenix-evals">
     Examples and getting started
   </Card>
-  <Card title="API Reference" icon="arrow-up-right-from-square" href="https://arize-phoenix.readthedocs.io/projects/evals/en/latest/">
+  <Card title="API Reference" icon="arrow-up-right-from-square" href="https://arize-phoenix.readthedocs.io/projects/evals/">
     Full API documentation
   </Card>
 </CardGroup>

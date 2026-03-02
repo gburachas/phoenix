@@ -1,6 +1,6 @@
+import { css } from "@emotion/react";
 import { Suspense, useMemo } from "react";
 import { graphql, useLazyLoadQuery } from "react-relay";
-import { css } from "@emotion/react";
 
 import {
   Autocomplete,
@@ -20,7 +20,8 @@ import {
   useFilter,
   View,
 } from "@phoenix/components";
-import { PromptsLabelMenuQuery } from "@phoenix/pages/prompts/__generated__/PromptsLabelMenuQuery.graphql";
+import { SearchIcon } from "@phoenix/components/field";
+import type { PromptsLabelMenuQuery } from "@phoenix/pages/prompts/__generated__/PromptsLabelMenuQuery.graphql";
 
 type PromptsLabelMenuProps = {
   onSelectionChange: (labelIds: string[]) => void;
@@ -109,7 +110,8 @@ const LabelMenuFilterContent = ({
           <Heading level={4} weight="heavy">
             Filter prompts by labels
           </Heading>
-          <SearchField aria-label="Search" autoFocus>
+          <SearchField aria-label="Search" variant="quiet" autoFocus>
+            <SearchIcon />
             <Input placeholder="Search labels" />
           </SearchField>
         </Flex>
@@ -129,7 +131,7 @@ const LabelMenuFilterContent = ({
       >
         {({ id, name, color }) => (
           <MenuItem id={id} textValue={name}>
-            <Token color={color}>{name}</Token>
+            <Token color={color ?? undefined}>{name}</Token>
           </MenuItem>
         )}
       </Menu>

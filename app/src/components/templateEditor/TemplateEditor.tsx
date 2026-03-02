@@ -1,25 +1,30 @@
-import React, { useEffect, useMemo, useState } from "react";
 import { defaultKeymap } from "@codemirror/commands";
+import { css } from "@emotion/react";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
-import CodeMirror, {
+import type {
   BasicSetupOptions,
-  EditorView,
-  keymap,
   ReactCodeMirrorProps,
 } from "@uiw/react-codemirror";
-import { css } from "@emotion/react";
+import CodeMirror, { EditorView, keymap } from "@uiw/react-codemirror";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { useTheme } from "@phoenix/contexts";
 import { assertUnreachable } from "@phoenix/typeUtils";
 
+import { createTemplateAutocomplete } from "./autocomplete";
+import { TemplateFormats } from "./constants";
 import { FStringTemplating } from "./language/fString";
 import { MustacheLikeTemplating } from "./language/mustacheLike";
-import { TemplateFormats } from "./constants";
-import { TemplateFormat } from "./types";
+import type { TemplateFormat } from "./types";
 
 type TemplateEditorProps = Omit<ReactCodeMirrorProps, "value"> & {
   templateFormat: TemplateFormat;
   defaultValue: string;
+  /**
+   * Available paths for autocomplete suggestions.
+   * When provided, enables autocomplete for template variables.
+   */
+  availablePaths?: string[];
 };
 
 const basicSetupOptions: BasicSetupOptions = {
@@ -51,6 +56,7 @@ export const TemplateEditor = ({
   templateFormat,
   defaultValue,
   readOnly,
+  availablePaths,
   ...props
 }: TemplateEditorProps) => {
   const [value, setValue] = useState(() => defaultValue);
@@ -70,8 +76,17 @@ export const TemplateEditor = ({
       default:
         assertUnreachable(templateFormat);
     }
+    // Add autocomplete extension if available paths are provided and templating is enabled
+    if (
+      availablePaths &&
+      availablePaths.length > 0 &&
+      !readOnly &&
+      templateFormat !== TemplateFormats.NONE
+    ) {
+      ext.push(createTemplateAutocomplete(availablePaths, templateFormat));
+    }
     return ext;
-  }, [templateFormat]);
+  }, [templateFormat, availablePaths, readOnly]);
 
   useEffect(() => {
     if (readOnly) {
@@ -109,8 +124,8 @@ export const TemplateEditorWrap = ({
           border-right: none !important;
         }
         & .cm-content {
-          padding: var(--ac-global-dimension-size-100)
-            var(--ac-global-dimension-size-250);
+          padding: var(--global-dimension-size-100)
+            var(--global-dimension-size-250);
         }
         & .cm-gutter,
         & .cm-content {
@@ -122,6 +137,10 @@ export const TemplateEditorWrap = ({
         }
         & .cm-cursor {
           display: ${!readOnly ? "auto" : "none !important"};
+        }
+        // Ensure autocomplete tooltip appears above other elements (e.g., chat message cards)
+        & .cm-tooltip-autocomplete {
+          z-index: 100;
         }
       `}
     >

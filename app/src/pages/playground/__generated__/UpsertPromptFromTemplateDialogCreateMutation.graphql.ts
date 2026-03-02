@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<2311c9fda293012fd96b11a27f319f93>>
+ * @generated SignedSource<<ddb08d339b0c29c9b152e193f14f820d>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -16,8 +16,10 @@ export type CreateChatPromptInput = {
   metadata?: any | null;
   name: string;
   promptVersion: ChatPromptVersionInput;
+  tags?: ReadonlyArray<CreatePromptVersionTagInput> | null;
 };
 export type ChatPromptVersionInput = {
+  customProviderId?: string | null;
   description?: string | null;
   invocationParameters?: any;
   modelName: string;
@@ -60,6 +62,10 @@ export type ToolDefinitionInput = {
 };
 export type ResponseFormatInput = {
   definition: any;
+};
+export type CreatePromptVersionTagInput = {
+  description?: string | null;
+  name: string;
 };
 export type UpsertPromptFromTemplateDialogCreateMutation$variables = {
   input: CreateChatPromptInput;

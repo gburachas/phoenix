@@ -1,5 +1,65 @@
 # Migrations
 
+## v12.x to v13.0.0
+
+### DB Index for Session ID
+
+A partial index on `spans.attributes` for session id is added by migration. Migration run time is estimated at approximately 200 seconds per 100 GiB on a MacBook Pro. Cloud environments may take longer depending on instance size and I/O throughput.
+
+**Rolling deployments:** If an existing Phoenix instance is still serving traffic while a new instance starts and runs migrations, the default `CREATE INDEX` acquires a table lock that blocks writes from the old instance. To avoid this, set the following environment variable before starting the new instance:
+
+```
+PHOENIX_MIGRATE_INDEX_CONCURRENTLY=true
+```
+
+This uses `CREATE INDEX CONCURRENTLY`, which avoids the table lock but is roughly 2-3x slower. The new instance still blocks on startup until the index build completes.
+
+**Large PostgreSQL databases (hundreds of GiB+):** For very large `spans` tables, even `CONCURRENTLY` can take hours. To make the migration instant, pre-create a no-op index with the same name before upgrading (while the old version is still running):
+
+Step 1 — Create a no-op index (instant, no table scan):
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_spans_session_id
+ON spans ((attributes #>> '{session,id}'))
+WHERE false;
+```
+
+Step 2 — Upgrade Phoenix. The migration's `IF NOT EXISTS` sees the index name and skips.
+
+Step 3 — Backfill the real index at your convenience (while the app is running):
+
+```sql
+DROP INDEX CONCURRENTLY IF EXISTS ix_spans_session_id;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_spans_session_id
+ON spans (((attributes #>> '{session,id}')::varchar))
+WHERE ((attributes #>> '{session,id}')::varchar) IS NOT NULL;
+```
+
+Note: On PostgreSQL, the index uses the `#>>` path operator (e.g., `attributes #>> '{session,id}'`). Queries using chained arrow operators (`attributes -> 'session' ->> 'id'`) will not match the index. Phoenix's built-in query layer always uses the `#>>` form, so this only affects custom SQL queries run directly against the database.
+
+### Azure OpenAI v1 API
+
+Azure OpenAI integration now uses the OpenAI v1 API, which simplifies configuration by eliminating explicit API versioning. The `api_version` parameter is no longer required—versioning is now handled implicitly by the v1 API endpoint.
+
+This change requires `openai>=2.14.0`.
+
+**References**:
+- [Azure OpenAI API Version Lifecycle](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/api-version-lifecycle)
+- [Migration from Azure AI Inference to OpenAI SDK](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/model-inference-to-openai-migration)
+
+### AWS Bedrock Async Client
+
+AWS Bedrock integration now uses `aioboto3` instead of `boto3` for fully async client operations. If you have `boto3` installed for Bedrock support, you should install `aioboto3` instead:
+
+```shell
+pip install aioboto3
+```
+
+### Inferences, dimensions, embeddings, and pointcloud (UMAP)
+
+**Breaking change:** Model inferences, dimensions, embeddings, and the pointcloud (UMAP) visualization have been removed from Phoenix, along with their GraphQL and REST APIs. The UI no longer includes the `/model`, `/dimensions`, or `/embeddings` routes.
+
 ## v11.0.0 to v12.0.0
 
 Instrumentation helpers are being moved to `openinference-instrumentation`.

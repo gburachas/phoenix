@@ -1,34 +1,34 @@
-import { CSSProperties } from "react";
-import { Column } from "@tanstack/react-table";
 import { css } from "@emotion/react";
+import type { Column } from "@tanstack/react-table";
+import type { CSSProperties } from "react";
 
 export const tableCSS = css`
   // fixes table row sizing issues with full height cell children
   // this enables features like hovering anywhere on a cell to display controls
   height: fit-content;
-  font-size: var(--ac-global-font-size-s);
+  font-size: var(--global-font-size-s);
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   thead {
     position: sticky;
     top: 0;
-    z-index: 1;
+    z-index: 2;
     tr {
       th {
-        padding: var(--ac-global-dimension-size-100)
-          var(--ac-global-dimension-size-200);
-        background-color: var(--ac-global-color-grey-100);
+        padding: var(--global-dimension-size-100)
+          var(--global-dimension-size-200);
+        background-color: var(--global-color-gray-100);
         position: relative;
         text-align: left;
         user-select: none;
         vertical-align: top;
         font-weight: 600;
-        font-size: var(--ac-global-font-size-s);
-        line-height: var(--ac-global-line-height-s);
-        border-bottom: 1px solid var(--ac-global-border-color-default);
+        font-size: var(--global-font-size-s);
+        line-height: var(--global-line-height-s);
+        border-bottom: 1px solid var(--global-border-color-default);
         &:not(:last-of-type) {
-          border-right: 1px solid var(--ac-global-border-color-default);
+          border-right: 1px solid var(--global-border-color-default);
         }
         .sort {
           /* The sortable part of the header */
@@ -37,16 +37,16 @@ export const tableCSS = css`
           flex-direction: row;
           align-items: center;
 
-          gap: var(--ac-global-dimension-size-50);
+          gap: var(--global-dimension-size-50);
         }
         .sort-icon {
-          margin-left: var(--ac-global-dimension-size-50);
-          font-size: var(--ac-global-font-size-xs);
+          margin-left: var(--global-dimension-size-50);
+          font-size: var(--global-font-size-xs);
           vertical-align: middle;
           display: inline-block;
         }
         &:hover .resizer {
-          background: var(--ac-global-color-grey-300);
+          background: var(--global-color-gray-300);
         }
         div.resizer {
           display: inline-block;
@@ -61,11 +61,11 @@ export const tableCSS = css`
           touch-action: none;
           &.isResizing,
           &:hover {
-            background: var(--ac-global-color-primary);
+            background: var(--global-color-primary);
           }
         }
         // Style action menu buttons in the header
-        .ac-button[data-size="compact"][data-childless="true"] {
+        .button[data-size="compact"][data-childless="true"] {
           padding: 0;
           border: none;
           background-color: transparent;
@@ -79,15 +79,15 @@ export const tableCSS = css`
       height: 100%;
       &:not(:last-of-type) {
         & > td {
-          border-bottom: 1px solid var(--ac-global-color-grey-200);
+          border-bottom: 1px solid var(--global-color-gray-200);
         }
       }
       & > td {
-        padding: var(--ac-global-dimension-size-100)
-          var(--ac-global-dimension-size-200);
+        padding: var(--global-dimension-size-100)
+          var(--global-dimension-size-200);
       }
       &[data-selected="true"] {
-        background-color: var(--ac-global-color-primary-100);
+        background-color: var(--global-color-primary-100);
       }
     }
   }
@@ -97,10 +97,10 @@ export const borderedTableCSS = css`
   tbody:not(.is-empty) {
     tr {
       & > td {
-        border-bottom: 1px solid var(--ac-global-color-grey-100);
+        border-bottom: 1px solid var(--global-color-gray-100);
       }
       & > td:not(:last-of-type) {
-        border-right: 1px solid var(--ac-global-color-grey-100);
+        border-right: 1px solid var(--global-color-gray-100);
       }
     }
   }
@@ -110,7 +110,7 @@ export const interactiveTableCSS = css`
   tbody:not(.is-empty) {
     tr {
       &:hover {
-        background-color: var(--ac-hover-background);
+        background-color: var(--hover-background);
       }
     }
   }
@@ -132,9 +132,9 @@ export const paginationCSS = css`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: var(--ac-global-dimension-size-100);
-  gap: var(--ac-global-dimension-size-50);
-  border-top: 1px solid var(--ac-global-color-grey-300);
+  padding: var(--global-dimension-size-100);
+  gap: var(--global-dimension-size-50);
+  border-top: 1px solid var(--global-color-gray-300);
 `;
 
 //These are the important styles to make sticky column pinning work!
@@ -150,10 +150,10 @@ export function getCommonPinningStyles<Row>(
     isPinned === "right" && column.getIsFirstColumn("right");
 
   return {
-    boxShadow: isLastLeftPinnedColumn
-      ? "-8px 0 8px -8px var(--ac-global-color-grey-200) inset"
+    filter: isLastLeftPinnedColumn
+      ? "drop-shadow(4px 0 4px rgba(0, 0, 0, 0.1))"
       : isFirstRightPinnedColumn
-        ? "8px 0 8px -8px var(--ac-global-color-grey-200) inset"
+        ? "drop-shadow(-4px 0 4px rgba(0, 0, 0, 0.1))"
         : undefined,
     left: isPinned === "left" ? `${column.getStart("left")}px` : undefined,
     right: isPinned === "right" ? `${column.getAfter("right")}px` : undefined,
@@ -161,6 +161,6 @@ export function getCommonPinningStyles<Row>(
     position: isPinned ? "sticky" : "relative",
     width: column.getSize(),
     zIndex: isPinned ? 1 : 0,
-    backgroundColor: isPinned ? "var(--ac-global-color-grey-100)" : undefined,
+    backgroundColor: isPinned ? "var(--global-color-gray-100)" : undefined,
   };
 }

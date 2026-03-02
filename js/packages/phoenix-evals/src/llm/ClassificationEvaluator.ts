@@ -1,18 +1,17 @@
+import type { LanguageModel } from "ai";
+
 import { getTemplateVariables } from "../template";
-import {
+import type {
   ClassificationChoicesMap,
   CreateClassificationEvaluatorArgs,
   EvaluatorFn,
   PromptTemplate,
   WithPromptTemplate,
 } from "../types";
-import { ObjectMapping } from "../types/data";
+import type { ObjectMapping } from "../types/data";
 import { remapObject } from "../utils/objectMappingUtils";
-
 import { createClassifierFn } from "./createClassifierFn";
 import { LLMEvaluator } from "./LLMEvaluator";
-
-import { LanguageModel } from "ai";
 
 /**
  * An LLM evaluator that performs evaluation via classification

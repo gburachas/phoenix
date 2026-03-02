@@ -1,16 +1,15 @@
+import { openai } from "@ai-sdk/openai";
 import { createOrGetDataset } from "@arizeai/phoenix-client/datasets";
 import {
   asExperimentEvaluator,
   runExperiment,
 } from "@arizeai/phoenix-client/experiments";
-import { ExperimentTask } from "@arizeai/phoenix-client/types/experiments";
+import type { ExperimentTask } from "@arizeai/phoenix-client/types/experiments";
 import { createDocumentRelevanceEvaluator } from "@arizeai/phoenix-evals";
-
-import "dotenv/config";
 
 import { spaceKnowledgeApplication } from "./app";
 
-import { openai } from "@ai-sdk/openai";
+import "dotenv/config";
 
 const DATASET = [
   "Which moon might harbor life due to its unique geological features?",

@@ -1,8 +1,8 @@
-import { ObjectMapping } from "./data";
-import { WithTelemetry } from "./otel";
-import { PromptTemplate } from "./templating";
+import type { LanguageModel } from "ai";
 
-import { LanguageModel } from "ai";
+import type { ObjectMapping } from "./data";
+import type { WithTelemetry } from "./otel";
+import type { PromptTemplate } from "./templating";
 
 /**
  * A specific AI example that is under evaluation
@@ -110,8 +110,8 @@ export type CreateLLMEvaluatorArgs<RecordType extends Record<string, unknown>> =
 
 export interface CreateClassificationEvaluatorArgs<
   RecordType extends Record<string, unknown>,
-> extends CreateClassifierArgs,
-    CreateLLMEvaluatorArgs<RecordType> {
+>
+  extends CreateClassifierArgs, CreateLLMEvaluatorArgs<RecordType> {
   /**
    * The prompt template to use for classification
    */
@@ -131,7 +131,7 @@ export type EvaluationKind = "LLM" | "CODE";
  * The direction to optimize the numeric evaluation score
  * E.x. "MAXIMIZE" means that the higher the score, the better the evaluation
  */
-export type OptimizationDirection = "MAXIMIZE" | "MINIMIZE";
+export type OptimizationDirection = "MAXIMIZE" | "MINIMIZE" | "NEUTRAL";
 
 /**
  * The description of an evaluator
@@ -156,8 +156,9 @@ interface EvaluatorDescription {
  * The Base Evaluator interface
  * This is the interface that all evaluators must implement
  */
-export interface EvaluatorInterface<ExampleType extends Record<string, unknown>>
-  extends EvaluatorDescription {
+export interface EvaluatorInterface<
+  ExampleType extends Record<string, unknown>,
+> extends EvaluatorDescription {
   /**
    * The function that evaluates the example
    */

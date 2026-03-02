@@ -1,19 +1,19 @@
-import { useCallback, useMemo, useRef } from "react";
-import { graphql, usePaginationFragment } from "react-relay";
+import { css } from "@emotion/react";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { css } from "@emotion/react";
+import { useCallback, useMemo, useRef } from "react";
+import { graphql, usePaginationFragment } from "react-relay";
 
 import { Link } from "@phoenix/components/Link";
 import { selectableTableCSS } from "@phoenix/components/table/styles";
 import { TableEmpty } from "@phoenix/components/table/TableEmpty";
 
-import { ProjectDashboardsTable_projects$key } from "./__generated__/ProjectDashboardsTable_projects.graphql";
+import type { ProjectDashboardsTable_projects$key } from "./__generated__/ProjectDashboardsTable_projects.graphql";
 
 const PAGE_SIZE = 50;
 
@@ -85,7 +85,6 @@ export function ProjectDashboardsTable({
     ],
     []
   );
-  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     columns,
     data: projects,

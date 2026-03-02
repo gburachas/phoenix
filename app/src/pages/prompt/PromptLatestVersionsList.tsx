@@ -1,16 +1,16 @@
+import { css } from "@emotion/react";
 import { useMemo } from "react";
 import { graphql, useFragment } from "react-relay";
-import { css } from "@emotion/react";
 
 import { Flex, Link } from "@phoenix/components";
 
-import { PromptLatestVersionsListFragment$key } from "./__generated__/PromptLatestVersionsListFragment.graphql";
+import type { PromptLatestVersionsListFragment$key } from "./__generated__/PromptLatestVersionsListFragment.graphql";
 import { PromptVersionSummary } from "./PromptVersionSummary";
 
 const NUM_VERSIONS_TO_SHOW = 5;
 
 const versionListItemCSS = css`
-  padding-bottom: var(--ac-global-dimension-size-200);
+  padding-bottom: var(--global-dimension-size-200);
   position: relative;
 `;
 export function PromptLatestVersionsList(props: {
@@ -53,7 +53,7 @@ export function PromptLatestVersionsList(props: {
           return (
             <li key={version.id} css={versionListItemCSS}>
               <PromptVersionSummary promptVersion={version} />
-              {version.sequenceNumber != 1 ? (
+              {version.sequenceNumber !== 1 ? (
                 <VersionsConnector isLastConnector={isLastConnector} />
               ) : null}
             </li>
@@ -73,12 +73,12 @@ const versionsConnectorCSS = css`
   left: 11px;
   height: calc(100% - 32px);
   width: 2px;
-  --connector-color: var(--ac-global-color-grey-400);
+  --connector-color: var(--global-color-gray-400);
   background:
     repeating-linear-gradient(
       to bottom,
       transparent 0 4px,
-      var(--ac-global-color-grey-50) 4px 8px
+      var(--global-color-gray-50) 4px 8px
     ),
     var(--connector-color);
   background-size: 4px 100%;
@@ -89,7 +89,7 @@ const versionsConnectorCSS = css`
       repeating-linear-gradient(
         to bottom,
         transparent 0 4px,
-        var(--ac-global-color-grey-50) 4px 8px
+        var(--global-color-gray-50) 4px 8px
       ),
       linear-gradient(to bottom, var(--connector-color), transparent);
   }

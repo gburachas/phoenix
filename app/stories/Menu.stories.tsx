@@ -1,14 +1,13 @@
+import type { Meta } from "@storybook/react";
 import { useMemo, useState } from "react";
 import {
   Autocomplete,
   Collection,
-  Header,
   Input,
   MenuSection,
   SubmenuTrigger,
   useFilter,
 } from "react-aria-components";
-import { Meta } from "@storybook/react";
 
 import {
   Button,
@@ -22,6 +21,7 @@ import {
   MenuHeader,
   MenuHeaderTitle,
   MenuItem,
+  MenuSectionTitle,
   MenuTrigger,
   Popover,
   SearchField,
@@ -182,12 +182,12 @@ export const SectionedMenu = () => {
               return (
                 <>
                   <MenuSection>
-                    <Header>
-                      <Flex justifyContent="space-between" alignItems="center">
-                        <Text weight="heavy">{section.name}</Text>
+                    <MenuSectionTitle
+                      title={section.name}
+                      trailingContent={
                         <Text size="S">({section.children.length})</Text>
-                      </Flex>
-                    </Header>
+                      }
+                    />
                     <Collection items={section.children}>
                       {(item) => <MenuItem key={item.id}>{item.name}</MenuItem>}
                     </Collection>
@@ -311,5 +311,20 @@ export const FilterMenu = () => {
         </Flex>
       )}
     </Flex>
+  );
+};
+
+export const TrailingContentMenu = () => {
+  return (
+    <MenuTrigger>
+      <Button>Open Menu with trailingContent</Button>
+      <Popover>
+        <Menu>
+          <MenuItem trailingContent={<Text>⌘1</Text>}>Item 1</MenuItem>
+          <MenuItem trailingContent={<Text>⌘2</Text>}>Item 2</MenuItem>
+          <MenuItem trailingContent={<Text>⌘3</Text>}>Item 3</MenuItem>
+        </Menu>
+      </Popover>
+    </MenuTrigger>
   );
 };

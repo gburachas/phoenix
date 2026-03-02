@@ -1,3 +1,5 @@
+import { css } from "@emotion/react";
+import { isString } from "lodash";
 import { startTransition, useCallback, useMemo, useState } from "react";
 import { FocusScope } from "react-aria";
 import {
@@ -6,8 +8,6 @@ import {
   useLazyLoadQuery,
   useMutation,
 } from "react-relay";
-import { isString } from "lodash";
-import { css } from "@emotion/react";
 
 import {
   DebouncedSearch,
@@ -15,7 +15,6 @@ import {
   Heading,
   Icon,
   Icons,
-  Link,
   ListBox,
   ListBoxItem,
   Text,
@@ -23,10 +22,10 @@ import {
   View,
 } from "@phoenix/components";
 import { AnnotationColorSwatch } from "@phoenix/components/annotation";
-import { AnnotationConfigListAssociateAnnotationConfigWithProjectMutation } from "@phoenix/components/trace/__generated__/AnnotationConfigListAssociateAnnotationConfigWithProjectMutation.graphql";
-import { AnnotationConfigListProjectAnnotationConfigFragment$key } from "@phoenix/components/trace/__generated__/AnnotationConfigListProjectAnnotationConfigFragment.graphql";
-import { AnnotationConfigListQuery } from "@phoenix/components/trace/__generated__/AnnotationConfigListQuery.graphql";
-import { AnnotationConfigListRemoveAnnotationConfigFromProjectMutation } from "@phoenix/components/trace/__generated__/AnnotationConfigListRemoveAnnotationConfigFromProjectMutation.graphql";
+import type { AnnotationConfigListAssociateAnnotationConfigWithProjectMutation } from "@phoenix/components/trace/__generated__/AnnotationConfigListAssociateAnnotationConfigWithProjectMutation.graphql";
+import type { AnnotationConfigListProjectAnnotationConfigFragment$key } from "@phoenix/components/trace/__generated__/AnnotationConfigListProjectAnnotationConfigFragment.graphql";
+import type { AnnotationConfigListQuery } from "@phoenix/components/trace/__generated__/AnnotationConfigListQuery.graphql";
+import type { AnnotationConfigListRemoveAnnotationConfigFromProjectMutation } from "@phoenix/components/trace/__generated__/AnnotationConfigListRemoveAnnotationConfigFromProjectMutation.graphql";
 import { useViewer } from "@phoenix/contexts/ViewerContext";
 
 const annotationListBoxCSS = css`
@@ -38,8 +37,9 @@ const annotationListBoxCSS = css`
 export function AnnotationConfigList(props: {
   projectId: string;
   spanId: string;
+  refetchKey?: number;
 }) {
-  const { projectId, spanId } = props;
+  const { projectId, spanId, refetchKey = 0 } = props;
   const [filter, setFilter] = useState<string>("");
   const { viewer } = useViewer();
   const viewerId = viewer?.id;
@@ -77,7 +77,8 @@ export function AnnotationConfigList(props: {
         }
       }
     `,
-    { projectId }
+    { projectId },
+    { fetchKey: refetchKey, fetchPolicy: "store-and-network" }
   );
 
   const projectAnnotationData =
@@ -127,10 +128,7 @@ export function AnnotationConfigList(props: {
           $filterUserIds: [ID!]
         ) {
           addAnnotationConfigToProject(
-            input: {
-              projectId: $projectId
-              annotationConfigId: $annotationConfigId
-            }
+            input: { projectId: $projectId, annotationConfigId: $annotationConfigId }
           ) {
             query {
               projectNode: node(id: $projectId) {
@@ -162,10 +160,7 @@ export function AnnotationConfigList(props: {
           $filterUserIds: [ID!]
         ) {
           removeAnnotationConfigFromProject(
-            input: {
-              projectId: $projectId
-              annotationConfigId: $annotationConfigId
-            }
+            input: { projectId: $projectId, annotationConfigId: $annotationConfigId }
           ) {
             query {
               projectNode: node(id: $projectId) {
@@ -286,22 +281,18 @@ export function AnnotationConfigList(props: {
                   alignItems="center"
                   justifyContent="center"
                 >
-                  {filter ? (
-                    <Text
-                      color="text-700"
-                      style={{
-                        whiteSpace: "pre-wrap",
-                        textAlign: "center",
-                        padding: 0,
-                      }}
-                    >
-                      No annotation configs found for &quot;{filter}&quot;
-                    </Text>
-                  ) : (
-                    <Link to="/settings/annotations">
-                      Configure Annotation Configs
-                    </Link>
-                  )}
+                  <Text
+                    color="text-700"
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      textAlign: "center",
+                      padding: 0,
+                    }}
+                  >
+                    {filter
+                      ? `No annotation configs found for "${filter}".`
+                      : "No annotation configs found."}
+                  </Text>
                 </Flex>
               </View>
             )}

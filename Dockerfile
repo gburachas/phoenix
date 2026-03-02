@@ -16,7 +16,7 @@
 # To get support or provide feedback, contact the team in the #phoenix-support
 # channel in the Arize AI Slack community or file an issue on GitHub:
 #
-# - https://arize-ai.slack.com/join/shared_invite/zt-2w57bhem8-hq24MB6u7yE_ZF_ilOYSBw#/shared-invite/email
+# - https://join.slack.com/t/arize-ai/shared_invite/zt-3r07iavnk-ammtATWSlF0pSrd1DsMW7g
 # - https://github.com/Arize-ai/phoenix/issues
 
 ARG BASE_IMAGE=gcr.io/distroless/python3-debian12:nonroot
@@ -37,17 +37,23 @@ RUN pnpm install
 RUN pnpm run build
 
 # The second stage builds the backend.
-FROM python:3.11-bullseye as backend-builder
+FROM ghcr.io/astral-sh/uv:0.9.18-python3.11-bookworm-slim AS backend-builder
 WORKDIR /phoenix
 COPY ./src /phoenix/src
 COPY ./pyproject.toml /phoenix/
+COPY ./uv.lock /phoenix/
 COPY ./LICENSE /phoenix/
 COPY ./IP_NOTICE /phoenix/
 COPY ./README.md /phoenix/
 COPY --from=frontend-builder /phoenix/src/phoenix/server/static/ /phoenix/src/phoenix/server/static/
-# Delete symbolic links used during development.
-RUN find src/ -xtype l -delete
-RUN pip install --target ./env ".[container, pg]"
+RUN uv sync \
+  --no-dev \
+  --no-install-project \
+  --no-sources \
+  --extra container \
+  --extra pg
+RUN uv build
+RUN uv pip install dist/*.whl --no-deps
 
 # The production image is distroless, meaning that it is a minimal image that
 # contains only the necessary dependencies to run the application. This is
@@ -63,8 +69,8 @@ RUN pip install --target ./env ".[container, pg]"
 # Use the debug tag in the following line to build the debug image.
 FROM ${BASE_IMAGE}
 WORKDIR /phoenix
-COPY --from=backend-builder /phoenix/env/ ./env
-ENV PYTHONPATH="/phoenix/env:$PYTHONPATH"
+COPY --from=backend-builder /phoenix/.venv/ ./.venv
+ENV PYTHONPATH="/phoenix/.venv/lib/python3.11/site-packages:$PYTHONPATH"
 ENV PYTHONUNBUFFERED=1
 # Expose the Phoenix port.
 EXPOSE 6006

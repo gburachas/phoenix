@@ -26,21 +26,21 @@
     <img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=8e8e8b34-7900-43fa-a38f-1f070bd48c64&page=js/packages/phoenix-mcp/README.md" />
 </p>
 
-Phoenix MCP Server is an implementation of the Model Context Protocol for the Arize Phoenix platform. It provides a unified interface to Phoenix's capabilites.
+Phoenix MCP Server is an implementation of the Model Context Protocol for the Arize Phoenix platform. It provides a unified interface to Phoenix's capabilities.
 
 You can use Phoenix MCP Server for:
 
 - **Projects Management**: List and explore projects that organize your observability data
 - **Spans & Annotations**: Retrieve spans and their annotations for analysis and debugging
 - **Prompts Management**: Create, list, update, and iterate on prompts
-- **Datasets**: Explore datasets, and syntesize new examples
+- **Datasets**: Explore datasets and synthesize new examples
 - **Experiments**: Pull experiment results and visualize them with the help of an LLM
 
 Don't see a use-case covered? `@arizeai/phoenix-mcp` is [open-source](https://github.com/Arize-ai/phoenix)! Issues and PRs welcome.
 
 ## Installation
 
-This MCP server can be used using `npx` and can be directly integrated with clients like Claude Desktop, Cursor, and more.
+This MCP server can be used with `npx` and can be directly integrated with clients like Claude Desktop, Cursor, and more.
 
 ```json
 {
@@ -111,7 +111,7 @@ Make sure to set these in a `.env` file. See `.env.example`.
 
 Join our community to connect with thousands of AI builders:
 
-- 🌍 Join our [Slack community](https://arize-ai.slack.com/join/shared_invite/zt-11t1vbu4x-xkBIHmOREQnYnYDH1GDfCg).
+- 🌍 Join our [Slack community](https://join.slack.com/t/arize-ai/shared_invite/zt-3r07iavnk-ammtATWSlF0pSrd1DsMW7g).
 - 📚 Read the [Phoenix documentation](https://arize.com/docs/phoenix).
 - 💡 Ask questions and provide feedback in the _#phoenix-support_ channel.
 - 🌟 Leave a star on our [GitHub](https://github.com/Arize-ai/phoenix).

@@ -1,5 +1,23 @@
 # @arizeai/phoenix-otel
 
+## 0.4.2
+
+### Patch Changes
+
+- 03b10a8: Align OpenTelemetry dependencies in `@arizeai/phoenix-otel` to a compatible v2 set.
+
+## 0.4.1
+
+### Patch Changes
+
+- 7456462: Re-export `DiagLogLevel` as a runtime value so consumers can import it directly from `@arizeai/phoenix-otel`.
+
+## 0.4.0
+
+### Minor Changes
+
+- a8896db: feat: Enhance compatibility with ai-sdk v6 telemetry
+
 ## 0.3.4
 
 ### Patch Changes

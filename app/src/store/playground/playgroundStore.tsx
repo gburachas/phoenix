@@ -1,8 +1,9 @@
-import { create, StateCreator } from "zustand";
-import { devtools } from "zustand/middleware";
+import type { StateCreator } from "zustand";
+import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
 
 import { TemplateFormats } from "@phoenix/components/templateEditor/constants";
-import { TemplateFormat } from "@phoenix/components/templateEditor/types";
+import type { TemplateFormat } from "@phoenix/components/templateEditor/types";
 import {
   DEFAULT_CHAT_ROLE,
   DEFAULT_MODEL_NAME,
@@ -13,31 +14,32 @@ import {
   RESPONSE_FORMAT_PARAM_NAME,
   TOOL_CHOICE_PARAM_CANONICAL_NAME,
 } from "@phoenix/pages/playground/constants";
-import type { PartialOutputToolCall } from "@phoenix/pages/playground/PlaygroundToolCall";
 import {
   areInvocationParamsEqual,
   constrainInvocationParameterInputsToDefinition,
   mergeInvocationParametersWithDefaults,
-} from "@phoenix/pages/playground/playgroundUtils";
-import { OpenAIResponseFormat } from "@phoenix/pages/playground/schemas";
+} from "@phoenix/pages/playground/invocationParameterUtils";
+import type { PartialOutputToolCall } from "@phoenix/pages/playground/PlaygroundToolCall";
+import type { OpenAIResponseFormat } from "@phoenix/pages/playground/schemas";
 import { safelyConvertToolChoiceToProvider } from "@phoenix/schemas/toolChoiceSchemas";
 
 import {
   convertInstanceToolsToProvider,
   convertMessageToolCallsToProvider,
 } from "./playgroundStoreUtils";
-import type {
-  ChatMessage,
-  GenAIOperationType,
-  InitialPlaygroundState,
-  PlaygroundChatTemplate,
-  PlaygroundError,
-  PlaygroundInstance,
-  PlaygroundNormalizedChatTemplate,
-  PlaygroundNormalizedInstance,
-  PlaygroundRepetitionStatus,
-  PlaygroundState,
-  PlaygroundTextCompletionTemplate,
+import {
+  type ChatMessage,
+  type GenAIOperationType,
+  type InitialPlaygroundState,
+  type PlaygroundChatTemplate,
+  type PlaygroundError,
+  type PlaygroundInstance,
+  type PlaygroundNormalizedChatTemplate,
+  type PlaygroundNormalizedInstance,
+  type PlaygroundRepetitionStatus,
+  type PlaygroundState,
+  PlaygroundStateByDatasetIdSchema,
+  type PlaygroundTextCompletionTemplate,
 } from "./types";
 
 let playgroundInstanceId = 0;
@@ -93,7 +95,7 @@ export const _resetToolId = () => {
   playgroundToolId = 0;
 };
 
-const generateChatCompletionTemplate = (): PlaygroundChatTemplate => ({
+export const generateChatCompletionTemplate = (): PlaygroundChatTemplate => ({
   __type: "chat",
   messages: [
     {
@@ -268,6 +270,37 @@ export const createPlaygroundStore = (props: InitialPlaygroundState) => {
     ...props,
     instances,
     allInstanceMessages: instanceMessages,
+    stateByDatasetId: props.datasetId
+      ? {
+          [props.datasetId]: {
+            templateVariablesPath: DEFAULT_TEMPLATE_VARIABLES_PATH,
+          },
+        }
+      : {},
+    datasetId: props.datasetId ?? null,
+    setDatasetId: (datasetId: string | null) => {
+      set({ datasetId }, false, { type: "setDatasetId" });
+      if (!datasetId) {
+        return;
+      }
+      const datasetState = get().stateByDatasetId[datasetId];
+      if (datasetState) {
+        return;
+      }
+      // initialize state to defaults when switching to a new dataset
+      set(
+        {
+          stateByDatasetId: {
+            ...get().stateByDatasetId,
+            [datasetId]: {
+              templateVariablesPath: DEFAULT_TEMPLATE_VARIABLES_PATH,
+            },
+          },
+        },
+        false,
+        { type: "setDatasetId/initialize" }
+      );
+    },
     setInput: (input) => {
       set({ input }, false, { type: "setInput" });
     },
@@ -375,10 +408,20 @@ export const createPlaygroundStore = (props: InitialPlaygroundState) => {
           instances: instances.map((instance) => {
             if (instance.id === instanceId) {
               // if we have top level model config for the provider, merge it in
-              // this allows us to populate default values for baseUrl, endpoint, and apiVersion
+              // this allows us to populate default values for baseUrl, endpoint, and region
               // when the user has saved an azure prompt and we load it back in
-              const { baseUrl, endpoint, apiVersion, region } =
+              const { baseUrl, endpoint, region } =
                 modelConfigByProvider[instance.model.provider] ?? {};
+
+              // Preserve the response format invocation parameter regardless of dirty state
+              // This ensures response format is not lost when the model changes
+              const responseFormatInvocationParameter =
+                instance.model.invocationParameters.find(
+                  (p) =>
+                    p.canonicalName === RESPONSE_FORMAT_PARAM_CANONICAL_NAME ||
+                    p.invocationName === RESPONSE_FORMAT_PARAM_NAME
+                );
+
               // try to port dirty invocation parameters to the new supported invocation parameters
               // ensure that the invocation parameters are only the ones that are supported by the model
               const dirtyInvocationParameters =
@@ -394,16 +437,41 @@ export const createPlaygroundStore = (props: InitialPlaygroundState) => {
                   filteredInvocationParameters,
                   supportedInvocationParameters
                 );
+
+              // Add back the response format if it exists and is supported by the model
+              // but only if it's not already present in mergedInvocationParameters
+              // (it would be present if the parameter had dirty: true)
+              const modelSupportsResponseFormat =
+                supportedInvocationParameters.some(
+                  (p) =>
+                    p.canonicalName === RESPONSE_FORMAT_PARAM_CANONICAL_NAME ||
+                    p.invocationName === RESPONSE_FORMAT_PARAM_NAME
+                );
+              const responseFormatAlreadyInMerged =
+                mergedInvocationParameters.some(
+                  (p) =>
+                    p.canonicalName === RESPONSE_FORMAT_PARAM_CANONICAL_NAME ||
+                    p.invocationName === RESPONSE_FORMAT_PARAM_NAME
+                );
+              const finalInvocationParameters =
+                responseFormatInvocationParameter &&
+                modelSupportsResponseFormat &&
+                !responseFormatAlreadyInMerged
+                  ? [
+                      ...mergedInvocationParameters,
+                      responseFormatInvocationParameter,
+                    ]
+                  : mergedInvocationParameters;
+
               return {
                 ...instance,
                 model: {
                   ...instance.model,
                   baseUrl: instance.model.baseUrl ?? baseUrl,
                   endpoint: instance.model.endpoint ?? endpoint,
-                  apiVersion: instance.model.apiVersion ?? apiVersion,
                   region: instance.model.region ?? region,
                   supportedInvocationParameters,
-                  invocationParameters: mergedInvocationParameters,
+                  invocationParameters: finalInvocationParameters,
                 },
                 // Delete tools if the model does not support tool choice
                 tools: supportedInvocationParameters.find(
@@ -460,10 +528,11 @@ export const createPlaygroundStore = (props: InitialPlaygroundState) => {
           const resetFields = {
             modelName: null,
             baseUrl: getDefaultBaseUrl(provider),
-            apiVersion: null,
             endpoint: null,
             region: null,
             customHeaders: null,
+            customProvider: null,
+            openaiApiType: null,
           };
 
           // Build final model config
@@ -722,7 +791,7 @@ export const createPlaygroundStore = (props: InitialPlaygroundState) => {
         {
           dirtyInstances: {
             ...get().dirtyInstances,
-            ...(dirty != undefined ? { [instanceId]: dirty } : {}),
+            ...(dirty != null ? { [instanceId]: dirty } : {}),
           },
           instances: instances.map((instance) => {
             if (instance.id === instanceId) {
@@ -845,6 +914,75 @@ export const createPlaygroundStore = (props: InitialPlaygroundState) => {
     },
     setRepetitions: (repetitions: number) => {
       set({ repetitions }, false, { type: "setRepetitions" });
+    },
+    setAppendedMessagesPath: ({
+      path,
+      datasetId,
+    }: {
+      path: string | null;
+      datasetId: string;
+    }) => {
+      set(
+        {
+          stateByDatasetId: {
+            ...get().stateByDatasetId,
+            [datasetId]: {
+              ...get().stateByDatasetId[datasetId],
+              appendedMessagesPath: path,
+            },
+          },
+        },
+        false,
+        {
+          type: "setAppendedMessagesPath",
+        }
+      );
+    },
+    setTemplateVariablesPath: ({
+      templateVariablesPath,
+      datasetId,
+    }: {
+      templateVariablesPath: string | null;
+      datasetId: string;
+    }) => {
+      set(
+        {
+          stateByDatasetId: {
+            ...get().stateByDatasetId,
+            [datasetId]: {
+              ...get().stateByDatasetId[datasetId],
+              templateVariablesPath: templateVariablesPath,
+            },
+          },
+        },
+        false,
+        {
+          type: "setTemplateVariablesPath",
+        }
+      );
+    },
+    setAvailablePaths: ({
+      availablePaths,
+      datasetId,
+    }: {
+      availablePaths: string[];
+      datasetId: string;
+    }) => {
+      set(
+        {
+          stateByDatasetId: {
+            ...get().stateByDatasetId,
+            [datasetId]: {
+              ...get().stateByDatasetId[datasetId],
+              availablePaths,
+            },
+          },
+        },
+        false,
+        {
+          type: "setAvailablePaths",
+        }
+      );
     },
     updateInstanceModelInvocationParameters: ({
       instanceId,
@@ -1221,8 +1359,158 @@ export const createPlaygroundStore = (props: InitialPlaygroundState) => {
         { type: "setRepetitionSpanId" }
       );
     },
+    initExperimentRunProgress: (instanceId, progress) => {
+      set(
+        {
+          instances: get().instances.map((instance) => {
+            if (instance.id !== instanceId) {
+              return instance;
+            }
+            return {
+              ...instance,
+              experimentRunProgress: progress,
+            };
+          }),
+        },
+        false,
+        { type: "initExperimentRunProgress" }
+      );
+    },
+    incrementRunsCompleted: (instanceId) => {
+      set(
+        {
+          instances: get().instances.map((instance) => {
+            if (instance.id !== instanceId || !instance.experimentRunProgress) {
+              return instance;
+            }
+            return {
+              ...instance,
+              experimentRunProgress: {
+                ...instance.experimentRunProgress,
+                runsCompleted: instance.experimentRunProgress.runsCompleted + 1,
+              },
+            };
+          }),
+        },
+        false,
+        { type: "incrementRunsCompleted" }
+      );
+    },
+    incrementRunsFailed: (instanceId) => {
+      set(
+        {
+          instances: get().instances.map((instance) => {
+            if (instance.id !== instanceId || !instance.experimentRunProgress) {
+              return instance;
+            }
+            return {
+              ...instance,
+              experimentRunProgress: {
+                ...instance.experimentRunProgress,
+                runsFailed: instance.experimentRunProgress.runsFailed + 1,
+              },
+            };
+          }),
+        },
+        false,
+        { type: "incrementRunsFailed" }
+      );
+    },
+    incrementEvalsCompleted: (instanceId) => {
+      set(
+        {
+          instances: get().instances.map((instance) => {
+            if (instance.id !== instanceId || !instance.experimentRunProgress) {
+              return instance;
+            }
+            return {
+              ...instance,
+              experimentRunProgress: {
+                ...instance.experimentRunProgress,
+                evalsCompleted:
+                  instance.experimentRunProgress.evalsCompleted + 1,
+              },
+            };
+          }),
+        },
+        false,
+        { type: "incrementEvalsCompleted" }
+      );
+    },
+    incrementEvalsFailed: (instanceId) => {
+      set(
+        {
+          instances: get().instances.map((instance) => {
+            if (instance.id !== instanceId || !instance.experimentRunProgress) {
+              return instance;
+            }
+            return {
+              ...instance,
+              experimentRunProgress: {
+                ...instance.experimentRunProgress,
+                evalsFailed: instance.experimentRunProgress.evalsFailed + 1,
+              },
+            };
+          }),
+        },
+        false,
+        { type: "incrementEvalsFailed" }
+      );
+    },
+    clearExperimentRunProgress: (instanceId) => {
+      set(
+        {
+          instances: get().instances.map((instance) => {
+            if (instance.id !== instanceId) {
+              return instance;
+            }
+            return {
+              ...instance,
+              experimentRunProgress: null,
+            };
+          }),
+        },
+        false,
+        { type: "clearExperimentRunProgress" }
+      );
+    },
   });
-  return create(devtools(playgroundStore, { name: "playgroundStore" }));
+
+  return create(
+    persist(devtools(playgroundStore, { name: "playgroundStore" }), {
+      name: "arize-phoenix-playground",
+      partialize: (state) => {
+        // Exclude availablePaths from persistence - it's computed at runtime
+        const filteredState: typeof state.stateByDatasetId = {};
+        for (const [datasetId, datasetState] of Object.entries(
+          state.stateByDatasetId
+        )) {
+          const { availablePaths: _, ...rest } = datasetState;
+          filteredState[datasetId] = rest;
+        }
+        return filteredState;
+      },
+      merge: (persistedState, currentState) => {
+        try {
+          const parsedPersistedState =
+            PlaygroundStateByDatasetIdSchema.parse(persistedState);
+          const merged = {
+            ...currentState,
+            stateByDatasetId: {
+              ...currentState.stateByDatasetId,
+              ...parsedPersistedState,
+            },
+          };
+
+          return merged;
+        } catch {
+          return currentState;
+        }
+      },
+    })
+  );
 };
+
+export const DEFAULT_TEMPLATE_VARIABLES_PATH = "input";
 
 export type PlaygroundStore = ReturnType<typeof createPlaygroundStore>;

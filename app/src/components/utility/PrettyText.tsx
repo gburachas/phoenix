@@ -1,4 +1,5 @@
-import { css, SerializedStyles } from "@emotion/react";
+import type { SerializedStyles } from "@emotion/react";
+import { css } from "@emotion/react";
 
 import { JSONBlock } from "@phoenix/components/code";
 import { usePrettyText } from "@phoenix/hooks/usePrettyText";
@@ -21,7 +22,7 @@ export function PrettyText({ children, preCSS }: PrettyTextProps) {
           white-space: pre-wrap;
           text-wrap: wrap;
           overflow-wrap: anywhere;
-          font-size: var(--ac-global-font-size-s);
+          font-size: var(--global-font-size-s);
           margin: 0;
           ${preCSS}
         `}

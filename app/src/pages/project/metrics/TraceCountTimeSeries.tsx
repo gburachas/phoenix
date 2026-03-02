@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { graphql, useLazyLoadQuery } from "react-relay";
+import type { TooltipContentProps } from "recharts";
 import {
   Bar,
   BarChart,
@@ -7,7 +8,6 @@ import {
   Legend,
   ResponsiveContainer,
   Tooltip,
-  TooltipContentProps,
   XAxis,
   YAxis,
 } from "recharts";
@@ -28,7 +28,7 @@ import { useBinInterval } from "@phoenix/components/chart/useBinInterval";
 import { useTimeBinScale } from "@phoenix/hooks/useTimeBin";
 import { useTimeFormatters } from "@phoenix/hooks/useTimeFormatters";
 import { useUTCOffsetMinutes } from "@phoenix/hooks/useUTCOffsetMinutes";
-import { ProjectMetricViewProps } from "@phoenix/pages/project/metrics/types";
+import type { ProjectMetricViewProps } from "@phoenix/pages/project/metrics/types";
 import { intFormatter } from "@phoenix/utils/numberFormatUtils";
 
 import type { TraceCountTimeSeriesQuery } from "./__generated__/TraceCountTimeSeriesQuery.graphql";
@@ -135,7 +135,7 @@ export function TraceCountTimeSeries({
     <ResponsiveContainer width="100%" height="100%">
       <BarChart
         data={chartData}
-        margin={{ top: 0, right: 18, left: 0, bottom: 0 }}
+        margin={{ top: 0, right: 18, left: 8, bottom: 0 }}
         barSize={10}
         syncId={"projectMetrics"}
       >
@@ -152,7 +152,7 @@ export function TraceCountTimeSeries({
           label={{
             value: "Count",
             angle: -90,
-            dx: -20,
+            dx: -28,
             style: {
               textAnchor: "middle",
               fill: "var(--chart-axis-label-color)",
@@ -169,7 +169,7 @@ export function TraceCountTimeSeries({
         <Bar
           dataKey="ok"
           stackId="a"
-          fill={colors.grey300}
+          fill={colors.gray300}
           radius={[2, 2, 0, 0]}
         />
 

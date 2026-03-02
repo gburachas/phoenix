@@ -1,20 +1,22 @@
-import { forwardRef, HTMLAttributes, Ref } from "react";
 import { css } from "@emotion/react";
+import type { HTMLAttributes, Ref } from "react";
+import { forwardRef } from "react";
 
-import { Icon, Icons, Text, TextProps } from "@phoenix/components";
+import type { TextProps } from "@phoenix/components";
+import { Icon, Icons, Text } from "@phoenix/components";
 import { costFormatter } from "@phoenix/utils/numberFormatUtils";
 
 const tokenCostsItemCSS = css`
   display: flex;
   flex-direction: row;
-  gap: var(--ac-global-dimension-static-size-50);
+  gap: var(--global-dimension-static-size-50);
   align-items: center;
 
   &[data-size="S"] {
-    font-size: var(--ac-global-font-size-s);
+    font-size: var(--global-font-size-s);
   }
   &[data-size="M"] {
-    font-size: var(--ac-global-font-size-m);
+    font-size: var(--global-font-size-m);
   }
 `;
 
@@ -38,7 +40,7 @@ function TokenCosts(props: TokenCostsProps, ref: Ref<HTMLDivElement>) {
       <Icon
         svg={<Icons.DollarSignOutline />}
         css={css`
-          color: var(--ac-global-text-color-900);
+          color: var(--global-text-color-900);
         `}
       />
       <Text size={props.size} fontFamily="mono">

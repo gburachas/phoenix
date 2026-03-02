@@ -1,19 +1,19 @@
-import { useCallback, useRef } from "react";
-import { Controller, useForm } from "react-hook-form";
-import { graphql, useMutation } from "react-relay";
+import { css } from "@emotion/react";
 import {
   getLocalTimeZone,
   parseAbsoluteToLocal,
 } from "@internationalized/date";
 import { isValid as dateIsValid } from "date-fns";
-import { css } from "@emotion/react";
+import { useCallback, useRef } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { graphql, useMutation } from "react-relay";
 
+import type { DateValue } from "@phoenix/components";
 import {
   Button,
   DateField,
   DateInput,
   DateSegment,
-  DateValue,
   FieldError,
   Flex,
   Icon,
@@ -25,7 +25,7 @@ import {
 import { ONE_MONTH_MS } from "@phoenix/constants/timeConstants";
 import { useCurrentTime, useLocalTimeFormatPattern } from "@phoenix/hooks";
 
-import { RemoveProjectDataFormMutation } from "./__generated__/RemoveProjectDataFormMutation.graphql";
+import type { RemoveProjectDataFormMutation } from "./__generated__/RemoveProjectDataFormMutation.graphql";
 
 type RemoveProjectDataFormProps = {
   projectId: string;

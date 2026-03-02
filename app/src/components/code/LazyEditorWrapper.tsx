@@ -1,5 +1,6 @@
-import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
+import type { ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /**
  * A wrapper for code mirror editors that lazily initializes the editor when it is scrolled into view.
@@ -58,9 +59,9 @@ export function LazyEditorWrapper({
     <div
       ref={wrapperRef}
       css={css`
-        min-height: ${!isInitialized
-          ? `${preInitializationMinHeight}px`
-          : "auto"};
+        min-height: ${
+          !isInitialized ? `${preInitializationMinHeight}px` : "auto"
+        };
       `}
     >
       {children}

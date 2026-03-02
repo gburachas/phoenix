@@ -1,5 +1,5 @@
-import { Tooltip, TooltipTrigger } from "react-aria-components";
 import { css } from "@emotion/react";
+import { Tooltip, TooltipTrigger } from "react-aria-components";
 
 import {
   Icon,
@@ -10,7 +10,7 @@ import {
   View,
 } from "@phoenix/components";
 import { usePreferencesContext } from "@phoenix/contexts";
-import { ProjectViewMode } from "@phoenix/store/preferencesStore";
+import type { ProjectViewMode } from "@phoenix/store/preferencesStore";
 
 export const ProjectViewModeToggle = () => {
   const { projectViewMode, setProjectViewMode } = usePreferencesContext(

@@ -1,6 +1,6 @@
+import { css } from "@emotion/react";
 import { Suspense, useState } from "react";
 import { graphql, useLazyLoadQuery } from "react-relay";
-import { css } from "@emotion/react";
 
 import {
   Button,
@@ -50,7 +50,7 @@ export function PlaygroundCredentialsDropdown() {
   return (
     <div
       css={css`
-        .ac-dropdown-button {
+        .dropdown__button {
           min-width: 0px;
         }
       `}

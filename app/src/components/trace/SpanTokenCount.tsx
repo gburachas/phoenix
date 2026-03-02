@@ -1,10 +1,11 @@
 import { Suspense, useCallback } from "react";
-import { Pressable, PressEvent } from "react-aria";
+import type { PressEvent } from "react-aria";
+import { Pressable } from "react-aria";
 
+import type { TextProps } from "@phoenix/components";
 import {
   Loading,
   RichTooltip,
-  TextProps,
   TooltipArrow,
   TooltipTrigger,
 } from "@phoenix/components";
@@ -39,7 +40,7 @@ export function SpanTokenCount(props: SpanTokenCountProps) {
   return (
     <TooltipTrigger>
       <Pressable onPress={handlePress}>
-        <TokenCount size={props.size} role="button">
+        <TokenCount size={props.size} role="button" tabIndex={0}>
           {props.tokenCountTotal}
         </TokenCount>
       </Pressable>

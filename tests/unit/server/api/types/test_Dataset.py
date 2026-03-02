@@ -1,13 +1,28 @@
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import datetime, timezone
+from secrets import token_hex
 from typing import Any
 
 import pytest
-import pytz
 from sqlalchemy import insert
 from strawberry.relay import GlobalID
 
 from phoenix.db import models
+from phoenix.db.types.annotation_configs import (
+    CategoricalAnnotationConfig,
+    CategoricalAnnotationValue,
+    OptimizationDirection,
+)
+from phoenix.db.types.evaluators import InputMapping
+from phoenix.db.types.identifier import Identifier
+from phoenix.db.types.model_provider import ModelProvider
+from phoenix.server.api.helpers.prompts.models import (
+    PromptOpenAIInvocationParameters,
+    PromptOpenAIInvocationParametersContent,
+    PromptStringTemplate,
+    PromptTemplateFormat,
+    PromptTemplateType,
+)
 from phoenix.server.api.types.Experiment import Experiment
 from phoenix.server.types import DbSessionFactory
 from tests.unit.graphql import AsyncGraphQLClient
@@ -863,6 +878,155 @@ async def test_experiments_without_filter(
     assert len(data["node"]["experiments"]["edges"]) == 4
 
 
+class TestDatasetsEvaluatorsResolver:
+    async def test_returns_associated_dataset_evaluators(
+        self,
+        gql_client: AsyncGraphQLClient,
+        dataset_with_evaluators: Any,
+    ) -> None:
+        """Test that dataset evaluators associated with a dataset are returned."""
+        query = """
+          query ($datasetId: ID!) {
+            node(id: $datasetId) {
+              ... on Dataset {
+                datasetEvaluators {
+                  edges {
+                    node {
+                      id
+                      name
+                      evaluator {
+                        ... on LLMEvaluator {
+                          name
+                          kind
+                          description
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        """
+        response = await gql_client.execute(
+            query=query,
+            variables={
+                "datasetId": str(GlobalID("Dataset", str(1))),
+            },
+        )
+        assert not response.errors
+        assert response.data is not None
+
+        # Should return 2 evaluators
+        edges = response.data["node"]["datasetEvaluators"]["edges"]
+        assert len(edges) == 2
+        assert edges[0]["node"]["evaluator"]["name"] == "evaluator-1"
+        assert edges[0]["node"]["evaluator"]["kind"] == "LLM"
+        assert edges[1]["node"]["evaluator"]["name"] == "evaluator-2"
+        assert edges[1]["node"]["evaluator"]["kind"] == "LLM"
+
+
+@pytest.fixture
+async def dataset_with_evaluators(db: DbSessionFactory) -> None:
+    """
+    Creates a dataset with two evaluators associated via the dataset_evaluators junction table.
+    """
+    async with db() as session:
+        # Create dataset
+        dataset = models.Dataset(
+            id=1,
+            name="test-dataset",
+            description="Dataset for testing evaluators",
+            metadata_={},
+        )
+        session.add(dataset)
+        await session.flush()
+
+        # Create a prompt for the evaluators
+        prompt = models.Prompt(name=Identifier(token_hex(4)))
+        session.add(prompt)
+        await session.flush()
+
+        # Create a prompt version
+        prompt_version = models.PromptVersion(
+            prompt_id=prompt.id,
+            template_type=PromptTemplateType.STRING,
+            template_format=PromptTemplateFormat.F_STRING,
+            template=PromptStringTemplate(type="string", template="Test template: {input}"),
+            invocation_parameters=PromptOpenAIInvocationParameters(
+                type="openai", openai=PromptOpenAIInvocationParametersContent()
+            ),
+            tools=None,
+            response_format=None,
+            model_provider=ModelProvider.OPENAI,
+            model_name="gpt-4",
+            metadata_={},
+        )
+        session.add(prompt_version)
+        await session.flush()
+
+        # Create two evaluators
+        evaluator_1 = models.LLMEvaluator(
+            name=Identifier("evaluator-1"),
+            description="First evaluator",
+            output_configs=[
+                CategoricalAnnotationConfig(
+                    type="CATEGORICAL",
+                    name="goodness",
+                    optimization_direction=OptimizationDirection.MAXIMIZE,
+                    description="goodness description",
+                    values=[
+                        CategoricalAnnotationValue(label="good", score=1.0),
+                        CategoricalAnnotationValue(label="bad", score=0.0),
+                    ],
+                )
+            ],
+            prompt_id=prompt.id,
+        )
+        evaluator_2 = models.LLMEvaluator(
+            name=Identifier("evaluator-2"),
+            description="Second evaluator",
+            output_configs=[
+                CategoricalAnnotationConfig(
+                    type="CATEGORICAL",
+                    name="correctness",
+                    optimization_direction=OptimizationDirection.MAXIMIZE,
+                    description="correctness description",
+                    values=[
+                        CategoricalAnnotationValue(label="correct", score=1.0),
+                        CategoricalAnnotationValue(label="incorrect", score=0.0),
+                    ],
+                )
+            ],
+            prompt_id=prompt.id,
+        )
+        session.add_all([evaluator_1, evaluator_2])
+        await session.flush()
+
+        # Associate evaluators with dataset via junction table
+        dataset_evaluator_1 = models.DatasetEvaluators(
+            dataset_id=dataset.id,
+            evaluator_id=evaluator_1.id,
+            name=Identifier(root="evaluator-1"),
+            input_mapping=InputMapping(literal_mapping={}, path_mapping={}),
+            output_configs=[],
+            project=models.Project(
+                name=f"{dataset.name}/evaluator-1", description="Project for evaluator-1"
+            ),
+        )
+        dataset_evaluator_2 = models.DatasetEvaluators(
+            dataset_id=dataset.id,
+            evaluator_id=evaluator_2.id,
+            name=Identifier(root="evaluator-2"),
+            input_mapping=InputMapping(literal_mapping={}, path_mapping={}),
+            output_configs=[],
+            project=models.Project(
+                name=f"{dataset.name}/evaluator-2", description="Project for evaluator-2"
+            ),
+        )
+        session.add_all([dataset_evaluator_1, dataset_evaluator_2])
+
+
 @pytest.fixture
 async def dataset_with_patch_revision(db: DbSessionFactory) -> None:
     """
@@ -895,13 +1059,13 @@ async def dataset_with_patch_revision(db: DbSessionFactory) -> None:
                     {
                         "dataset_id": datasets[0].id,
                         "created_at": datetime(
-                            year=2020, month=1, day=1, hour=0, minute=0, tzinfo=pytz.utc
+                            year=2020, month=1, day=1, hour=0, minute=0, tzinfo=timezone.utc
                         ),
                     },
                     {
                         "dataset_id": datasets[0].id,
                         "created_at": datetime(
-                            year=2020, month=2, day=2, hour=0, minute=0, tzinfo=pytz.utc
+                            year=2020, month=2, day=2, hour=0, minute=0, tzinfo=timezone.utc
                         ),
                     },
                 ],
@@ -967,7 +1131,7 @@ async def dataset_with_three_versions(db: DbSessionFactory) -> None:
         dataset_example = models.DatasetExample(
             id=1,
             dataset_id=1,
-            created_at=datetime(year=2020, month=1, day=1, hour=0, minute=0, tzinfo=pytz.utc),
+            created_at=datetime(year=2020, month=1, day=1, hour=0, minute=0, tzinfo=timezone.utc),
         )
         session.add(dataset_example)
         await session.flush()
@@ -977,7 +1141,7 @@ async def dataset_with_three_versions(db: DbSessionFactory) -> None:
             dataset_id=1,
             description="version-1-description",
             metadata_={"version-1-metadata-key": "version-1-metadata-value"},
-            created_at=datetime(year=2020, month=1, day=1, hour=0, minute=0, tzinfo=pytz.utc),
+            created_at=datetime(year=2020, month=1, day=1, hour=0, minute=0, tzinfo=timezone.utc),
         )
         session.add(dataset_version_1)
         await session.flush()
@@ -1000,7 +1164,7 @@ async def dataset_with_three_versions(db: DbSessionFactory) -> None:
             description="version-2-description",
             metadata_={"version-2-metadata-key": "version-2-metadata-value"},
             created_at=datetime(
-                year=2020, month=1, day=1, hour=0, minute=0, tzinfo=pytz.utc
+                year=2020, month=1, day=1, hour=0, minute=0, tzinfo=timezone.utc
             ),  # same created_at as version 1
         )
         session.add(dataset_version_2)
@@ -1012,7 +1176,7 @@ async def dataset_with_three_versions(db: DbSessionFactory) -> None:
             description="version-3-description",
             metadata_={"version-3-metadata-key": "version-3-metadata-value"},
             created_at=datetime(
-                year=2020, month=1, day=1, hour=0, minute=1, tzinfo=pytz.utc
+                year=2020, month=1, day=1, hour=0, minute=1, tzinfo=timezone.utc
             ),  # created one minute after version 2
         )
         session.add(dataset_version_3)
@@ -1052,7 +1216,7 @@ async def dataset_with_deletion(db: DbSessionFactory) -> None:
         dataset_example = models.DatasetExample(
             id=1,
             dataset_id=1,
-            created_at=datetime(year=2020, month=1, day=1, hour=0, minute=0, tzinfo=pytz.utc),
+            created_at=datetime(year=2020, month=1, day=1, hour=0, minute=0, tzinfo=timezone.utc),
         )
         session.add(dataset_example)
         await session.flush()

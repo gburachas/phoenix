@@ -1,13 +1,15 @@
-import { ReactNode, useCallback } from "react";
+import { css } from "@emotion/react";
+import type { ReactNode } from "react";
+import { useCallback } from "react";
 import {
   ToggleButton as AriaToggleButton,
   type ToggleButtonProps as AriaToggleButtonProps,
   type ToggleButtonRenderProps,
 } from "react-aria-components";
-import { css } from "@emotion/react";
 
-import { buttonCSS, ButtonProps } from "@phoenix/components/button";
-import { StylableProps } from "@phoenix/components/types";
+import type { ButtonProps } from "@phoenix/components/button";
+import { buttonCSS } from "@phoenix/components/button";
+import type { StylableProps } from "@phoenix/components/types";
 import { useSize } from "@phoenix/contexts";
 import { classNames } from "@phoenix/utils";
 
@@ -16,25 +18,26 @@ const baseToggleButtonCSS = css(
   `
     text-wrap: nowrap;
     &[data-selected="true"] {
-      background-color: var(--ac-global-button-primary-background-color);
-      --button-border-color: var(--ac-global-button-primary-border-color);
-      color: var(--ac-global-button-primary-foreground-color);
+      background-color: var(--global-button-primary-background-color);
+      --button-border-color: var(--global-button-primary-border-color);
+      color: var(--global-button-primary-foreground-color);
       &:hover:not([data-disabled]) {
-        background-color: var(--ac-global-button-primary-background-color-hover);
+        background-color: var(--global-button-primary-background-color-hover);
       }
     }
     &[data-hovered]:not([data-disabled]):not([data-selected="true"]) {
-      background-color: var(--ac-global-input-field-border-color-hover);
+      background-color: var(--global-input-field-border-color-hover);
     }
     &[data-focus-visible] {
-      outline: 1px solid var(--ac-global-input-field-border-color-active);
+      outline: 1px solid var(--global-input-field-border-color-active);
       outline-offset: -2px;
     }
 `
 );
 
 export interface ToggleButtonProps
-  extends AriaToggleButtonProps,
+  extends
+    AriaToggleButtonProps,
     // Inherit the leading and trailing visuals. Might warrent moving to an interface
     Pick<ButtonProps, "leadingVisual" | "trailingVisual" | "size"> {}
 
@@ -70,7 +73,7 @@ export const ToggleButton = ({
       css={css(baseToggleButtonCSS, cssProp)}
       data-size={size}
       data-childless={!children}
-      className={classNames("ac-toggle-button", className)}
+      className={classNames("toggle-button", className)}
       {...rest}
     >
       {renderContent}

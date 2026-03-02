@@ -1,12 +1,8 @@
-import { useMemo } from "react";
-import {
-  graphql,
-  PreloadedQuery,
-  useFragment,
-  usePreloadedQuery,
-} from "react-relay";
-import invariant from "tiny-invariant";
 import { css } from "@emotion/react";
+import { useMemo } from "react";
+import type { PreloadedQuery } from "react-relay";
+import { graphql, useFragment, usePreloadedQuery } from "react-relay";
+import invariant from "tiny-invariant";
 
 import {
   Button,
@@ -87,8 +83,7 @@ export function ExperimentMultiSelector(props: {
             }
           }
         }
-        baseExperiment: node(id: $baseExperimentId)
-          @include(if: $hasBaseExperiment) {
+        baseExperiment: node(id: $baseExperimentId) @include(if: $hasBaseExperiment) {
           ... on Experiment {
             id
             name
@@ -131,7 +126,7 @@ export function ExperimentMultiSelector(props: {
                 <Text
                   css={css`
                     white-space: nowrap;
-                    max-width: var(--ac-global-dimension-size-2000);
+                    max-width: var(--global-dimension-size-2000);
                     overflow: hidden;
                     text-overflow: ellipsis;
                   `}
@@ -186,7 +181,7 @@ export function ExperimentMultiSelector(props: {
                             <Text
                               css={css`
                                 white-space: nowrap;
-                                max-width: var(--ac-global-dimension-size-2000);
+                                max-width: var(--global-dimension-size-2000);
                                 overflow: hidden;
                                 text-overflow: ellipsis;
                               `}
@@ -243,9 +238,7 @@ export function ExperimentMultiSelector(props: {
                               <Text
                                 css={css`
                                   white-space: nowrap;
-                                  max-width: var(
-                                    --ac-global-dimension-size-2000
-                                  );
+                                  max-width: var(--global-dimension-size-2000);
                                   overflow: hidden;
                                   text-overflow: ellipsis;
                                 `}

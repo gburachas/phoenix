@@ -1,11 +1,9 @@
-import { forwardRef } from "react";
-import {
-  Group as AriaGroup,
-  GroupProps as AriaGroupProps,
-} from "react-aria-components";
 import { css } from "@emotion/react";
+import { forwardRef } from "react";
+import type { GroupProps as AriaGroupProps } from "react-aria-components";
+import { Group as AriaGroup } from "react-aria-components";
 
-import { ComponentSize } from "@phoenix/components/types";
+import type { ComponentSize } from "@phoenix/components/types";
 import { SizeProvider } from "@phoenix/contexts";
 
 /**
@@ -20,7 +18,7 @@ import { SizeProvider } from "@phoenix/contexts";
 const groupCSS = css`
   display: flex;
   align-items: center;
-  gap: var(--ac-global-dimension-size-100);
+  gap: var(--global-dimension-size-100);
 `;
 
 type GroupProps = AriaGroupProps & {
@@ -34,7 +32,7 @@ export const Group = forwardRef<HTMLDivElement, GroupProps>(
         {...props}
         ref={ref}
         css={groupCSS}
-        className="ac-group react-aria-Group"
+        className="group react-aria-Group"
       />
     </SizeProvider>
   )

@@ -1,7 +1,8 @@
-import { ChangeEvent, useCallback, useMemo } from "react";
-import { graphql, useFragment } from "react-relay";
-import { Column } from "@tanstack/react-table";
 import { css } from "@emotion/react";
+import type { Column } from "@tanstack/react-table";
+import type { ChangeEvent } from "react";
+import { useCallback, useMemo } from "react";
+import { graphql, useFragment } from "react-relay";
 
 import {
   Button,
@@ -15,7 +16,7 @@ import {
 } from "@phoenix/components";
 import { useTracingContext } from "@phoenix/contexts/TracingContext";
 
-import { SessionColumnSelector_annotations$key } from "./__generated__/SessionColumnSelector_annotations.graphql";
+import type { SessionColumnSelector_annotations$key } from "./__generated__/SessionColumnSelector_annotations.graphql";
 const UN_HIDABLE_COLUMN_IDS = ["sessionId"];
 
 type SessionColumnSelectorProps<T extends object> = {
@@ -50,12 +51,12 @@ export function SessionColumnSelector<T extends object>(
 }
 
 const columCheckboxItemCSS = css`
-  padding: var(--ac-global-dimension-static-size-50)
-    var(--ac-global-dimension-static-size-100);
+  padding: var(--global-dimension-static-size-50)
+    var(--global-dimension-static-size-100);
   label {
     display: flex;
     align-items: center;
-    gap: var(--ac-global-dimension-static-size-100);
+    gap: var(--global-dimension-static-size-100);
   }
 `;
 

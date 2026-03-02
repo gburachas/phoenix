@@ -9,10 +9,9 @@ from typing import Any, Sequence, cast
 
 import pandas as pd
 import pytest
+from phoenix.client.__generated__ import v1
 from strawberry.relay import GlobalID
 from typing_extensions import TypeAlias
-
-from phoenix.client.__generated__ import v1
 
 from .._helpers import (
     _AppInfo,  # pyright: ignore[reportPrivateUsage]
@@ -128,7 +127,7 @@ class TestClientForSpanAnnotationsRetrieval:
             res = anno["result"]
             assert isinstance(res, dict)
             assert res.get("label") == expected_label
-            assert abs(float(res.get("score", 0.0)) - expected_score) < 1e-6
+            assert abs((res.get("score") or 0.0) - expected_score) < 1e-6
             assert res.get("explanation") == expected_explanation
 
         spans_input_df = pd.DataFrame({"context.span_id": [span_id1, span_id2]})
@@ -608,7 +607,11 @@ class TestClientForSpansRetrieval:
         # Verify they are the correct spans
         found_indices: set[int] = set()
         for span in our_middle_spans:
-            if "attributes" in span and "time_index" in span["attributes"]:
+            if (
+                "attributes" in span
+                and span["attributes"] is not None
+                and "time_index" in span["attributes"]
+            ):
                 found_indices.add(span["attributes"]["time_index"])
 
         assert found_indices == {1, 2, 3}, f"Expected indices {{1, 2, 3}} but got {found_indices}"
@@ -844,7 +847,6 @@ class TestClientForSpansRetrieval:
         api_key = _app.admin_secret
 
         import httpx
-
         from phoenix.client import AsyncClient
         from phoenix.client import Client as SyncClient
 
@@ -1000,7 +1002,50 @@ class TestClientForSpanCreation:
         assert error.total_invalid == 1
         assert error.total_queued == 0
 
-        # Test 4: Non-existent project name is accepted (may be auto-created)
+        # Test 4: Timezone-naive timestamps are rejected by the server
+        naive_span = self._create_test_span(
+            "naive_timestamps",
+            context={"trace_id": f"trace_{token_hex(16)}", "span_id": f"span_{token_hex(8)}"},
+            start_time=datetime.now().isoformat(),
+            end_time=(datetime.now() + timedelta(seconds=1)).isoformat(),
+        )
+        with pytest.raises(SpanCreationError) as exc_info:
+            client.spans.log_spans(  # pyright: ignore[reportAttributeAccessIssue]
+                project_identifier=project_name,
+                spans=[naive_span],
+            )
+        err = exc_info.value
+        assert err.total_invalid == 1
+        assert err.total_queued == 0
+        assert any("timezone-naive" in (inv.get("error") or "") for inv in err.invalid_spans), (
+            "Expected timezone-naive error message"
+        )
+
+        # Test 5: Timezone-naive event timestamp is rejected by the server
+        span_with_naive_event = self._create_test_span(
+            "naive_event_timestamp",
+            context={"trace_id": f"trace_{token_hex(16)}", "span_id": f"span_{token_hex(8)}"},
+            events=[
+                {
+                    "name": "test_event",
+                    "timestamp": datetime.now().isoformat(),
+                    "attributes": {},
+                }
+            ],
+        )
+        with pytest.raises(SpanCreationError) as exc_info:
+            client.spans.log_spans(  # pyright: ignore[reportAttributeAccessIssue]
+                project_identifier=project_name,
+                spans=[span_with_naive_event],
+            )
+        err = exc_info.value
+        assert err.total_invalid == 1
+        assert err.total_queued == 0
+        assert any("timezone-naive" in (inv.get("error") or "") for inv in err.invalid_spans), (
+            "Expected timezone-naive error for event timestamp"
+        )
+
+        # Test 6: Non-existent project name is accepted (may be auto-created)
         # Only GlobalIDs are validated for existence
         result_nonexistent = client.spans.log_spans(  # pyright: ignore[reportAttributeAccessIssue]
             project_identifier="non_existent_project_xyz",
@@ -1009,7 +1054,7 @@ class TestClientForSpanCreation:
         assert result_nonexistent["total_received"] == 1
         assert result_nonexistent["total_queued"] == 1
 
-        # Test 5: Error handling for non-existent project by GlobalID
+        # Test 7: Error handling for non-existent project by GlobalID
         import httpx
 
         with pytest.raises(httpx.HTTPStatusError) as http_exc_info:
@@ -1456,6 +1501,97 @@ class TestClientForSpanCreation:
             assert compare_nested_objects(
                 row["attributes.llm.output_messages"], orig_row["attributes.llm.output_messages"]
             )
+
+    @pytest.mark.parametrize("is_async", [True, False])
+    async def test_log_spans_dataframe_with_integer_index(
+        self,
+        is_async: bool,
+        _existing_project: _ExistingProject,
+        _app: _AppInfo,
+    ) -> None:
+        """Test log_spans_dataframe with default integer index (not span_id index).
+
+        This test verifies that when a DataFrame has a default integer index (0, 1, 2...),
+        the span IDs are correctly extracted from the context.span_id column instead of
+        incorrectly using the integer index values as span IDs.
+        """
+        api_key = _app.admin_secret
+
+        from phoenix.client import AsyncClient
+        from phoenix.client import Client as SyncClient
+
+        Client = AsyncClient if is_async else SyncClient  # type: ignore[unused-ignore]
+
+        import pandas as pd
+
+        trace_id = f"int_idx_{token_hex(16)}"
+        span_id_1 = f"span_{token_hex(8)}"
+        span_id_2 = f"span_{token_hex(8)}"
+
+        base_time = datetime.now(timezone.utc)
+
+        # Create DataFrame with default integer index (NOT setting span_id as index)
+        test_data: dict[str, Any] = {
+            "name": ["IntIndexSpan1", "IntIndexSpan2"],
+            "span_kind": ["CHAIN", "CHAIN"],
+            "parent_id": [None, None],
+            "start_time": [
+                base_time.isoformat(),
+                (base_time + timedelta(milliseconds=100)).isoformat(),
+            ],
+            "end_time": [
+                (base_time + timedelta(seconds=1)).isoformat(),
+                (base_time + timedelta(seconds=1, milliseconds=100)).isoformat(),
+            ],
+            "status_code": ["OK", "OK"],
+            "context.span_id": [span_id_1, span_id_2],
+            "context.trace_id": [trace_id, trace_id],
+            "attributes.test.value": ["test1", "test2"],
+        }
+
+        # Create DataFrame with default integer index (0, 1)
+        input_df = pd.DataFrame(test_data)
+        # Explicitly verify the index is integer-based, not span_id
+        assert input_df.index.tolist() == [0, 1]
+        assert input_df.index.name is None
+
+        project_name = _existing_project.name
+
+        # Log spans using DataFrame with integer index
+        result = await _await_or_return(
+            Client(base_url=_app.base_url, api_key=api_key).spans.log_spans_dataframe(  # pyright: ignore[reportAttributeAccessIssue]
+                project_identifier=project_name,
+                spans_dataframe=input_df,
+            )
+        )
+        assert result["total_queued"] == 2
+
+        # Wait for spans to be processed - use the actual span IDs from the column
+        await _until_spans_exist(_app, [span_id_1, span_id_2])
+
+        # Retrieve spans and verify they have the correct span IDs
+        output_df = await _await_or_return(
+            Client(base_url=_app.base_url, api_key=api_key).spans.get_spans_dataframe(
+                project_identifier=project_name,
+                limit=10,
+            )
+        )
+
+        # Filter to our test spans
+        our_spans = output_df[output_df["context.trace_id"] == trace_id]
+        assert len(our_spans) == 2
+
+        # Verify the span IDs are the ones from context.span_id column, NOT "0" and "1"
+        retrieved_span_ids = set(our_spans.index.tolist())
+        expected_span_ids = {span_id_1, span_id_2}
+        assert retrieved_span_ids == expected_span_ids, (
+            f"Expected span IDs {expected_span_ids}, got {retrieved_span_ids}. "
+            "Integer index values may have been incorrectly used as span IDs."
+        )
+
+        # Verify span names to ensure correct data mapping
+        span_names = set(our_spans["name"].tolist())
+        assert span_names == {"IntIndexSpan1", "IntIndexSpan2"}
 
     @pytest.mark.parametrize("is_async", [True, False])
     async def test_unflatten_attributes_on_span_creation(
@@ -2039,7 +2175,6 @@ class TestClientForSpanDeletion:
         api_key = _app.admin_secret
 
         import httpx
-
         from phoenix.client import AsyncClient
         from phoenix.client import Client as SyncClient
 

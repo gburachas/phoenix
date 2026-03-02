@@ -1,11 +1,11 @@
+import isObject from "lodash/isObject";
 import { useMemo } from "react";
 import { graphql, useFragment } from "react-relay";
-import isObject from "lodash/isObject";
 
 import { Flex, List, ListItem, Text, View } from "@phoenix/components";
 import { safelyStringifyJSON } from "@phoenix/utils/jsonUtils";
 
-import { PromptInvocationParameters__main$key } from "./__generated__/PromptInvocationParameters__main.graphql";
+import type { PromptInvocationParameters__main$key } from "./__generated__/PromptInvocationParameters__main.graphql";
 
 function PromptInvocationParameterItem({
   keyName,

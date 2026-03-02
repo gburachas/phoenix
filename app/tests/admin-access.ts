@@ -1,15 +1,5 @@
-import { expect, test } from "@playwright/test";
 import { randomUUID } from "crypto";
-
-test.beforeEach(async ({ page }) => {
-  page.goto(`/login`);
-
-  await page.getByLabel("Email").fill("admin@localhost");
-  await page.getByLabel("Password").fill("admin123");
-  await page.getByRole("button", { name: "Log In", exact: true }).click();
-  await page.waitForURL("**/projects");
-});
-
+import { expect, test } from "@playwright/test";
 test("admin can create system api key", async ({ page }) => {
   const testKeyName = `System-${randomUUID()}`;
   await page.getByRole("link", { name: "Settings" }).click();
