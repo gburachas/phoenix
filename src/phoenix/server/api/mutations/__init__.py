@@ -13,6 +13,9 @@ from phoenix.server.api.mutations.document_annotations_mutations import (
     DocumentAnnotationMutationMixin,
 )
 from phoenix.server.api.mutations.evaluator_mutations import EvaluatorMutationMixin
+from phoenix.server.api.mutations.experiment_design_mutations import (
+    ExperimentDesignMutationMixin,
+)
 from phoenix.server.api.mutations.experiment_mutations import ExperimentMutationMixin
 from phoenix.server.api.mutations.generative_model_custom_provider_mutations import (
     GenerativeModelCustomProviderMutationMixin,
@@ -46,6 +49,7 @@ class Mutation(
     DatasetSplitMutationMixin,
     DocumentAnnotationMutationMixin,
     EvaluatorMutationMixin,
+    ExperimentDesignMutationMixin,
     ExperimentMutationMixin,
     GenerativeModelCustomProviderMutationMixin,
     ModelMutationMixin,

@@ -10,6 +10,7 @@ from .data_generation import router as data_generation_router
 from .datasets import router as datasets_router
 from .documents import router as documents_router
 from .evaluations import router as evaluations_router
+from .experiment_design import router as experiment_design_router
 from .experiment_evaluations import router as experiment_evaluations_router
 from .experiment_runs import router as experiment_runs_router
 from .experiments import router as experiments_router
@@ -84,6 +85,7 @@ def create_v1_router(authentication_enabled: bool) -> APIRouter:
     router.include_router(data_generation_router)
     router.include_router(datasets_router)
     router.include_router(experiments_router)
+    router.include_router(experiment_design_router)
     router.include_router(experiment_runs_router)
     router.include_router(experiment_evaluations_router)
     router.include_router(traces_router)
