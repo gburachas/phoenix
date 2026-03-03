@@ -2657,3 +2657,147 @@ class EvaluationCriterion(HasId):
 
     def __repr__(self) -> str:
         return f"<EvaluationCriterion {self.name!r} ({self.category})>"
+
+
+# ── Sprint 4: Experiment Design ──────────────────────────────────────────────
+
+
+class ExperimentDesign(HasId):
+    """A factorial experiment design that organises multiple factors and cells.
+
+    Each design generates a matrix of cells (factor-level combinations).
+    Cells link to upstream Phoenix ``Experiment`` rows when executed.
+    """
+
+    __tablename__ = "experiment_designs"
+
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+
+    design_type: Mapped[str] = mapped_column(
+        CheckConstraint(
+            "design_type IN ('full_factorial', 'fractional', 'custom')",
+            name="valid_design_type",
+        ),
+        nullable=False,
+        server_default=text("'full_factorial'"),
+    )
+
+    status: Mapped[str] = mapped_column(
+        CheckConstraint(
+            "status IN ('draft', 'cells_generated', 'running', 'completed', 'failed')",
+            name="valid_design_status",
+        ),
+        nullable=False,
+        server_default=text("'draft'"),
+    )
+
+    metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSON_)
+
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        UtcTimeStamp, server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    factors: Mapped[list["ExperimentFactor"]] = relationship(
+        "ExperimentFactor",
+        back_populates="design",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    cells: Mapped[list["ExperimentDesignCell"]] = relationship(
+        "ExperimentDesignCell",
+        back_populates="design",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    def __repr__(self) -> str:
+        return f"<ExperimentDesign {self.name!r} type={self.design_type} status={self.status}>"
+
+
+class ExperimentFactor(HasId):
+    """A single factor (variable) in an experiment design.
+
+    Each factor has a type and a JSON array of levels.  For example a
+    ``factor_type='embedding'`` factor might have levels
+    ``[{"name": "text-embedding-3-small"}, {"name": "text-embedding-ada-002"}]``.
+    """
+
+    __tablename__ = "experiment_factors"
+
+    design_id: Mapped[int] = mapped_column(
+        ForeignKey("experiment_designs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    name: Mapped[str] = mapped_column(String, nullable=False)
+
+    factor_type: Mapped[str] = mapped_column(
+        CheckConstraint(
+            "factor_type IN ('embedding', 'reranker', 'judge_llm', "
+            "'rag_llm', 'testset_llm', 'custom')",
+            name="valid_factor_type",
+        ),
+        nullable=False,
+        server_default=text("'custom'"),
+    )
+
+    levels: Mapped[list[Any]] = mapped_column(JSON_)  # JSON array of level defs
+
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+
+    # Relationships
+    design: Mapped["ExperimentDesign"] = relationship(
+        "ExperimentDesign", back_populates="factors"
+    )
+
+    def __repr__(self) -> str:
+        return f"<ExperimentFactor {self.name!r} type={self.factor_type}>"
+
+
+class ExperimentDesignCell(HasId):
+    """A single cell in the experiment matrix.
+
+    Stores the factor-level combination as JSON and optionally links to the
+    upstream Phoenix ``Experiment`` row once the cell is executed.
+    """
+
+    __tablename__ = "experiment_design_cells"
+
+    design_id: Mapped[int] = mapped_column(
+        ForeignKey("experiment_designs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    combination: Mapped[dict[str, Any]] = mapped_column(JSON_)  # {factor_name: level}
+
+    status: Mapped[str] = mapped_column(
+        CheckConstraint(
+            "status IN ('pending', 'running', 'completed', 'failed')",
+            name="valid_cell_status",
+        ),
+        nullable=False,
+        server_default=text("'pending'"),
+    )
+
+    experiment_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("experiments.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    result_summary: Mapped[dict[str, Any]] = mapped_column(JSON_)
+
+    created_at: Mapped[datetime] = mapped_column(UtcTimeStamp, server_default=func.now())
+
+    # Relationships
+    design: Mapped["ExperimentDesign"] = relationship(
+        "ExperimentDesign", back_populates="cells"
+    )
+
+    def __repr__(self) -> str:
+        return f"<ExperimentDesignCell design_id={self.design_id} status={self.status}>"
