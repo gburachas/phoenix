@@ -1,7 +1,7 @@
 """Add experiment design tables (Sprint 4)
 
 Revision ID: b2c3d4e5f6a7
-Revises: a1b2c3d4e5f6
+Revises: 4a7c92e1b3d5
 Create Date: 2026-03-16 12:00:00.000000
 
 """
@@ -16,7 +16,7 @@ from sqlalchemy.ext.compiler import compiles
 
 # revision identifiers, used by Alembic.
 revision: str = "b2c3d4e5f6a7"
-down_revision: Union[str, None] = "a1b2c3d4e5f6"
+down_revision: Union[str, None] = "4a7c92e1b3d5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

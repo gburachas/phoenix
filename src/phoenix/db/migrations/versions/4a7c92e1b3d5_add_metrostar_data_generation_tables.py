@@ -1,7 +1,7 @@
 """Add MetroStar data generation tables
 
-Revision ID: a1b2c3d4e5f6
-Revises: deb2c81c0bb2
+Revision ID: 4a7c92e1b3d5
+Revises: f1a6b2f0c9d5
 Create Date: 2026-03-02 12:00:00.000000
 
 """
@@ -15,8 +15,8 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.compiler import compiles
 
 # revision identifiers, used by Alembic.
-revision: str = "a1b2c3d4e5f6"
-down_revision: Union[str, None] = "deb2c81c0bb2"
+revision: str = "4a7c92e1b3d5"
+down_revision: Union[str, None] = "f1a6b2f0c9d5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
