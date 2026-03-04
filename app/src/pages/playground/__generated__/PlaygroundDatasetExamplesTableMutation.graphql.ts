@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<b95bb68ca4d151ec2f95878cdf4a6af4>>
+ * @generated SignedSource<<84b976f9ce5ad37229da7181a0648b86>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -21,11 +21,11 @@ export type ChatCompletionOverDatasetInput = {
   credentials?: ReadonlyArray<GenerativeCredentialInput> | null;
   datasetId: string;
   datasetVersionId?: string | null;
-  evaluators?: ReadonlyArray<PlaygroundEvaluatorInput>;
+  evaluators: ReadonlyArray<PlaygroundEvaluatorInput>;
   experimentDescription?: string | null;
   experimentMetadata?: any | null;
   experimentName?: string | null;
-  invocationParameters?: ReadonlyArray<InvocationParameterInput>;
+  invocationParameters: ReadonlyArray<InvocationParameterInput>;
   messages: ReadonlyArray<ChatCompletionMessageInput>;
   model: GenerativeModelInput;
   promptName?: string | null;
@@ -78,13 +78,13 @@ export type InvocationParameterInput = {
 export type PlaygroundEvaluatorInput = {
   description?: string | null;
   id: string;
-  inputMapping?: EvaluatorInputMappingInput;
+  inputMapping: EvaluatorInputMappingInput;
   name: string;
   outputConfigs?: ReadonlyArray<AnnotationConfigInput> | null;
 };
 export type EvaluatorInputMappingInput = {
-  literalMapping?: any;
-  pathMapping?: any;
+  literalMapping: any;
+  pathMapping: any;
 };
 export type AnnotationConfigInput = {
   categorical?: CategoricalAnnotationConfigInput | null;

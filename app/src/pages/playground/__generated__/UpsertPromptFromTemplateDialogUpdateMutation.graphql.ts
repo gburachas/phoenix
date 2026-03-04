@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<a7f6caa3cb9514d665861a80c5de7bc1>>
+ * @generated SignedSource<<5159316ae66db2ac8a727fb1a8dda4fb>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -19,13 +19,13 @@ export type CreateChatPromptVersionInput = {
 export type ChatPromptVersionInput = {
   customProviderId?: string | null;
   description?: string | null;
-  invocationParameters?: any;
+  invocationParameters: any;
   modelName: string;
   modelProvider: ModelProvider;
   responseFormat?: ResponseFormatInput | null;
   template: PromptChatTemplateInput;
   templateFormat: PromptTemplateFormat;
-  tools?: ReadonlyArray<ToolDefinitionInput>;
+  tools: ReadonlyArray<ToolDefinitionInput>;
 };
 export type PromptChatTemplateInput = {
   messages: ReadonlyArray<PromptMessageInput>;

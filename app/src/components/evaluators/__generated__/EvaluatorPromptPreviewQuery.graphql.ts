@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<04989ec3e6dd99bd6655a91a87f1ce21>>
+ * @generated SignedSource<<9bc875b72c2ceccc9a55d53b307f32a5>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -44,8 +44,8 @@ export type PromptTemplateOptions = {
   variables: any;
 };
 export type EvaluatorInputMappingInput = {
-  literalMapping?: any;
-  pathMapping?: any;
+  literalMapping: any;
+  pathMapping: any;
 };
 export type EvaluatorPromptPreviewQuery$variables = {
   inputMapping: EvaluatorInputMappingInput;

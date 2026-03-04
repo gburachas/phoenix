@@ -223,7 +223,7 @@ function DataGenerationContent() {
               id
               name
               status
-              corpusSourceType
+              corpusSource
               createdAt
               completedAt
             }
@@ -261,7 +261,7 @@ function DataGenerationContent() {
         id: edge.node.id,
         name: edge.node.name ?? "Untitled Job",
         status: edge.node.status,
-        corpusSource: edge.node.corpusSourceType ?? "unknown",
+        corpusSource: edge.node.corpusSource ?? "unknown",
         createdAt: edge.node.createdAt,
         completedAt: edge.node.completedAt ?? null,
       })),

@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<18e4439df0e1032301ccc6f9b5cc19f3>>
+ * @generated SignedSource<<1051c473b5a787750449aa18f9e1076c>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -25,13 +25,13 @@ export type CreateDatasetLLMEvaluatorInput = {
 export type ChatPromptVersionInput = {
   customProviderId?: string | null;
   description?: string | null;
-  invocationParameters?: any;
+  invocationParameters: any;
   modelName: string;
   modelProvider: ModelProvider;
   responseFormat?: ResponseFormatInput | null;
   template: PromptChatTemplateInput;
   templateFormat: PromptTemplateFormat;
-  tools?: ReadonlyArray<ToolDefinitionInput>;
+  tools: ReadonlyArray<ToolDefinitionInput>;
 };
 export type PromptChatTemplateInput = {
   messages: ReadonlyArray<PromptMessageInput>;
@@ -94,8 +94,8 @@ export type FreeformAnnotationConfigInput = {
   name: string;
 };
 export type EvaluatorInputMappingInput = {
-  literalMapping?: any;
-  pathMapping?: any;
+  literalMapping: any;
+  pathMapping: any;
 };
 export type CreateLLMDatasetEvaluatorSlideover_createLLMEvaluatorMutation$variables = {
   connectionIds: ReadonlyArray<string>;

@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<e6967894739f7f6a87be1024e1219cb3>>
+ * @generated SignedSource<<dba846cb53f2f08ad179bf15cd59b1ab>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -17,8 +17,8 @@ export type OptimizationDirection = "MAXIMIZE" | "MINIMIZE" | "NONE";
 export type PromptTemplateFormat = "F_STRING" | "MUSTACHE" | "NONE";
 export type ChatCompletionInput = {
   credentials?: ReadonlyArray<GenerativeCredentialInput> | null;
-  evaluators?: ReadonlyArray<PlaygroundEvaluatorInput>;
-  invocationParameters?: ReadonlyArray<InvocationParameterInput>;
+  evaluators: ReadonlyArray<PlaygroundEvaluatorInput>;
+  invocationParameters: ReadonlyArray<InvocationParameterInput>;
   messages: ReadonlyArray<ChatCompletionMessageInput>;
   model: GenerativeModelInput;
   promptName?: string | null;
@@ -72,13 +72,13 @@ export type PromptTemplateOptions = {
 export type PlaygroundEvaluatorInput = {
   description?: string | null;
   id: string;
-  inputMapping?: EvaluatorInputMappingInput;
+  inputMapping: EvaluatorInputMappingInput;
   name: string;
   outputConfigs?: ReadonlyArray<AnnotationConfigInput> | null;
 };
 export type EvaluatorInputMappingInput = {
-  literalMapping?: any;
-  pathMapping?: any;
+  literalMapping: any;
+  pathMapping: any;
 };
 export type AnnotationConfigInput = {
   categorical?: CategoricalAnnotationConfigInput | null;

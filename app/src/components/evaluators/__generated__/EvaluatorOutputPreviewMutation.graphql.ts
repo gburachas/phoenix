@@ -1,5 +1,5 @@
 /**
- * @generated SignedSource<<16fa2a50c57f5f59e3040b75ebe3db91>>
+ * @generated SignedSource<<96cc0c47167088fe6fc5e4f189a707d1>>
  * @lightSyntaxTransform
  * @nogrep
  */
@@ -19,7 +19,7 @@ export type EvaluatorPreviewsInput = {
 export type EvaluatorPreviewItemInput = {
   context: any;
   evaluator: EvaluatorPreviewInput;
-  inputMapping?: EvaluatorInputMappingInput;
+  inputMapping: EvaluatorInputMappingInput;
 };
 export type EvaluatorPreviewInput = {
   builtInEvaluatorId?: string | null;
@@ -34,13 +34,13 @@ export type InlineLLMEvaluatorInput = {
 export type ChatPromptVersionInput = {
   customProviderId?: string | null;
   description?: string | null;
-  invocationParameters?: any;
+  invocationParameters: any;
   modelName: string;
   modelProvider: ModelProvider;
   responseFormat?: ResponseFormatInput | null;
   template: PromptChatTemplateInput;
   templateFormat: PromptTemplateFormat;
-  tools?: ReadonlyArray<ToolDefinitionInput>;
+  tools: ReadonlyArray<ToolDefinitionInput>;
 };
 export type PromptChatTemplateInput = {
   messages: ReadonlyArray<PromptMessageInput>;
@@ -103,8 +103,8 @@ export type FreeformAnnotationConfigInput = {
   name: string;
 };
 export type EvaluatorInputMappingInput = {
-  literalMapping?: any;
-  pathMapping?: any;
+  literalMapping: any;
+  pathMapping: any;
 };
 export type GenerativeCredentialInput = {
   envVarName: string;
